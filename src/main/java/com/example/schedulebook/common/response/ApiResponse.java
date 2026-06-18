@@ -1,5 +1,7 @@
 package com.example.schedulebook.common.response;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.enums.SuccessEnum;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.time.LocalDateTime;
