@@ -3,7 +3,7 @@ language: ko-KR
 reviews:
   profile: assertive
   request_changes_workflow: true
-  high_level_summary_in_walkthrough: true
+  high_level_summary_in_walkthrough: false
   review_details: true
   fail_commit_status: true
   auto_apply_labels: true
