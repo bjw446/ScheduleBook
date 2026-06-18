@@ -1,6 +1,7 @@
 package com.example.schedulebook.common.security;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,7 +12,6 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -30,12 +30,6 @@ public class CustomAuthenticationEntryPoint
 
         response.setCharacterEncoding("UTF-8");
 
-        objectMapper.writeValue(response.getWriter(),
-                Map.of(
-                        "success", false,
-                        "data", null,
-                        "message", ErrorEnum.UNAUTHORIZED.getMessage()
-                )
-        );
+        objectMapper.writeValue(response.getWriter(), ApiResponse.fail(ErrorEnum.UNAUTHORIZED));
     }
 }

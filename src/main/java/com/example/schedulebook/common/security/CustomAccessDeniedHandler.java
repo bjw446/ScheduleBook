@@ -1,6 +1,7 @@
 package com.example.schedulebook.common.security;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,12 +31,6 @@ public class CustomAccessDeniedHandler
 
         response.setCharacterEncoding("UTF-8");
 
-        objectMapper.writeValue(response.getWriter(),
-                Map.of(
-                        "success", false,
-                        "data", null,
-                        "message", ErrorEnum.FORBIDDEN.getMessage()
-                )
-        );
+        objectMapper.writeValue(response.getWriter(), ApiResponse.fail(ErrorEnum.FORBIDDEN));
     }
 }
