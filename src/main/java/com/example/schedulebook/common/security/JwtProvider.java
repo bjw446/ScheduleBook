@@ -40,14 +40,15 @@ public class JwtProvider {
     }
 
     public Long extractUserId(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(signingKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
         try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
             return Long.parseLong(claims.getSubject());
+
         } catch (NumberFormatException e) {
             throw new BaseException(ErrorEnum.TOKEN_INVALID);
         }
