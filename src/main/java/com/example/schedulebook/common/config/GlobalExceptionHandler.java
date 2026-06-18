@@ -13,11 +13,11 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
-@RestController
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BaseException.class)
@@ -69,8 +69,8 @@ public class GlobalExceptionHandler {
 
         boolean uniqueConflict = rootMessage != null &&
                 (rootMessage.contains("duplicate key")
-                        || rootMessage.contains("Duplicate entry")
-                        || rootMessage.contains("UNIQUE"));
+                        || rootMessage.contains("duplicate entry")
+                        || rootMessage.contains("unique"));
 
         if (uniqueConflict) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.fail(ErrorEnum.DATA_CONFLICT));
