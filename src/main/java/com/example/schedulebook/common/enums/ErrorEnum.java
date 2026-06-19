@@ -22,6 +22,10 @@ public enum ErrorEnum {
     LOGIN_FAILED(401, "사용자 정보가 일치하지 않습니다."),
     USER_NOT_ACTIVE(400, "활성화된 사용자가 아닙니다."),
     USER_ALREADY_WITHDRAW(409, "이미 탈퇴한 회원 입니다."),
+    LOGIN_ID_ALREADY_EXISTS(400, "이미 사용중인 아이디 입니다."),
+    EMAIL_ALREADY_EXISTS(400, "이미 사용중인 이메일 입니다."),
+    NICKNAME_ALREADY_EXISTS(400, "이미 사용중인 닉네임 입니다."),
+    USER_NOT_FOUND(404, "존재하지 않는 사용자 입니다."),
 
     // Token
     TOKEN_EXPIRED(401, "만료된 토큰입니다."),
