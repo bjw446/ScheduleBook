@@ -1,6 +1,8 @@
 package com.example.schedulebook.domain.user.entity;
 
 import com.example.schedulebook.common.entity.DeleteEntity;
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -24,7 +26,7 @@ public class User extends DeleteEntity {
     private String loginId;
 
     @NotBlank
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 70)
     private String password;
 
     @NotBlank
@@ -58,10 +60,10 @@ public class User extends DeleteEntity {
     @Column(name = "last_login_date")
     private LocalDate lastLoginDate;
 
-    public static User create(String loginId, String password, String nickname, String email, String phoneNumber) {
+    public static User create(String loginId, String encodePassword, String nickname, String email, String phoneNumber) {
         User user = new User();
         user.loginId = loginId;
-        user.password = password;
+        user.password = encodePassword;
         user.nickname = nickname;
         user.email = email;
         user.phoneNumber = phoneNumber;
@@ -75,6 +77,7 @@ public class User extends DeleteEntity {
     }
 
     public void login() {
+        ensureActive();
         LocalDate today = LocalDate.now();
 
         if (lastLoginDate == null || !today.equals(lastLoginDate)) {
@@ -86,11 +89,13 @@ public class User extends DeleteEntity {
     }
 
     public void increaseScheduleCount() {
+        ensureActive();
         this.scheduleCount++;
         this.addExp(3);
     }
 
     public void addExp(int exp) {
+        ensureActive();
 
         if (exp <= 0) {
             return;
@@ -101,6 +106,9 @@ public class User extends DeleteEntity {
     }
 
     public void withdraw() {
+        if (this.userStatus == UserStatus.WITHDRAW) {
+            throw new BaseException(ErrorEnum.USER_ALREADY_WITHDRAW);
+        }
         this.userStatus = UserStatus.WITHDRAW;
         this.delete();
     }
@@ -110,6 +118,12 @@ public class User extends DeleteEntity {
 
             this.exp -= level * 100;
             this.level++;
+        }
+    }
+
+    private void ensureActive() {
+        if (this.userStatus != UserStatus.ACTIVE) {
+            throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
         }
     }
 }
