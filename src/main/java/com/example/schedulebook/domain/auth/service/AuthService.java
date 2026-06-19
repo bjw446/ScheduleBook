@@ -78,11 +78,11 @@ public class AuthService {
 
     private void validateUserStatus(User user) {
         if (user.getUserStatus() == UserStatus.WITHDRAW) {
-            throw new BaseException(ErrorEnum.USER_ALREADY_WITHDRAW);
+            throw new BaseException(ErrorEnum.LOGIN_FAILED);
         }
 
         if (user.getUserStatus() == UserStatus.DENIED) {
-            throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
+            throw new BaseException(ErrorEnum.LOGIN_FAILED);
         }
     }
 }
