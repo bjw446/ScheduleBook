@@ -60,10 +60,10 @@ public class User extends DeleteEntity {
     @Column(name = "last_login_date")
     private LocalDate lastLoginDate;
 
-    public static User create(String loginId, String encodePassword, String nickname, String email, String phoneNumber) {
+    public static User create(String loginId, String encodedPassword, String nickname, String email, String phoneNumber) {
         User user = new User();
         user.loginId = loginId;
-        user.password = encodePassword;
+        user.password = encodedPassword;
         user.nickname = nickname;
         user.email = email;
         user.phoneNumber = phoneNumber;
