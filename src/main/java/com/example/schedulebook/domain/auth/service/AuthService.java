@@ -54,12 +54,7 @@ public class AuthService {
 
         String accessToken = jwtProvider.generateAccessToken(user.getId());
 
-        return new LoginResponse(
-                accessToken,
-                user.getId(),
-                user.getNickname(),
-                user.getLevel()
-        );
+        return LoginResponse.from(user, accessToken);
     }
 
     private void validateDuplicateUser(SignupRequest request) {
