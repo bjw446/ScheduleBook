@@ -20,6 +20,8 @@ public enum ErrorEnum {
 
     // USER
     LOGIN_FAILED(401, "사용자 정보가 일치하지 않습니다."),
+    USER_NOT_ACTIVE(400, "활성화된 사용자가 아닙니다."),
+    USER_ALREADY_WITHDRAW(409, "이미 탈퇴한 회원 입니다."),
 
     // Token
     TOKEN_EXPIRED(401, "만료된 토큰입니다."),
