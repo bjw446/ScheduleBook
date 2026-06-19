@@ -11,7 +11,7 @@ public class SecurityUtils {
 
     public static Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof Long)) {
             throw new BaseException(ErrorEnum.UNAUTHORIZED);
         }
         return (Long) authentication.getPrincipal();
