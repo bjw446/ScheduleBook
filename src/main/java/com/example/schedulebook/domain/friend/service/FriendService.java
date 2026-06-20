@@ -96,6 +96,8 @@ public class FriendService {
     }
 
     public FriendResponse acceptFriend(Long friendId, Long currentUserId) {
+        validateUser(currentUserId);
+
         Friend friend = validateFriend(friendId);
 
         validateReceiver(friend, currentUserId);
@@ -108,6 +110,8 @@ public class FriendService {
     }
 
     public void rejectFriend(Long friendId, Long currentUserId) {
+        validateUser(currentUserId);
+
         Friend friend = validateFriend(friendId);
 
         validateReceiver(friend, currentUserId);
@@ -118,6 +122,8 @@ public class FriendService {
     }
 
     public void blockFriend(Long friendId, Long currentUserId) {
+        validateUser(currentUserId);
+
         Friend friend = validateFriend(friendId);
 
         validateFriendOwner(friend, currentUserId);
@@ -126,6 +132,8 @@ public class FriendService {
     }
 
     public void deleteFriend(Long friendId, Long currentUserId) {
+        validateUser(currentUserId);
+
         Friend friend = validateFriend(friendId);
 
         validateFriendOwner(friend, currentUserId);
