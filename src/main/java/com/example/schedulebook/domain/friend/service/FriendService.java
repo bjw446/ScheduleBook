@@ -39,9 +39,6 @@ public class FriendService {
         Friend existing = friendRepository.findRelation(requester.getId(), receiver.getId()).orElse(null);
 
         if (existing != null) {
-            if (!existing.canReRequest()) {
-                throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS);
-            }
 
             existing.reRequest();
 
