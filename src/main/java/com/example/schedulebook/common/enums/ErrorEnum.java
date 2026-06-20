@@ -49,7 +49,19 @@ public enum ErrorEnum {
     INVALID_SCHEDULE_TIME(400, "잘못된 일정 시간 입니다."),
     INVALID_SCHEDULE_MONTH(400, "유효하지 않은 월입니다. 1월부터 12월까지만 입력 가능합니다."),
     SCHEDULE_NOT_FOUND(404, "존재하지 않는 일정 입니다."),
-    SCHEDULE_FORBIDDEN(403, "해당 일정에 대한 접근 권한이 없습니다.");
+    SCHEDULE_FORBIDDEN(403, "해당 일정에 대한 접근 권한이 없습니다."),
+
+    // Friend
+    CANNOT_ADD_MYSELF(400, "자기 자신에게 친구 신청할 수 없습니다."),
+    FRIEND_ALREADY_EXISTS(400, "이미 친구인 회원 입니다."),
+    FRIEND_ALREADY_REQUEST(400, "이미 친구 요청한 회원 입니다."),
+    FRIEND_NOT_FOUND(404, "친구 요청을 찾을 수 없습니다."),
+    FRIEND_FORBIDDEN(403, "해당 친구 요청에 대한 권한이 없습니다."),
+    FRIEND_ALREADY_ACCEPTED(409, "이미 수락된 친구 요청입니다."),
+    FRIEND_ALREADY_REJECTED(409, "이미 거절된 친구 요청입니다."),
+    FRIEND_ALREADY_BLOCKED(409, "이미 차단된 회원 입니다."),
+    INVALID_FRIEND_STATUS(400, "잘못된 친구 요청 상태 입니다."),
+    FRIEND_ALREADY_DELETED(409, "이미 삭제한 친구 입니다.");
 
     private final int status;
     private final String message;

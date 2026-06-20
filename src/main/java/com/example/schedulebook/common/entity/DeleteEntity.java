@@ -13,4 +13,8 @@ public class DeleteEntity extends ModifyEntity{
     public void delete() {
         this.deletedAt = LocalDateTime.now();
     }
+
+    public void restore() {
+        this.deletedAt = null;
+    }
 }
