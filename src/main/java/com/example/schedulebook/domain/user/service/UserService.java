@@ -73,7 +73,7 @@ public class UserService {
             throw new BaseException(ErrorEnum.PASSWORD_NOT_MATCH);
         }
 
-        if (!passwordEncoder.matches(request.newPassword(), user.getPassword())) {
+        if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
             throw new BaseException(ErrorEnum.PASSWORD_SAME_AS_OLD);
         }
     }
