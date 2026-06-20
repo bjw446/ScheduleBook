@@ -63,6 +63,9 @@ public class User extends DeleteEntity {
     @Column(name = "last_login_date")
     private LocalDate lastLoginDate;
 
+    @Version
+    private Long version;
+
     public static User create(String loginId, String encodedPassword, String nickname, String email, String phoneNumber) {
         User user = new User();
         user.loginId = loginId;

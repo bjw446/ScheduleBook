@@ -11,6 +11,7 @@ import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,7 +51,12 @@ public class AuthService {
             throw new BaseException(ErrorEnum.LOGIN_FAILED);
         }
 
-        user.login();
+        try {
+            user.login();
+
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new BaseException(ErrorEnum.LOGIN_CONFLICT);
+        }
 
         String accessToken = jwtProvider.generateAccessToken(user.getId());
 
