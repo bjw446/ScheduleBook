@@ -39,6 +39,9 @@ public class FriendService {
         Friend existing = friendRepository.findRelation(requester.getId(), receiver.getId()).orElse(null);
 
         if (existing != null) {
+            if (existing.getFriendStatus() != FriendStatus.REJECTED && existing.getFriendStatus() != FriendStatus.DELETED) {
+                throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS);
+            }
 
             existing.reRequest(requester, receiver);
 
