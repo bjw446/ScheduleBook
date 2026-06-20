@@ -40,7 +40,7 @@ public class FriendService {
 
         if (existing != null) {
 
-            existing.reRequest();
+            existing.reRequest(requester, receiver);
 
             return FriendResponse.from(existing);
         }

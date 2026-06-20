@@ -89,11 +89,13 @@ public class Friend extends DeleteEntity {
         this.delete();
     }
 
-    public void reRequest() {
+    public void reRequest(User requester, User receiver) {
         if (this.friendStatus != FriendStatus.REJECTED && this.friendStatus != FriendStatus.DELETED) {
             throw new BaseException(ErrorEnum.INVALID_FRIEND_STATUS);
         }
 
+        this.requester = requester;
+        this.receiver = receiver;
         this.friendStatus = FriendStatus.PENDING;
         this.restore();
     }
