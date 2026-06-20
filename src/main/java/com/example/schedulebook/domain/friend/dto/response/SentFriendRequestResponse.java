@@ -4,14 +4,14 @@ import com.example.schedulebook.domain.friend.entity.Friend;
 
 public record SentFriendRequestResponse(
         Long friendId,
-        Long requesterId,
+        Long receiverId,
         String nickname
 ) {
     public static SentFriendRequestResponse from(Friend friend) {
         return new SentFriendRequestResponse(
                 friend.getId(),
-                friend.getRequester().getId(),
-                friend.getRequester().getNickname()
+                friend.getReceiver().getId(),
+                friend.getReceiver().getNickname()
         );
     }
 }

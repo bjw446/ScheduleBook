@@ -51,21 +51,25 @@ public class Friend extends DeleteEntity {
     }
 
     public void acceptFriend() {
-        if (this.friendStatus == FriendStatus.ACCEPTED) {
-            throw new BaseException(ErrorEnum.FRIEND_ALREADY_ACCEPTED);
+        if (this.friendStatus != FriendStatus.PENDING) {
+            throw new BaseException(ErrorEnum.INVALID_FRIEND_STATUS);
         }
 
         this.friendStatus = FriendStatus.ACCEPTED;
     }
 
     public void rejectFriend() {
-        if (this.friendStatus == FriendStatus.REJECTED) {
-            throw new BaseException(ErrorEnum.FRIEND_ALREADY_REJECTED);
+        if (this.friendStatus != FriendStatus.PENDING) {
+            throw new BaseException(ErrorEnum.INVALID_FRIEND_STATUS);
         }
         this.friendStatus = FriendStatus.REJECTED;
     }
 
     public void block() {
+        if (this.friendStatus == FriendStatus.DELETED) {
+            throw new BaseException(ErrorEnum.INVALID_FRIEND_STATUS);
+        }
+
         if (this.friendStatus == FriendStatus.BLOCKED) {
             throw new BaseException(ErrorEnum.FRIEND_ALREADY_BLOCKED);
         }
@@ -75,6 +79,10 @@ public class Friend extends DeleteEntity {
     public void deleteFriend() {
         if (this.friendStatus == FriendStatus.DELETED) {
             throw new BaseException(ErrorEnum.FRIEND_ALREADY_DELETED);
+        }
+
+        if (this.friendStatus != FriendStatus.ACCEPTED) {
+            throw new BaseException(ErrorEnum.INVALID_FRIEND_STATUS);
         }
 
         this.friendStatus = FriendStatus.DELETED;

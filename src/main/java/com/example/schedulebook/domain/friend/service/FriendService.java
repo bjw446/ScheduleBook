@@ -14,6 +14,7 @@ import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class FriendService {
     private final FriendRepository friendRepository;
     private final UserRepository userRepository;
@@ -48,6 +50,7 @@ public class FriendService {
             return FriendResponse.from(savedFriend);
 
         } catch (DataIntegrityViolationException e) {
+            log.warn("친구 요청 생성 중 중복 에러 발생 : {}", e.getMessage());
             throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS);
         }
     }
