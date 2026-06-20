@@ -36,10 +36,16 @@ public class FriendService {
 
         User receiver = validateUser(request.receiverId());
 
-        boolean exists = friendRepository.existsFriendRelation(requester.getId(), receiver.getId());
+        Friend existing = friendRepository.findRelation(requester.getId(), receiver.getId()).orElse(null);
 
-        if (exists) {
-            throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS);
+        if (existing != null) {
+            if (!existing.canReRequest()) {
+                throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS);
+            }
+
+            existing.reRequest();
+
+            return FriendResponse.from(existing);
         }
 
         try {
@@ -50,7 +56,8 @@ public class FriendService {
             return FriendResponse.from(savedFriend);
 
         } catch (DataIntegrityViolationException e) {
-            log.warn("친구 요청 생성 중 중복 에러 발생 : {}", e.getMessage());
+            log.warn("친구 요청 생성 중 중복 에러 발생 (requesterId={}, receiverId={}): {}",
+                    requester.getId(), receiver.getId(), e.getMessage(), e);
             throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS);
         }
     }
@@ -108,6 +115,14 @@ public class FriendService {
         validatePending(friend);
 
         friend.rejectFriend();
+    }
+
+    public void blockFriend(Long friendId, Long currentUserId) {
+        Friend friend = validateFriend(friendId);
+
+        validateFriendOwner(friend, currentUserId);
+
+        friend.block();
     }
 
     public void deleteFriend(Long friendId, Long currentUserId) {

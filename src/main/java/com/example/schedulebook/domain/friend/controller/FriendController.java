@@ -79,6 +79,17 @@ public class FriendController {
         );
     }
 
+    @PatchMapping("/{friendId}/block")
+    public ResponseEntity<ApiResponse<Void>> blockFriend(@PathVariable Long friendId) {
+        friendService.blockFriend(friendId, SecurityUtils.getCurrentUserId());
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.UPDATE_SUCCESS, null
+                )
+        );
+    }
+
     @DeleteMapping("/{friendId}")
     public ResponseEntity<ApiResponse<Void>> deleteFriend(@PathVariable Long friendId) {
         friendService.deleteFriend(friendId, SecurityUtils.getCurrentUserId());

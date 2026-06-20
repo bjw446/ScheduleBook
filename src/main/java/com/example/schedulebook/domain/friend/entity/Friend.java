@@ -66,7 +66,7 @@ public class Friend extends DeleteEntity {
     }
 
     public void block() {
-        if (this.friendStatus == FriendStatus.DELETED) {
+        if (this.friendStatus == FriendStatus.DELETED || this.friendStatus == FriendStatus.REJECTED) {
             throw new BaseException(ErrorEnum.INVALID_FRIEND_STATUS);
         }
 
@@ -87,5 +87,19 @@ public class Friend extends DeleteEntity {
 
         this.friendStatus = FriendStatus.DELETED;
         this.delete();
+    }
+
+    public void reRequest() {
+        if (this.friendStatus == FriendStatus.ACCEPTED || this.friendStatus == FriendStatus.PENDING) {
+            throw new BaseException(ErrorEnum.INVALID_FRIEND_STATUS);
+        }
+
+        this.friendStatus = FriendStatus.PENDING;
+        this.restore();
+    }
+
+    public boolean canReRequest() {
+        return friendStatus == FriendStatus.REJECTED
+                || friendStatus == FriendStatus.DELETED;
     }
 }
