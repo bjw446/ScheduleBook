@@ -27,7 +27,6 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
 
-
     public ScheduleSummaryResponse createSchedule(CreateScheduleRequest request, Long currentUserId) {
         User user = validateUser(currentUserId);
 
@@ -47,6 +46,7 @@ public class ScheduleService {
         return ScheduleSummaryResponse.from(savedSchedule);
     }
 
+    @Transactional(readOnly = true)
     public ScheduleDetailResponse findOneSchedule(Long scheduleId, Long currentUserId) {
         validateUser(currentUserId);
 
@@ -55,6 +55,7 @@ public class ScheduleService {
         return ScheduleDetailResponse.from(schedule);
     }
 
+    @Transactional(readOnly = true)
     public List<ScheduleSummaryResponse> findSchedulesByMonth(int year, int month, Long currentUserId) {
         validateUser(currentUserId);
 
@@ -71,6 +72,7 @@ public class ScheduleService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<ScheduleSummaryResponse> findSchedulesByDate(LocalDate date, Long currentUserId) {
         validateUser(currentUserId);
 
