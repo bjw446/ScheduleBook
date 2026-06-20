@@ -54,6 +54,8 @@ public class AuthService {
         try {
             user.login();
 
+            userRepository.saveAndFlush(user);
+
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new BaseException(ErrorEnum.LOGIN_CONFLICT);
         }
