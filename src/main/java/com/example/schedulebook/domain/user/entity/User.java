@@ -57,6 +57,9 @@ public class User extends DeleteEntity {
     @Column(nullable = false, length = 20, name = "user_status")
     private UserStatus userStatus;
 
+    @Column(nullable = false, name = "login_streak")
+    private int loginStreak;
+
     @Column(name = "last_login_date")
     private LocalDate lastLoginDate;
 
@@ -72,6 +75,7 @@ public class User extends DeleteEntity {
         user.loginCount = 0;
         user.scheduleCount = 0;
         user.userStatus = UserStatus.ACTIVE;
+        user.loginStreak = 0;
 
         return user;
     }
@@ -80,12 +84,27 @@ public class User extends DeleteEntity {
         ensureActive();
         LocalDate today = LocalDate.now();
 
-        if (lastLoginDate == null || !today.equals(lastLoginDate)) {
-
-            this.loginCount++;
-            this.addExp(1);
-            this.lastLoginDate = today;
+        if (today.equals(lastLoginDate)) {
+            return;
         }
+
+        if (lastLoginDate != null && lastLoginDate.plusDays(1).equals(today)) {
+
+            loginStreak++;
+
+        } else {
+
+            loginStreak = 1;
+        }
+
+        this.loginCount++;
+
+        this.addExp(1);
+
+        this.rewardLoginStreak();
+
+        this.lastLoginDate = today;
+
     }
 
     public void increaseScheduleCount() {
@@ -125,6 +144,36 @@ public class User extends DeleteEntity {
         if (this.userStatus != UserStatus.ACTIVE) {
             throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
         }
+    }
+
+    private void rewardLoginStreak() {
+        switch (loginStreak) {
+            case 7 -> addExp(10);
+
+            case 30 -> addExp(50);
+
+            case 50 -> addExp(70);
+
+            case 100 -> addExp(150);
+        }
+    }
+
+    public void updateProfile(String nickname, String email, String phoneNumber) {
+        ensureActive();
+
+        this.nickname = nickname;
+        this.email = email;
+        this.phoneNumber = phoneNumber;
+    }
+
+    public void updatePassword(String encodedPassword) {
+        ensureActive();
+
+        this.password = encodedPassword;
+    }
+
+    public int getRequiredExp() {
+        return level * 100;
     }
 }
 

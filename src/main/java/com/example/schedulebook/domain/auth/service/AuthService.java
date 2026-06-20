@@ -69,6 +69,10 @@ public class AuthService {
         if (userRepository.existsByNickname(request.nickname())) {
             throw new BaseException(ErrorEnum.NICKNAME_ALREADY_EXISTS);
         }
+
+        if (userRepository.existsByPhoneNumber(request.phoneNumber())) {
+            throw new BaseException(ErrorEnum.PHONE_NUMBER_ALREADY_EXISTS);
+        }
     }
 
     private void validateUserStatus(User user) {

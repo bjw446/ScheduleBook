@@ -25,7 +25,10 @@ public enum ErrorEnum {
     LOGIN_ID_ALREADY_EXISTS(400, "이미 사용중인 아이디 입니다."),
     EMAIL_ALREADY_EXISTS(400, "이미 사용중인 이메일 입니다."),
     NICKNAME_ALREADY_EXISTS(400, "이미 사용중인 닉네임 입니다."),
+    PHONE_NUMBER_ALREADY_EXISTS(400, "이미 사용중인 핸드폰 번호 입니다."),
     USER_NOT_FOUND(404, "존재하지 않는 사용자 입니다."),
+    PASSWORD_NOT_MATCH(401, "비밀번호가 일치하지 않습니다."),
+    PASSWORD_SAME_AS_OLD(400, "기존 비밀번호와 동일하게 변경할 수 없습니다."),
 
     // Token
     TOKEN_EXPIRED(401, "만료된 토큰입니다."),
