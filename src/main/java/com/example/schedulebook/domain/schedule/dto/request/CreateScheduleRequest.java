@@ -13,7 +13,7 @@ public record CreateScheduleRequest(
         String title,
 
         @NotBlank(message = "일정 내용은 필수 입력사항 입니다.")
-        @Size(max = 1000, message = "일정 제목은 최대 1000자 까지 입력 가능합니다.")
+        @Size(max = 1000, message = "일정 내용은 최대 1000자 까지 입력 가능합니다.")
         String content,
 
         @NotNull(message = "일정 날짜는 필수 입력사항 입니다.")
@@ -21,10 +21,6 @@ public record CreateScheduleRequest(
 
         LocalTime startTime,
 
-        LocalTime endTime,
-
-        boolean startTimeSpecified,
-
-        boolean endTimeSpecified
+        LocalTime endTime
 ) {
 }

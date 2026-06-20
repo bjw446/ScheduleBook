@@ -42,8 +42,8 @@ public enum ErrorEnum {
     NOTIFICATION_NOT_FOUND(404, "알림이 존재하지 않습니다"),
 
     // Schedule
-    INVALID_SCHEDULE_TIME(401, "잘못된 일정 시간 입니다."),
-    INVALID_SCHEDULE_MONTH(401, "유효하지 않은 월입니다. 1월부터 12월까지만 입력 가능합니다."),
+    INVALID_SCHEDULE_TIME(400, "잘못된 일정 시간 입니다."),
+    INVALID_SCHEDULE_MONTH(400, "유효하지 않은 월입니다. 1월부터 12월까지만 입력 가능합니다."),
     SCHEDULE_NOT_FOUND(404, "존재하지 않는 일정 입니다."),
     SCHEDULE_FORBIDDEN(403, "해당 일정에 대한 접근 권한이 없습니다.");
 
