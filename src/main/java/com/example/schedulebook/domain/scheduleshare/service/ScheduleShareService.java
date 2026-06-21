@@ -119,7 +119,7 @@ public class ScheduleShareService {
     public void cancelShare(Long shareId, Long currentUserId) {
         validateUser(currentUserId);
 
-        ScheduleShare scheduleShare = validateScheduleShareForUpdate(shareId);
+        ScheduleShare scheduleShare = validateActiveScheduleShare(shareId);
 
         validateScheduleOwner(scheduleShare.getSchedule(), currentUserId);
 
@@ -182,10 +182,16 @@ public class ScheduleShareService {
         }
     }
 
-    private ScheduleShare validateScheduleShareForUpdate(Long shareId) {
-        return scheduleShareRepository.findByIdWithSchedule(shareId).orElseThrow(
+    private ScheduleShare validateActiveScheduleShare(Long shareId) {
+        ScheduleShare scheduleShare = scheduleShareRepository.findByIdWithSchedule(shareId).orElseThrow(
                 () -> new BaseException(ErrorEnum.SCHEDULE_SHARE_NOT_FOUND)
         );
+
+        if (scheduleShare.getScheduleShareStatus() != ScheduleShareStatus.ACTIVE) {
+            throw new BaseException(ErrorEnum.INVALID_SCHEDULE_SHARE_STATUS);
+        }
+
+        return scheduleShare;
     }
 
     private void validateShareOwner(ScheduleShare scheduleShare, Long currentUserId) {
