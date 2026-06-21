@@ -82,7 +82,7 @@ public class Schedule extends DeleteEntity {
             LocalTime startTime,
             LocalTime endTime
     ) {
-        LocalTime newStartTime = startTime != null ? startTime : LocalTime.MIN;
+        LocalTime newStartTime = startTime != null ? startTime.withMinute(0).withNano(0) : LocalTime.MIN;
 
         boolean reminderChanged = !Objects.equals(this.scheduleDate, scheduleDate) || !Objects.equals(this.startTime, newStartTime);
 
