@@ -64,7 +64,7 @@ public class FriendService {
     public List<FriendSummaryResponse> findAllFriends(Long currentUserId) {
         validateUser(currentUserId);
 
-        List<Friend> friends = friendRepository.findAcceptedFriends(currentUserId);
+        List<Friend> friends = friendRepository.findAcceptedFriends(currentUserId, FriendStatus.ACCEPTED);
 
         return friends.stream()
                 .map(friend -> FriendSummaryResponse.from(friend.getId(), extractFriendUser(friend, currentUserId)))
@@ -75,7 +75,7 @@ public class FriendService {
     public List<ReceivedFriendRequestResponse> findReceivedRequests(Long currentUserId) {
         validateUser(currentUserId);
 
-        List<Friend> friends = friendRepository.findReceivedRequests(currentUserId);
+        List<Friend> friends = friendRepository.findReceivedRequests(currentUserId, FriendStatus.PENDING);
 
         return friends.stream()
                 .map(ReceivedFriendRequestResponse::from)
@@ -86,7 +86,7 @@ public class FriendService {
     public List<SentFriendRequestResponse> findSentRequests(Long currentUserId) {
         validateUser(currentUserId);
 
-        List<Friend> friends = friendRepository.findSentRequests(currentUserId);
+        List<Friend> friends = friendRepository.findSentRequests(currentUserId, FriendStatus.PENDING);
 
         return friends.stream()
                 .map(SentFriendRequestResponse::from)

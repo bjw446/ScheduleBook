@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.scheduleshare.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
@@ -75,7 +76,7 @@ public class ScheduleShareService {
     public List<SharedScheduleResponse> findAllSharedSchedules(Long currentUserId) {
         validateUser(currentUserId);
 
-        List<ScheduleShare> scheduleShares = scheduleShareRepository.findSharedSchedules(currentUserId);
+        List<ScheduleShare> scheduleShares = scheduleShareRepository.findSharedSchedules(currentUserId, ScheduleShareStatus.ACTIVE);
 
         return scheduleShares.stream()
                 .map(SharedScheduleResponse::from)
@@ -94,10 +95,10 @@ public class ScheduleShareService {
     }
 
     @Transactional(readOnly = true)
-    public List<OwnedShareResponse> findAllOwnedShares(Long currenUserId) {
-        validateUser(currenUserId);
+    public List<OwnedShareResponse> findAllOwnedShares(Long currentUserId) {
+        validateUser(currentUserId);
 
-        List<ScheduleShare> scheduleShares = scheduleShareRepository.findOwnedShares(currenUserId);
+        List<ScheduleShare> scheduleShares = scheduleShareRepository.findOwnedShares(currentUserId, ScheduleShareStatus.ACTIVE);
 
         return scheduleShares.stream()
                 .map(OwnedShareResponse::from)
@@ -156,7 +157,7 @@ public class ScheduleShareService {
     }
 
     private void validateFriendRelation(Long currentUserId, Long friendId) {
-        boolean exists = friendRepository.existsAcceptedFriend(currentUserId, friendId);
+        boolean exists = friendRepository.existsAcceptedFriend(currentUserId, friendId, FriendStatus.ACCEPTED);
 
         if (!exists) {
             throw new BaseException(ErrorEnum.FRIEND_NOT_FOUND);
@@ -170,7 +171,7 @@ public class ScheduleShareService {
     }
 
     private ScheduleShare validateScheduleShare(Long shareId) {
-        return scheduleShareRepository.findActiveShareDetail(shareId).orElseThrow(
+        return scheduleShareRepository.findActiveShareDetail(shareId, ScheduleShareStatus.ACTIVE).orElseThrow(
                 () -> new BaseException(ErrorEnum.SCHEDULE_SHARE_NOT_FOUND)
         );
     }
@@ -194,7 +195,7 @@ public class ScheduleShareService {
     }
 
     private ScheduleShare validateOwnedShare(Long shareId) {
-        return scheduleShareRepository.findOwnedShareDetail(shareId).orElseThrow(
+        return scheduleShareRepository.findOwnedShareDetail(shareId, ScheduleShareStatus.ACTIVE).orElseThrow(
                 () -> new BaseException(ErrorEnum.SCHEDULE_SHARE_NOT_FOUND)
         );
     }
