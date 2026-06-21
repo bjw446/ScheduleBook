@@ -10,6 +10,9 @@ import com.example.schedulebook.domain.friend.dto.response.SentFriendRequestResp
 import com.example.schedulebook.domain.friend.entity.Friend;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
+import com.example.schedulebook.domain.notification.consts.NotificationConstants;
+import com.example.schedulebook.domain.notification.enums.NotificationType;
+import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
@@ -28,6 +31,7 @@ import java.util.List;
 public class FriendService {
     private final FriendRepository friendRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public FriendResponse requestFriend(FriendRequest request, Long currentUserId) {
         validateMyself(request.receiverId(), currentUserId);
@@ -43,6 +47,14 @@ public class FriendService {
 
             existing.reRequest(requester, receiver);
 
+            notificationService.createNotification(
+                    receiver.getId(),
+                    NotificationType.FRIEND_REQUEST,
+                    NotificationConstants.FRIEND_REQUEST,
+                    requester.getNickname() + NotificationConstants.FRIEND_REQUEST_MESSAGE,
+                    existing.getId()
+            );
+
             return FriendResponse.from(existing);
         }
 
@@ -50,6 +62,14 @@ public class FriendService {
             Friend friend = Friend.request(requester, receiver);
 
             Friend savedFriend = friendRepository.save(friend);
+
+            notificationService.createNotification(
+                    receiver.getId(),
+                    NotificationType.FRIEND_REQUEST,
+                    NotificationConstants.FRIEND_REQUEST,
+                    requester.getNickname() + NotificationConstants.FRIEND_REQUEST_MESSAGE,
+                    savedFriend.getId()
+            );
 
             return FriendResponse.from(savedFriend);
 
@@ -103,6 +123,14 @@ public class FriendService {
         validatePending(friend);
 
         friend.acceptFriend();
+
+        notificationService.createNotification(
+                friend.getRequester().getId(),
+                NotificationType.FRIEND_ACCEPTED,
+                NotificationConstants.FRIEND_ACCEPTED,
+                friend.getReceiver().getNickname() + NotificationConstants.FRIEND_ACCEPTED_MESSAGE,
+                friend.getId()
+        );
 
         return FriendResponse.from(friend);
     }

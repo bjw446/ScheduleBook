@@ -4,6 +4,9 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
+import com.example.schedulebook.domain.notification.consts.NotificationConstants;
+import com.example.schedulebook.domain.notification.enums.NotificationType;
+import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.scheduleshare.dto.request.ScheduleShareRequest;
@@ -29,6 +32,7 @@ public class ScheduleShareService {
     private final ScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
     private final FriendRepository friendRepository;
+    private final NotificationService notificationService;
 
     public ScheduleShareResponse shareSchedule(Long scheduleId, ScheduleShareRequest request, Long currentUserId) {
         validateUser(currentUserId);
@@ -50,6 +54,14 @@ public class ScheduleShareService {
 
             existing.reShare();
 
+            notificationService.createNotification(
+                    friendUser.getId(),
+                    NotificationType.SCHEDULE_SHARED,
+                    NotificationConstants.SCHEDULE_SHARED,
+                    schedule.getUser().getNickname() + NotificationConstants.SCHEDULE_SHARED_MESSAGE,
+                    existing.getId()
+            );
+
             return ScheduleShareResponse.from(existing);
         }
 
@@ -57,6 +69,14 @@ public class ScheduleShareService {
             ScheduleShare scheduleShare = ScheduleShare.create(schedule, friendUser);
 
             ScheduleShare savedScheduleShare = scheduleShareRepository.save(scheduleShare);
+
+            notificationService.createNotification(
+                    friendUser.getId(),
+                    NotificationType.SCHEDULE_SHARED,
+                    NotificationConstants.SCHEDULE_SHARED,
+                    schedule.getUser().getNickname() + NotificationConstants.SCHEDULE_SHARED_MESSAGE,
+                    savedScheduleShare.getId()
+            );
 
             return ScheduleShareResponse.from(savedScheduleShare);
 
