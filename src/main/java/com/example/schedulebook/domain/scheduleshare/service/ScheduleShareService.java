@@ -88,6 +88,14 @@ public class ScheduleShareService {
 
             alreadyCreated.reShare();
 
+            notificationService.createNotification(
+                    friendUser.getId(),
+                    NotificationType.SCHEDULE_SHARED,
+                    NotificationMessages.SCHEDULE_SHARED,
+                    schedule.getUser().getNickname() + NotificationMessages.SCHEDULE_SHARED_MESSAGE,
+                    alreadyCreated.getId()
+            );
+
             return ScheduleShareResponse.from(alreadyCreated);
         }
     }
