@@ -4,7 +4,6 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
-import com.example.schedulebook.domain.notification.consts.NotificationMessages;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
@@ -54,13 +53,7 @@ public class ScheduleShareService {
 
             existing.reShare();
 
-            notificationService.createNotification(
-                    friendUser.getId(),
-                    NotificationType.SCHEDULE_SHARED,
-                    NotificationMessages.SCHEDULE_SHARED,
-                    schedule.getUser().getNickname() + NotificationMessages.SCHEDULE_SHARED_MESSAGE,
-                    existing.getId()
-            );
+            createScheduleSharedNotification(friendUser.getId(), schedule.getUser().getNickname(), existing.getId());
 
             return ScheduleShareResponse.from(existing);
         }
@@ -70,13 +63,7 @@ public class ScheduleShareService {
 
             ScheduleShare savedScheduleShare = scheduleShareRepository.save(scheduleShare);
 
-            notificationService.createNotification(
-                    friendUser.getId(),
-                    NotificationType.SCHEDULE_SHARED,
-                    NotificationMessages.SCHEDULE_SHARED,
-                    schedule.getUser().getNickname() + NotificationMessages.SCHEDULE_SHARED_MESSAGE,
-                    savedScheduleShare.getId()
-            );
+            createScheduleSharedNotification(friendUser.getId(), schedule.getUser().getNickname(), savedScheduleShare.getId());
 
             return ScheduleShareResponse.from(savedScheduleShare);
 
@@ -88,13 +75,7 @@ public class ScheduleShareService {
 
             alreadyCreated.reShare();
 
-            notificationService.createNotification(
-                    friendUser.getId(),
-                    NotificationType.SCHEDULE_SHARED,
-                    NotificationMessages.SCHEDULE_SHARED,
-                    schedule.getUser().getNickname() + NotificationMessages.SCHEDULE_SHARED_MESSAGE,
-                    alreadyCreated.getId()
-            );
+            createScheduleSharedNotification(friendUser.getId(), schedule.getUser().getNickname(), alreadyCreated.getId());
 
             return ScheduleShareResponse.from(alreadyCreated);
         }
@@ -231,6 +212,14 @@ public class ScheduleShareService {
     private ScheduleShare validateOwnedShare(Long shareId) {
         return scheduleShareRepository.findOwnedShareDetail(shareId, ScheduleShareStatus.ACTIVE).orElseThrow(
                 () -> new BaseException(ErrorEnum.SCHEDULE_SHARE_NOT_FOUND)
+        );
+    }
+
+    private void createScheduleSharedNotification(Long receiverId, String ownerNickname, Long sharedId) {
+        notificationService.createScheduleSharedNotification(
+                receiverId,
+                ownerNickname,
+                sharedId
         );
     }
 }

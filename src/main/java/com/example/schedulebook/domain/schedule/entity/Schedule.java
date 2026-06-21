@@ -11,7 +11,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Objects;
 
 @Getter
 @Entity
@@ -49,6 +51,9 @@ public class Schedule extends DeleteEntity {
     @Column(nullable = false, name = "end_time_specified")
     private boolean endTimeSpecified;
 
+    @Column(nullable = false, name = "reminder_sent")
+    private boolean reminderSent;
+
     public static Schedule create(
             User user,
             String title,
@@ -63,6 +68,7 @@ public class Schedule extends DeleteEntity {
         schedule.title = title;
         schedule.content = content;
         schedule.scheduleDate = scheduleDate;
+        schedule.reminderSent = false;
 
         schedule.applyTime(startTime, endTime);
 
@@ -76,11 +82,33 @@ public class Schedule extends DeleteEntity {
             LocalTime startTime,
             LocalTime endTime
     ) {
+        LocalTime newStartTime = startTime != null ? startTime : LocalTime.MIN;
+
+        boolean reminderChanged = !Objects.equals(this.scheduleDate, scheduleDate) || !Objects.equals(this.startTime, newStartTime);
+
         this.title = title;
         this.content = content;
         this.scheduleDate = scheduleDate;
 
         applyTime(startTime, endTime);
+
+        handleReminderReset(reminderChanged);
+    }
+
+    public void markReminderSent() {
+        this.reminderSent = true;
+    }
+
+    public void handleReminderReset(boolean reminderChanged) {
+        if (!reminderChanged) {
+            return;
+        }
+
+        LocalDateTime reminderTime = LocalDateTime.of(this.scheduleDate, this.startTime);
+
+        if (reminderTime.isAfter(LocalDateTime.now())) {
+            this.reminderSent = false;
+        }
     }
 
     private void validateTime() {
