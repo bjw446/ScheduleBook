@@ -44,6 +44,8 @@ public enum ErrorEnum {
 
     // Notification
     NOTIFICATION_NOT_FOUND(404, "알림이 존재하지 않습니다"),
+    NOTIFICATION_ALREADY_READ(409, "이미 읽은 알림입니다."),
+    NOTIFICATION_FORBIDDEN(403, "해당 알림에 대한 접근 권한이 없습니다."),
 
     // Schedule
     INVALID_SCHEDULE_TIME(400, "잘못된 일정 시간 입니다."),
@@ -69,7 +71,6 @@ public enum ErrorEnum {
     SCHEDULE_SHARE_ALREADY_DELETED(409, "이미 삭제한 일정 공유 입니다."),
     SCHEDULE_SHARE_NOT_FOUND(404, "존재하지 않는 일정 공유 입니다."),
     INVALID_SCHEDULE_SHARE_STATUS(400, "잘못된 일정 공유 상태 입니다.");
-
 
     private final int status;
     private final String message;
