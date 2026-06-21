@@ -7,13 +7,11 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
-    List<Schedule> findAllByUserId(Long userId);
-
     List<Schedule> findAllByUserIdAndScheduleDateBetween(
             Long userId,
             LocalDate startDate,
             LocalDate endDate
     );
 
-    List<Schedule> findByUserIdAndScheduleDate(Long userId, LocalDate scheduleDate);
+    List<Schedule> findByUser_IdAndScheduleDate(Long userId, LocalDate scheduleDate);
 }

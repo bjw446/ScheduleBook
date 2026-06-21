@@ -1,11 +1,11 @@
-package com.example.schedulebook.domain.friend.dto.request;
+package com.example.schedulebook.domain.scheduleshare.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-public record FriendRequest(
+public record ScheduleShareRequest(
         @NotNull
         @Positive
-        Long receiverId
+        Long friendId
 ) {
 }
