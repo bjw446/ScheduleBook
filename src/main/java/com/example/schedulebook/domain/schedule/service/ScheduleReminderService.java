@@ -22,12 +22,11 @@ public class ScheduleReminderService {
     @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void sendScheduleReminders() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
 
         List<Schedule> schedules = scheduleRepository.findSchedulesForReminder(
                 now.toLocalDate(),
-                now.toLocalTime().withSecond(0),
-                now.toLocalTime().withSecond(0).plusMinutes(1)
+                now.toLocalTime()
         );
 
         for (Schedule schedule : schedules) {

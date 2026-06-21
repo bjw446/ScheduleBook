@@ -19,9 +19,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findByUser_IdAndScheduleDate(Long userId, LocalDate scheduleDate);
 
     @Query("SELECT s FROM Schedule s JOIN FETCH s.user WHERE s.scheduleDate = :date " +
-            "AND s.startTime >= :from AND s.startTime < :to AND s.reminderSent = false")
-    List<Schedule> findSchedulesForReminder(@Param("date") LocalDate date,
-                                            @Param("from") LocalTime from,
-                                            @Param("to") LocalTime to
-    );
+            "AND s.startTime = :time AND s.reminderSent = false")
+    List<Schedule> findSchedulesForReminder(@Param("date") LocalDate date, @Param("time") LocalTime time);
 }
