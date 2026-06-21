@@ -31,7 +31,7 @@ public class ScheduleService {
         User user = validateUser(currentUserId);
 
         Schedule schedule = Schedule.create(
-                currentUserId,
+                user,
                 request.title(),
                 request.content(),
                 request.scheduleDate(),
@@ -76,7 +76,7 @@ public class ScheduleService {
     public List<ScheduleSummaryResponse> findSchedulesByDate(LocalDate date, Long currentUserId) {
         validateUser(currentUserId);
 
-        List<Schedule> schedules = scheduleRepository.findByUserIdAndScheduleDate(currentUserId, date);
+        List<Schedule> schedules = scheduleRepository.findByUser_IdAndScheduleDate(currentUserId, date);
 
         return schedules.stream()
                 .map(ScheduleSummaryResponse::from)
@@ -124,7 +124,7 @@ public class ScheduleService {
                 () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
         );
 
-        if (!schedule.getUserId().equals(currentUserId)) {
+        if (!schedule.getUser().getId().equals(currentUserId)) {
             throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
         }
 

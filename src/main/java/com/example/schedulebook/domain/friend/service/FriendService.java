@@ -39,9 +39,7 @@ public class FriendService {
         Friend existing = friendRepository.findRelation(requester.getId(), receiver.getId()).orElse(null);
 
         if (existing != null) {
-            if (existing.getFriendStatus() != FriendStatus.REJECTED && existing.getFriendStatus() != FriendStatus.DELETED) {
-                throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS);
-            }
+            validateFriendStatus(existing);
 
             existing.reRequest(requester, receiver);
 
@@ -156,11 +154,9 @@ public class FriendService {
     }
 
     private Friend validateFriend(Long friendId) {
-        Friend friend = friendRepository.findByIdWithUsers(friendId).orElseThrow(
+        return friendRepository.findByIdWithUsers(friendId).orElseThrow(
                 () -> new BaseException(ErrorEnum.FRIEND_NOT_FOUND)
         );
-
-        return friend;
     }
 
     private void validateReceiver(Friend friend, Long currentUserId) {
@@ -197,5 +193,11 @@ public class FriendService {
 
     private User extractFriendUser(Friend friend, Long currentUserId) {
         return friend.getRequester().getId().equals(currentUserId) ? friend.getReceiver() : friend.getRequester();
+    }
+
+    private void validateFriendStatus(Friend friend) {
+        if (friend.getFriendStatus() != FriendStatus.REJECTED && friend.getFriendStatus() != FriendStatus.DELETED) {
+            throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS);
+        }
     }
 }

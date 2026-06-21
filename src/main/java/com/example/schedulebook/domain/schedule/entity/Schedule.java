@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.schedule.entity;
 import com.example.schedulebook.common.entity.DeleteEntity;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.user.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AccessLevel;
@@ -21,8 +22,9 @@ public class Schedule extends DeleteEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @NotBlank
     @Column(nullable = false, length = 50)
@@ -48,7 +50,7 @@ public class Schedule extends DeleteEntity {
     private boolean endTimeSpecified;
 
     public static Schedule create(
-            Long userId,
+            User user,
             String title,
             String content,
             LocalDate scheduleDate,
@@ -57,7 +59,7 @@ public class Schedule extends DeleteEntity {
     ) {
         Schedule schedule = new Schedule();
 
-        schedule.userId = userId;
+        schedule.user = user;
         schedule.title = title;
         schedule.content = content;
         schedule.scheduleDate = scheduleDate;

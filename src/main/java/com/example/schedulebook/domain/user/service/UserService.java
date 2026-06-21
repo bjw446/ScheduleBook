@@ -7,7 +7,6 @@ import com.example.schedulebook.domain.user.dto.request.UpdateUserRequest;
 import com.example.schedulebook.domain.user.dto.response.UpdateUserResponse;
 import com.example.schedulebook.domain.user.dto.response.UserResponse;
 import com.example.schedulebook.domain.user.entity.User;
-import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -47,11 +46,9 @@ public class UserService {
     }
 
     private User validateUser(Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(
+        return userRepository.findById(userId).orElseThrow(
                 () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
         );
-
-        return user;
     }
 
     private void validateDuplicate(UpdateUserRequest request, User user) {

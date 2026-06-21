@@ -61,7 +61,15 @@ public enum ErrorEnum {
     FRIEND_ALREADY_REJECTED(409, "이미 거절된 친구 요청입니다."),
     FRIEND_ALREADY_BLOCKED(409, "이미 차단된 회원 입니다."),
     INVALID_FRIEND_STATUS(400, "잘못된 친구 요청 상태 입니다."),
-    FRIEND_ALREADY_DELETED(409, "이미 삭제한 친구 입니다.");
+    FRIEND_ALREADY_DELETED(409, "이미 삭제한 친구 입니다."),
+
+    // ScheduleShare
+    CANNOT_SHARE_MYSELF(400, "자기 자신에게 일정 공유를 할 수 없습니다."),
+    SCHEDULE_ALREADY_SHARED(400, "이미 공유한 일정 입니다."),
+    SCHEDULE_SHARE_ALREADY_DELETED(409, "이미 삭제한 일정 공유 입니다."),
+    SCHEDULE_SHARE_NOT_FOUND(404, "존재하지 않는 일정 공유 입니다."),
+    INVALID_SCHEDULE_SHARE_STATUS(400, "잘못된 일정 공유 상태 입니다.");
+
 
     private final int status;
     private final String message;
