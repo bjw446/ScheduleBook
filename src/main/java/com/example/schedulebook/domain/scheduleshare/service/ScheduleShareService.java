@@ -4,7 +4,7 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
-import com.example.schedulebook.domain.notification.consts.NotificationConstants;
+import com.example.schedulebook.domain.notification.consts.NotificationMessages;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
@@ -57,8 +57,8 @@ public class ScheduleShareService {
             notificationService.createNotification(
                     friendUser.getId(),
                     NotificationType.SCHEDULE_SHARED,
-                    NotificationConstants.SCHEDULE_SHARED,
-                    schedule.getUser().getNickname() + NotificationConstants.SCHEDULE_SHARED_MESSAGE,
+                    NotificationMessages.SCHEDULE_SHARED,
+                    schedule.getUser().getNickname() + NotificationMessages.SCHEDULE_SHARED_MESSAGE,
                     existing.getId()
             );
 
@@ -73,8 +73,8 @@ public class ScheduleShareService {
             notificationService.createNotification(
                     friendUser.getId(),
                     NotificationType.SCHEDULE_SHARED,
-                    NotificationConstants.SCHEDULE_SHARED,
-                    schedule.getUser().getNickname() + NotificationConstants.SCHEDULE_SHARED_MESSAGE,
+                    NotificationMessages.SCHEDULE_SHARED,
+                    schedule.getUser().getNickname() + NotificationMessages.SCHEDULE_SHARED_MESSAGE,
                     savedScheduleShare.getId()
             );
 

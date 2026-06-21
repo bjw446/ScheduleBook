@@ -10,7 +10,7 @@ import com.example.schedulebook.domain.friend.dto.response.SentFriendRequestResp
 import com.example.schedulebook.domain.friend.entity.Friend;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
-import com.example.schedulebook.domain.notification.consts.NotificationConstants;
+import com.example.schedulebook.domain.notification.consts.NotificationMessages;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.user.entity.User;
@@ -50,8 +50,8 @@ public class FriendService {
             notificationService.createNotification(
                     receiver.getId(),
                     NotificationType.FRIEND_REQUEST,
-                    NotificationConstants.FRIEND_REQUEST,
-                    requester.getNickname() + NotificationConstants.FRIEND_REQUEST_MESSAGE,
+                    NotificationMessages.FRIEND_REQUEST,
+                    requester.getNickname() + NotificationMessages.FRIEND_REQUEST_MESSAGE,
                     existing.getId()
             );
 
@@ -66,8 +66,8 @@ public class FriendService {
             notificationService.createNotification(
                     receiver.getId(),
                     NotificationType.FRIEND_REQUEST,
-                    NotificationConstants.FRIEND_REQUEST,
-                    requester.getNickname() + NotificationConstants.FRIEND_REQUEST_MESSAGE,
+                    NotificationMessages.FRIEND_REQUEST,
+                    requester.getNickname() + NotificationMessages.FRIEND_REQUEST_MESSAGE,
                     savedFriend.getId()
             );
 
@@ -127,8 +127,8 @@ public class FriendService {
         notificationService.createNotification(
                 friend.getRequester().getId(),
                 NotificationType.FRIEND_ACCEPTED,
-                NotificationConstants.FRIEND_ACCEPTED,
-                friend.getReceiver().getNickname() + NotificationConstants.FRIEND_ACCEPTED_MESSAGE,
+                NotificationMessages.FRIEND_ACCEPTED,
+                friend.getReceiver().getNickname() + NotificationMessages.FRIEND_ACCEPTED_MESSAGE,
                 friend.getId()
         );
 

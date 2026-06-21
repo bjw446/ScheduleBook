@@ -1,7 +1,7 @@
 package com.example.schedulebook.domain.notification.consts;
 
-public class NotificationConstants {
-    private NotificationConstants() {}
+public class NotificationMessages {
+    private NotificationMessages() {}
 
     public static final String FRIEND_REQUEST = "친구 요청";
     public static final String FRIEND_ACCEPTED = "친구 수락";
