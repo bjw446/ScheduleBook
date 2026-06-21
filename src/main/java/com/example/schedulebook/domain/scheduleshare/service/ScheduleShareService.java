@@ -14,6 +14,7 @@ import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,8 @@ public class ScheduleShareService {
     private final FriendRepository friendRepository;
 
     public ScheduleShareResponse shareSchedule(Long scheduleId, ScheduleShareRequest request, Long currentUserId) {
+        validateUser(currentUserId);
+
         Schedule schedule = validateSchedule(scheduleId);
 
         validateScheduleOwner(schedule, currentUserId);
@@ -49,11 +52,23 @@ public class ScheduleShareService {
             return ScheduleShareResponse.from(existing);
         }
 
-        ScheduleShare scheduleShare = ScheduleShare.create(schedule, friendUser);
+        try {
+            ScheduleShare scheduleShare = ScheduleShare.create(schedule, friendUser);
 
-        ScheduleShare savedScheduleShare = scheduleShareRepository.save(scheduleShare);
+            ScheduleShare savedScheduleShare = scheduleShareRepository.save(scheduleShare);
 
-        return ScheduleShareResponse.from(savedScheduleShare);
+            return ScheduleShareResponse.from(savedScheduleShare);
+
+        } catch (DataIntegrityViolationException e) {
+            ScheduleShare alreadyCreated = scheduleShareRepository.findRelation(scheduleId, friendUser.getId())
+                    .orElseThrow(() -> e);
+
+            validateShareStatus(alreadyCreated);
+
+            alreadyCreated.reShare();
+
+            return ScheduleShareResponse.from(alreadyCreated);
+        }
     }
 
     @Transactional(readOnly = true)

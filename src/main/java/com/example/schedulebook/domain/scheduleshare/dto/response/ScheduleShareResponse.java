@@ -6,7 +6,7 @@ public record ScheduleShareResponse(
         Long shareId,
         Long scheduleId,
         Long sharedUserId,
-        String SharedUserNickname
+        String sharedUserNickname
 ) {
     public static ScheduleShareResponse from(ScheduleShare scheduleShare) {
         return new ScheduleShareResponse(
