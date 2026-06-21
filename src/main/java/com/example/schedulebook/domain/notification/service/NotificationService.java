@@ -24,18 +24,44 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
 
-    public Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
-        User receiver = validateUser(receiverId);
-
-        Notification notification = Notification.create(
-                receiver,
-                notificationType,
-                title,
-                content,
-                targetId
+    public void createFriendRequestNotification(Long receiverId, String requesterNickname, Long friendId) {
+        createNotification(
+                receiverId,
+                NotificationType.FRIEND_REQUEST,
+                NotificationType.FRIEND_REQUEST.getTitle(),
+                requesterNickname + NotificationType.FRIEND_REQUEST.getDefaultMessage(),
+                friendId
         );
+    }
 
-        return notificationRepository.save(notification);
+    public void createFriendAcceptedNotification(Long requesterId, String accepterNickname, Long friendId) {
+        createNotification(
+                requesterId,
+                NotificationType.FRIEND_ACCEPTED,
+                NotificationType.FRIEND_ACCEPTED.getTitle(),
+                accepterNickname + NotificationType.FRIEND_ACCEPTED.getDefaultMessage(),
+                friendId
+        );
+    }
+
+    public void createScheduleSharedNotification(Long receiverId, String ownerNickname, Long shareId) {
+        createNotification(
+                receiverId,
+                NotificationType.SCHEDULE_SHARED,
+                NotificationType.SCHEDULE_SHARED.getTitle(),
+                ownerNickname + NotificationType.SCHEDULE_SHARED.getDefaultMessage(),
+                shareId
+        );
+    }
+
+    public void createScheduleReminderNotification(Long receiverId, Long scheduleId, String scheduleTitle) {
+        createNotification(
+                receiverId,
+                NotificationType.SCHEDULE_REMINDER,
+                NotificationType.SCHEDULE_REMINDER.getTitle(),
+                scheduleTitle + NotificationType.SCHEDULE_REMINDER.getDefaultMessage(),
+                scheduleId
+        );
     }
 
     @Transactional(readOnly = true)
@@ -83,6 +109,20 @@ public class NotificationService {
         validateUser(currentUserId);
 
         notificationRepository.readAllNotifications(currentUserId);
+    }
+
+    private Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
+        User receiver = validateUser(receiverId);
+
+        Notification notification = Notification.create(
+                receiver,
+                notificationType,
+                title,
+                content,
+                targetId
+        );
+
+        return notificationRepository.save(notification);
     }
 
     private User validateUser(Long userId) {
