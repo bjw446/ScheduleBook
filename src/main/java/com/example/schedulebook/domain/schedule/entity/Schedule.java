@@ -121,9 +121,9 @@ public class Schedule extends DeleteEntity {
         this.startTimeSpecified = startTime != null;
         this.endTimeSpecified = endTime != null;
 
-        this.startTime = startTime != null ? startTime : LocalTime.MIN;
+        this.startTime = startTime != null ? startTime.withSecond(0).withNano(0) : LocalTime.MIN;
 
-        this.endTime = endTime != null ? endTime : LocalTime.MAX;
+        this.endTime = endTime != null ? endTime.withSecond(0).withNano(0) : LocalTime.MAX;
 
         validateTime();
     }
