@@ -50,12 +50,12 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public NotificationDetailResponse findOneMyNotification(Long notificationId, Long currentUserid) {
-        validateUser(currentUserid);
+    public NotificationDetailResponse findOneMyNotification(Long notificationId, Long currentUserId) {
+        validateUser(currentUserId);
 
         Notification notification = validateNotification(notificationId);
 
-        validateNotificationOwner(notification, currentUserid);
+        validateNotificationOwner(notification, currentUserId);
 
         return NotificationDetailResponse.from(notification);
     }
@@ -82,7 +82,7 @@ public class NotificationService {
     public void readAllNotifications(Long currentUserId) {
         validateUser(currentUserId);
 
-        notificationRepository.readAllNotification(currentUserId);
+        notificationRepository.readAllNotifications(currentUserId);
     }
 
     private User validateUser(Long userId) {

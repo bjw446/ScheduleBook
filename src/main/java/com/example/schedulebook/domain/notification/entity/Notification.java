@@ -29,7 +29,7 @@ public class Notification extends DeleteEntity {
     @Column(nullable = false, length = 500)
     private String content;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "is_read")
     private boolean isRead;
 
     private Long targetId;

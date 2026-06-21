@@ -9,7 +9,7 @@ public record NotificationSummaryResponse(
         Long notificationId,
         String title,
         NotificationType notificationType,
-        boolean isRead,
+        Boolean isRead,
         LocalDateTime createdAt
 ) {
     public static NotificationSummaryResponse from(Notification notification) {
