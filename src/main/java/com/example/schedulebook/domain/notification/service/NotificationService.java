@@ -13,7 +13,6 @@ import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -55,7 +54,6 @@ public class NotificationService {
         );
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createScheduleReminderNotification(User receiver, Long scheduleId, String scheduleTitle) {
         createNotification(
                 receiver,
@@ -119,6 +117,7 @@ public class NotificationService {
     }
 
     private Notification createNotification(User receiver, NotificationType notificationType, String title, String content, Long targetId) {
+        validateUserStatus(receiver);
         return saveNotification(receiver, notificationType, title, content, targetId);
     }
 
@@ -139,11 +138,15 @@ public class NotificationService {
                 () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
         );
 
+        validateUserStatus(user);
+
+        return user;
+    }
+
+    private void validateUserStatus(User user) {
         if (user.getUserStatus() != UserStatus.ACTIVE) {
             throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
         }
-
-        return user;
     }
 
     private Notification validateNotification(Long notificationId) {
