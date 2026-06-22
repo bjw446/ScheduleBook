@@ -1,6 +1,5 @@
 package com.example.schedulebook.domain.schedule.service;
 
-import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +16,9 @@ import java.util.List;
 @Slf4j
 public class ScheduleReminderService {
     private final ScheduleRepository scheduleRepository;
-    private final NotificationService notificationService;
+    private final ScheduleReminderProcessor scheduleReminderProcessor;
 
     @Scheduled(cron = "0 * * * * *")
-    @Transactional
     public void sendScheduleReminders() {
         LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
 
@@ -31,13 +29,7 @@ public class ScheduleReminderService {
 
         for (Schedule schedule : schedules) {
             try {
-                notificationService.createScheduleReminderNotification(
-                        schedule.getUser().getId(),
-                        schedule.getId(),
-                        schedule.getTitle()
-                );
-
-                schedule.markReminderSent();
+                scheduleReminderProcessor.executeReminderAndMarkSent(schedule);
 
             } catch (Exception e) {
                 log.error("일정 알림 발송 실패 scheduleId = {}", schedule.getId(), e);

@@ -54,9 +54,9 @@ public class NotificationService {
         );
     }
 
-    public void createScheduleReminderNotification(Long receiverId, Long scheduleId, String scheduleTitle) {
+    public void createScheduleReminderNotification(User receiver, Long scheduleId, String scheduleTitle) {
         createNotification(
-                receiverId,
+                receiver,
                 NotificationType.SCHEDULE_REMINDER,
                 NotificationType.SCHEDULE_REMINDER.getTitle(),
                 scheduleTitle + NotificationType.SCHEDULE_REMINDER.getDefaultMessage(),
@@ -113,7 +113,15 @@ public class NotificationService {
 
     private Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
         User receiver = validateUser(receiverId);
+        return saveNotification(receiver, notificationType, title, content, targetId);
+    }
 
+    private Notification createNotification(User receiver, NotificationType notificationType, String title, String content, Long targetId) {
+        validateUserStatus(receiver);
+        return saveNotification(receiver, notificationType, title, content, targetId);
+    }
+
+    private Notification saveNotification(User receiver, NotificationType notificationType, String title, String content, Long targetId) {
         Notification notification = Notification.create(
                 receiver,
                 notificationType,
@@ -130,11 +138,15 @@ public class NotificationService {
                 () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
         );
 
+        validateUserStatus(user);
+
+        return user;
+    }
+
+    private void validateUserStatus(User user) {
         if (user.getUserStatus() != UserStatus.ACTIVE) {
             throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
         }
-
-        return user;
     }
 
     private Notification validateNotification(Long notificationId) {
