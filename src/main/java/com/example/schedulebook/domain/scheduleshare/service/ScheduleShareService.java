@@ -4,9 +4,8 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
-import com.example.schedulebook.domain.notification.enums.NotificationType;
-import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.schedule.event.ScheduleSharedEvent;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.scheduleshare.dto.request.ScheduleShareRequest;
 import com.example.schedulebook.domain.scheduleshare.dto.response.*;
@@ -17,6 +16,7 @@ import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +31,7 @@ public class ScheduleShareService {
     private final ScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
     private final FriendRepository friendRepository;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ScheduleShareResponse shareSchedule(Long scheduleId, ScheduleShareRequest request, Long currentUserId) {
         validateUser(currentUserId);
@@ -53,7 +53,7 @@ public class ScheduleShareService {
 
             existing.reShare();
 
-            createScheduleSharedNotification(friendUser.getId(), schedule.getUser().getNickname(), existing.getId());
+            eventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), existing.getId()));
 
             return ScheduleShareResponse.from(existing);
         }
@@ -63,7 +63,7 @@ public class ScheduleShareService {
 
             ScheduleShare savedScheduleShare = scheduleShareRepository.save(scheduleShare);
 
-            createScheduleSharedNotification(friendUser.getId(), schedule.getUser().getNickname(), savedScheduleShare.getId());
+            eventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), savedScheduleShare.getId()));
 
             return ScheduleShareResponse.from(savedScheduleShare);
 
@@ -75,7 +75,7 @@ public class ScheduleShareService {
 
             alreadyCreated.reShare();
 
-            createScheduleSharedNotification(friendUser.getId(), schedule.getUser().getNickname(), alreadyCreated.getId());
+            eventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), alreadyCreated.getId()));
 
             return ScheduleShareResponse.from(alreadyCreated);
         }
@@ -212,14 +212,6 @@ public class ScheduleShareService {
     private ScheduleShare validateOwnedShare(Long shareId) {
         return scheduleShareRepository.findOwnedShareDetail(shareId, ScheduleShareStatus.ACTIVE).orElseThrow(
                 () -> new BaseException(ErrorEnum.SCHEDULE_SHARE_NOT_FOUND)
-        );
-    }
-
-    private void createScheduleSharedNotification(Long receiverId, String ownerNickname, Long sharedId) {
-        notificationService.createScheduleSharedNotification(
-                receiverId,
-                ownerNickname,
-                sharedId
         );
     }
 }
