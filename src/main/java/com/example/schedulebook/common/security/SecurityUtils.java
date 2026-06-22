@@ -11,9 +11,21 @@ public class SecurityUtils {
 
     public static Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof Long)) {
+
+        if (authentication == null || !authentication.isAuthenticated()) {
             throw new BaseException(ErrorEnum.UNAUTHORIZED);
         }
-        return (Long) authentication.getPrincipal();
+
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof UserPrincipal) {
+            return ((UserPrincipal) principal).userId();
+        }
+
+        if (principal instanceof Long) {
+            return (Long) principal;
+        }
+
+        throw new BaseException(ErrorEnum.UNAUTHORIZED);
     }
 }

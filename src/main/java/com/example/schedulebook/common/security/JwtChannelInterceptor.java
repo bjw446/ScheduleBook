@@ -30,7 +30,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
 
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-            log.info("HEADERS = {}", accessor.toNativeHeaderMap());
+            log.info("STOMP CONNECT 수신: headerKeys={}", accessor.toNativeHeaderMap().keySet());
 
             String authHeader = accessor.getFirstNativeHeader("Authorization");
 
