@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.notification.event;
 
 import com.example.schedulebook.domain.friend.event.FriendAcceptedEvent;
 import com.example.schedulebook.domain.friend.event.FriendRequestEvent;
+import com.example.schedulebook.domain.notification.dto.response.NotificationRealtimeResponse;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharedEvent;
@@ -12,8 +13,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -48,7 +47,6 @@ public class NotificationEventHandler {
 
             throw e;
         }
-
     }
 
     @Async
@@ -63,28 +61,26 @@ public class NotificationEventHandler {
 
             throw e;
         }
-
     }
 
     private void publishToRedis(Long receiverId, NotificationType notificationType, String senderNickname) {
-        String topic = "user:notification:" + receiverId;
+        String topic = "notification";
 
         String fullMessage = senderNickname + notificationType.getDefaultMessage();
 
-        Map<String, String> messageBody = Map.of(
-                "type", notificationType.name(),
-                "title", notificationType.getTitle(),
-                "message", fullMessage
+        NotificationRealtimeResponse response = new NotificationRealtimeResponse(
+                receiverId,
+                notificationType.name(),
+                notificationType.getTitle(),
+                fullMessage
         );
 
         try {
-            redisTemplate.convertAndSend(topic, messageBody);
+            redisTemplate.convertAndSend(topic, response);
         } catch (Exception e) {
-            log.error("Redis Pub/Sub 메시지 발행 실패 Topic : {}, Message : {}", topic, messageBody, e);
+            log.error("Redis Pub/Sub 메시지 발행 실패 Topic : {}, Message : {}", topic, response, e);
 
             throw e;
         }
-
-
     }
 }
