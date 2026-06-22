@@ -22,7 +22,10 @@ public class RedisSubscriber {
         log.info("Redis 이벤트 발행 = {}", event);
 
         try {
-            messagingTemplate.convertAndSend("/topic/notification/" + event.receiverId(), event);
+            messagingTemplate.convertAndSendToUser(
+                    event.receiverId().toString(),
+                    "/queue/notification",
+                    event);
         } catch (Exception e) {
             log.error("WebSocket 메시지 전송 실패, receiverId : {}, event : {}", event.receiverId(), event, e);
         }
