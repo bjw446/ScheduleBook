@@ -13,13 +13,25 @@ public class WebSocketSessionRegistry {
     private final Map<Long, Set<String>> userSessionsMap = new ConcurrentHashMap<>();
 
     public void register(String sessionId, Long userId) {
-        sessionUserMap.put(sessionId, userId);
+        Long previousUserId = sessionUserMap.put(sessionId, userId);
 
-        userSessionsMap.computeIfAbsent(
-                userId,
-                ket -> ConcurrentHashMap.newKeySet()
-                )
-                .add(sessionId);
+        if (previousUserId != null && !previousUserId.equals(userId)) {
+            userSessionsMap.computeIfPresent(previousUserId, (id, sessions) -> {
+                sessions.remove(sessionId);
+
+                return sessions.isEmpty() ? null : sessions;
+            });
+        }
+
+        userSessionsMap.compute(userId, (id, sessions) -> {
+            if (sessions == null) {
+                sessions = ConcurrentHashMap.newKeySet();
+            }
+
+            sessions.add(sessionId);
+
+            return sessions;
+        });
     }
 
     public Long remove(String sessionId) {
@@ -29,15 +41,19 @@ public class WebSocketSessionRegistry {
             return null;
         }
 
-        Set<String> sessions = userSessionsMap.get(userId);
-
-        if (sessions != null) {
+        userSessionsMap.computeIfPresent(userId, (id, sessions) -> {
             sessions.remove(sessionId);
 
             if (sessions.isEmpty()) {
-                userSessionsMap.remove(userId);
+                sessionUserMap.remove(sessionId);
+
+                return null;
             }
-        }
+
+            return sessions;
+        });
+
+        sessionUserMap.remove(sessionId);
 
         return userId;
     }

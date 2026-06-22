@@ -23,7 +23,7 @@ public class RedisSubscriber {
             return;
         }
 
-        if (webSocketSessionRegistry.isOnline(receiverId)) {
+        if (!webSocketSessionRegistry.isOnline(receiverId)) {
             log.info("사용자 {} 오프라인 상태, 실시간 전송 생략", receiverId);
 
             return;

@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.presence.controller;
 
 import com.example.schedulebook.common.enums.SuccessEnum;
 import com.example.schedulebook.common.response.ApiResponse;
+import com.example.schedulebook.common.security.SecurityUtils;
 import com.example.schedulebook.domain.presence.dto.response.UserPresenceResponse;
 import com.example.schedulebook.domain.presence.service.PresenceService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ public class PresenceController {
     public ResponseEntity<ApiResponse<UserPresenceResponse>> getPresence(@PathVariable Long userId) {
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
-                        SuccessEnum.READ_SUCCESS, presenceService.findPresence(userId)
+                        SuccessEnum.READ_SUCCESS, presenceService.findPresence(SecurityUtils.getCurrentUserId(), userId)
                 )
         );
     }
