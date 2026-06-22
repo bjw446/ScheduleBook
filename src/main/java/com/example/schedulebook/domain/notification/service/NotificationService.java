@@ -13,6 +13,7 @@ import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -54,9 +55,10 @@ public class NotificationService {
         );
     }
 
-    public void createScheduleReminderNotification(Long receiverId, Long scheduleId, String scheduleTitle) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void createScheduleReminderNotification(User receiver, Long scheduleId, String scheduleTitle) {
         createNotification(
-                receiverId,
+                receiver,
                 NotificationType.SCHEDULE_REMINDER,
                 NotificationType.SCHEDULE_REMINDER.getTitle(),
                 scheduleTitle + NotificationType.SCHEDULE_REMINDER.getDefaultMessage(),
@@ -113,7 +115,14 @@ public class NotificationService {
 
     private Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
         User receiver = validateUser(receiverId);
+        return saveNotification(receiver, notificationType, title, content, targetId);
+    }
 
+    private Notification createNotification(User receiver, NotificationType notificationType, String title, String content, Long targetId) {
+        return saveNotification(receiver, notificationType, title, content, targetId);
+    }
+
+    private Notification saveNotification(User receiver, NotificationType notificationType, String title, String content, Long targetId) {
         Notification notification = Notification.create(
                 receiver,
                 notificationType,
