@@ -40,7 +40,7 @@ jobs:
 
     services:
       redis:
-        image: redis@sha256:21f874288fe31f510800b6f959c90538a798a72bba56677f5a898bda078fb86b
+        image: redis:7.2-alpine
         ports:
           - 6379:6379
         options: >-
