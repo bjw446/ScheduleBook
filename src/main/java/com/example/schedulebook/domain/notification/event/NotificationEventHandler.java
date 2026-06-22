@@ -80,7 +80,7 @@ public class NotificationEventHandler {
         try {
             redisTemplate.convertAndSend(topic, messageBody);
         } catch (Exception e) {
-            log.error("Redis Pub/Sub 메세지 발행 실패 Topic : {}, Message : {}", topic, fullMessage, e);
+            log.error("Redis Pub/Sub 메세지 발행 실패 Topic : {}, Message : {}", topic, messageBody, e);
 
             throw e;
         }

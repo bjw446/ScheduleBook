@@ -17,10 +17,18 @@ public class AppConfig implements AsyncConfigurer {
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return (throwable, method, obj) -> {
             log.error("비동기 에러 발생, 메서드 : {}", method.getName());
+
             log.error("에러 메세지 : {}", throwable.getMessage(), throwable);
-            for (Object param : obj) {
-                log.error("파라미터 정보 : {}", param);
-            };
+
+            log.error("파라미터 개수 : {}", obj == null ? 0 : obj.length);
+
+            if (obj != null) {
+                for (int i = 0; i < obj.length; i ++) {
+                    Object param = obj[i];
+
+                    log.error("파라미터[{}] 타입 : {}", i, param == null ? "null" : param.getClass().getSimpleName());
+                }
+            }
         };
     }
 }
