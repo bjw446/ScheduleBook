@@ -9,14 +9,15 @@ import com.example.schedulebook.domain.friend.dto.response.FriendSummaryResponse
 import com.example.schedulebook.domain.friend.dto.response.SentFriendRequestResponse;
 import com.example.schedulebook.domain.friend.entity.Friend;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
+import com.example.schedulebook.domain.friend.event.FriendAcceptedEvent;
+import com.example.schedulebook.domain.friend.event.FriendRequestEvent;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
-import com.example.schedulebook.domain.notification.enums.NotificationType;
-import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +31,7 @@ import java.util.List;
 public class FriendService {
     private final FriendRepository friendRepository;
     private final UserRepository userRepository;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public FriendResponse requestFriend(FriendRequest request, Long currentUserId) {
         validateMyself(request.receiverId(), currentUserId);
@@ -46,11 +47,7 @@ public class FriendService {
 
             existing.reRequest(requester, receiver);
 
-            notificationService.createFriendRequestNotification(
-                    receiver.getId(),
-                    requester.getNickname(),
-                    existing.getId()
-            );
+            eventPublisher.publishEvent(new FriendRequestEvent(receiver.getId(), requester.getNickname(), existing.getId()));
 
             return FriendResponse.from(existing);
         }
@@ -60,11 +57,7 @@ public class FriendService {
 
             Friend savedFriend = friendRepository.save(friend);
 
-            notificationService.createFriendRequestNotification(
-                    receiver.getId(),
-                    requester.getNickname(),
-                    savedFriend.getId()
-            );
+            eventPublisher.publishEvent(new FriendRequestEvent(receiver.getId(), requester.getNickname(), savedFriend.getId()));
 
             return FriendResponse.from(savedFriend);
 
@@ -119,11 +112,7 @@ public class FriendService {
 
         friend.acceptFriend();
 
-        notificationService.createFriendAcceptedNotification(
-                friend.getRequester().getId(),
-                friend.getReceiver().getNickname(),
-                friend.getId()
-        );
+        eventPublisher.publishEvent(new FriendAcceptedEvent(friend.getRequester().getId(), friend.getReceiver().getNickname(), friend.getId()));
 
         return FriendResponse.from(friend);
     }
