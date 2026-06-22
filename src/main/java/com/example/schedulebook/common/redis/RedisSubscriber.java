@@ -13,8 +13,18 @@ public class RedisSubscriber {
     private final SimpMessagingTemplate messagingTemplate;
 
     public void onMessage(NotificationRealtimeResponse event) {
+        if (event.receiverId() == null) {
+            log.warn("receiverId가 null인 알림 이벤트 무시, event = {}", event);
+
+            return;
+        }
+
         log.info("Redis 이벤트 발행 = {}", event);
 
-        messagingTemplate.convertAndSend("/topic/notification/" + event.receiverId(), event);
+        try {
+            messagingTemplate.convertAndSend("/topic/notification/" + event.receiverId(), event);
+        } catch (Exception e) {
+            log.error("WebSocket 메시지 전송 실패, receiverId : {}, event : {}", event.receiverId(), event, e);
+        }
     }
 }
