@@ -22,8 +22,6 @@ public class PresenceService {
 
     @Transactional(readOnly = true)
     public UserPresenceResponse findPresence(Long currentUserId, Long targetUserId) {
-        validateTargetUser(targetUserId);
-
         if (!currentUserId.equals(targetUserId) && !friendRepository.existsAcceptedFriend(
                 currentUserId,
                 targetUserId,
@@ -31,6 +29,8 @@ public class PresenceService {
         )) {
             throw new BaseException(ErrorEnum.PRESENCE_ACCESS_DENIED);
         }
+
+        validateTargetUser(targetUserId);
 
         return new UserPresenceResponse(
                 targetUserId,
