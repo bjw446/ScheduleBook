@@ -6,14 +6,16 @@ public record FriendSummaryResponse(
         Long friendId,
         Long userId,
         String nickname,
-        int level
+        int level,
+        boolean online
 ) {
-    public static FriendSummaryResponse from(Long friendId, User friendUser) {
+    public static FriendSummaryResponse from(Long friendId, User friendUser, boolean online) {
         return new FriendSummaryResponse(
                 friendId,
                 friendUser.getId(),
                 friendUser.getNickname(),
-                friendUser.getLevel()
+                friendUser.getLevel(),
+                online
         );
     }
 }

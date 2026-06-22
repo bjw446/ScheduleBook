@@ -1,4 +1,4 @@
-package com.example.schedulebook.common.config;
+package com.example.schedulebook.common.websocket;
 
 import com.example.schedulebook.common.security.JwtChannelInterceptor;
 import org.springframework.beans.factory.annotation.Value;

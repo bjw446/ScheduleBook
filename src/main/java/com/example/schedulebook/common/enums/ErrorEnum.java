@@ -71,7 +71,10 @@ public enum ErrorEnum {
     SCHEDULE_ALREADY_SHARED(400, "이미 공유한 일정 입니다."),
     SCHEDULE_SHARE_ALREADY_DELETED(409, "이미 삭제한 일정 공유 입니다."),
     SCHEDULE_SHARE_NOT_FOUND(404, "존재하지 않는 일정 공유 입니다."),
-    INVALID_SCHEDULE_SHARE_STATUS(400, "잘못된 일정 공유 상태 입니다.");
+    INVALID_SCHEDULE_SHARE_STATUS(400, "잘못된 일정 공유 상태 입니다."),
+
+    // Presence
+    PRESENCE_ACCESS_DENIED(403, "접속 여부에 접근할 권한이 없습니다.");
 
     private final int status;
     private final String message;
