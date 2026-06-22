@@ -18,7 +18,7 @@ public class AppConfig implements AsyncConfigurer {
         return (throwable, method, obj) -> {
             log.error("비동기 에러 발생, 메서드 : {}", method.getName());
 
-            log.error("에러 메세지 : {}", throwable.getMessage(), throwable);
+            log.error("에러 메시지 : {}", throwable.getMessage(), throwable);
 
             log.error("파라미터 개수 : {}", obj == null ? 0 : obj.length);
 
