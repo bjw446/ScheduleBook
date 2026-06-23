@@ -39,9 +39,7 @@ public class ChatMessageService {
 
         User sender = validateMember(chatRoom.getId(), currentUserId);
 
-        String content = request.content().trim();
-
-        validateContent(request.content());
+        String content = validateContent(request.content());
 
         ChatMessage replyMessage = validateReplyMessage(request.replyMessageId(), chatRoom.getId());
 
@@ -75,7 +73,9 @@ public class ChatMessageService {
 
         validateMember(roomId, currentUserId);
 
-        int pageSize = request.size() == null ? 30 : Math.min(request.size(), MAX_PAGE_SIZE);
+        int requestedSize = request.size() == null ? 30 : request.size();
+
+        int pageSize = requestedSize <= 0 ? 30 : Math.min(requestedSize, MAX_PAGE_SIZE);
 
         List<ChatMessage> messages = chatMessageRepository.findMessages(
                 roomId,
@@ -116,7 +116,11 @@ public class ChatMessageService {
         );
     }
 
-    private void validateContent(String content) {
+    private String validateContent(String content) {
+        if (content != null) {
+            content = content.trim();
+        }
+
         if (content == null || content.isBlank()) {
             throw new BaseException(ErrorEnum.CHAT_MESSAGE_EMPTY);
         }
@@ -124,6 +128,8 @@ public class ChatMessageService {
         if (content.length() > 1000) {
             throw new BaseException(ErrorEnum.CHAT_MESSAGE_TOO_LONG);
         }
+
+        return content;
     }
 
     private ChatMessage validateReplyMessage(Long replyMessageId, Long roomId) {
