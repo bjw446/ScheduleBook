@@ -9,6 +9,7 @@ public record NotificationEventResponse(
         String type,
         String title,
         String message,
-        long unreadCount
+        long unreadCount,
+        long timestamp
 ) {
 }

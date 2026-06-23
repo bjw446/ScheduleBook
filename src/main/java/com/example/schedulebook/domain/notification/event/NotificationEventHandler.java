@@ -77,7 +77,8 @@ public class NotificationEventHandler {
                 notificationType.name(),
                 notificationType.getTitle(),
                 fullMessage,
-                unreadCount
+                unreadCount,
+                System.currentTimeMillis()
         );
 
         notificationEventPublisher.publish(response);

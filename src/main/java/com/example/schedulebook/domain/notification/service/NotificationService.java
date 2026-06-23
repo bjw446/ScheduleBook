@@ -17,6 +17,8 @@ import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
@@ -110,7 +112,7 @@ public class NotificationService {
 
         long unreadCount = notificationRepository.countUnreadNotifications(currentUserId);
 
-        notificationEventPublisher.publish(
+        publishAfterCommit(
                 new NotificationEventResponse(
                         NotificationEventType.READ,
                         currentUserId,
@@ -118,7 +120,8 @@ public class NotificationService {
                         null,
                         null,
                         null,
-                        unreadCount
+                        unreadCount,
+                        System.currentTimeMillis()
                 )
         );
     }
@@ -128,7 +131,7 @@ public class NotificationService {
 
         notificationRepository.readAllNotifications(currentUserId);
 
-        notificationEventPublisher.publish(
+        publishAfterCommit(
                 new NotificationEventResponse(
                         NotificationEventType.ALL_READ,
                         currentUserId,
@@ -136,7 +139,8 @@ public class NotificationService {
                         null,
                         null,
                         null,
-                        0
+                        0,
+                        System.currentTimeMillis()
                 )
         );
     }
@@ -189,5 +193,20 @@ public class NotificationService {
         if (!notification.getReceiver().getId().equals(currentUserId)) {
             throw new BaseException(ErrorEnum.NOTIFICATION_FORBIDDEN);
         }
+    }
+
+    private void publishAfterCommit(NotificationEventResponse response) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            notificationEventPublisher.publish(response);
+
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                notificationEventPublisher.publish(response);
+            }
+        });
     }
 }
