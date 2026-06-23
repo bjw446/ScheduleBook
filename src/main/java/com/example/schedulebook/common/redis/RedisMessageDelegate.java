@@ -1,6 +1,6 @@
 package com.example.schedulebook.common.redis;
 
-import com.example.schedulebook.domain.notification.dto.response.NotificationRealtimeResponse;
+import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +14,8 @@ public class RedisMessageDelegate {
 
     public void handleMessage(String message) {
         try {
-            NotificationRealtimeResponse response = objectMapper.readValue(
-                    message, NotificationRealtimeResponse.class
+            NotificationEventResponse response = objectMapper.readValue(
+                    message, NotificationEventResponse.class
             );
 
             redisSubscriber.onMessage(response);

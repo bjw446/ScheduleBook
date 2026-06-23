@@ -2,13 +2,14 @@ package com.example.schedulebook.domain.notification.event;
 
 import com.example.schedulebook.domain.friend.event.FriendAcceptedEvent;
 import com.example.schedulebook.domain.friend.event.FriendRequestEvent;
-import com.example.schedulebook.domain.notification.dto.response.NotificationRealtimeResponse;
+import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
+import com.example.schedulebook.domain.notification.enums.NotificationEventType;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
+import com.example.schedulebook.domain.notification.repository.NotificationRepository;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -19,7 +20,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 public class NotificationEventHandler {
     private final NotificationService notificationService;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final NotificationRepository notificationRepository;
+    private final NotificationEventPublisher notificationEventPublisher;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -27,7 +29,7 @@ public class NotificationEventHandler {
         try {
             notificationService.createFriendRequestNotification(event.receiverId(), event.requesterNickname(), event.friendId());
 
-            publishToRedis(event.receiverId(), NotificationType.FRIEND_REQUEST, event.requesterNickname());
+            publishCreatedEvent(event.receiverId(), NotificationType.FRIEND_REQUEST, event.requesterNickname());
         } catch (Exception e) {
             log.error("친구 신청 알림 비동기 처리 중 오류 발생 Event : {}", event, e);
 
@@ -41,7 +43,7 @@ public class NotificationEventHandler {
         try {
             notificationService.createFriendAcceptedNotification(event.requesterId(), event.accepterNickname(), event.friendId());
 
-            publishToRedis(event.requesterId(), NotificationType.FRIEND_ACCEPTED, event.accepterNickname());
+            publishCreatedEvent(event.requesterId(), NotificationType.FRIEND_ACCEPTED, event.accepterNickname());
         } catch (Exception e) {
             log.error("친구 수락 알림 비동기 처리 중 오류 발생 Event : {}", event, e);
 
@@ -55,7 +57,7 @@ public class NotificationEventHandler {
         try {
             notificationService.createScheduleSharedNotification(event.receiverId(), event.ownerNickname(), event.shareId());
 
-            publishToRedis(event.receiverId(), NotificationType.SCHEDULE_SHARED, event.ownerNickname());
+            publishCreatedEvent(event.receiverId(), NotificationType.SCHEDULE_SHARED, event.ownerNickname());
         } catch (Exception e) {
             log.error("일정 공유 알림 비동기 처리 중 오류 발생 Event : {}", event, e);
 
@@ -63,24 +65,22 @@ public class NotificationEventHandler {
         }
     }
 
-    private void publishToRedis(Long receiverId, NotificationType notificationType, String senderNickname) {
-        String topic = "notification";
+    private void publishCreatedEvent(Long receiverId, NotificationType notificationType, String senderNickname) {
+        long unreadCount = notificationRepository.countUnreadNotifications(receiverId);
 
         String fullMessage = senderNickname + notificationType.getDefaultMessage();
 
-        NotificationRealtimeResponse response = new NotificationRealtimeResponse(
+        NotificationEventResponse response = new NotificationEventResponse(
+                NotificationEventType.CREATED,
                 receiverId,
+                null,
                 notificationType.name(),
                 notificationType.getTitle(),
-                fullMessage
+                fullMessage,
+                unreadCount,
+                System.currentTimeMillis()
         );
 
-        try {
-            redisTemplate.convertAndSend(topic, response);
-        } catch (Exception e) {
-            log.error("Redis Pub/Sub 메시지 발행 실패 Topic : {}, Message : {}", topic, response, e);
-
-            throw e;
-        }
+        notificationEventPublisher.publish(response);
     }
 }

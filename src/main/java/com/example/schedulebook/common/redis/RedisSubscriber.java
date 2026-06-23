@@ -1,7 +1,7 @@
 package com.example.schedulebook.common.redis;
 
 import com.example.schedulebook.common.websocket.WebSocketSessionRegistry;
-import com.example.schedulebook.domain.notification.dto.response.NotificationRealtimeResponse;
+import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -14,7 +14,7 @@ public class RedisSubscriber {
     private final SimpMessagingTemplate messagingTemplate;
     private final WebSocketSessionRegistry webSocketSessionRegistry;
 
-    public void onMessage(NotificationRealtimeResponse event) {
+    public void onMessage(NotificationEventResponse event) {
         Long receiverId = event.receiverId();
 
         if (receiverId == null) {
@@ -35,9 +35,12 @@ public class RedisSubscriber {
             messagingTemplate.convertAndSendToUser(
                     receiverId.toString(),
                     "/queue/notification",
-                    event);
+                    event
+            );
+
+            log.info("알림 전송 userId = {}, eventType = {}, unreadCount = {}", receiverId, event.eventType(), event.unreadCount());
         } catch (Exception e) {
-            log.error("WebSocket 메시지 전송 실패, receiverId : {}, event : {}", receiverId, event, e);
+            log.error("WebSocket 메시지 전송 실패, receiverId = {}, event = {}", receiverId, event, e);
         }
     }
 }

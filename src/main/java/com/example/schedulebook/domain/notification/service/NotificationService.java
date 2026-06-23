@@ -3,26 +3,35 @@ package com.example.schedulebook.domain.notification.service;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.notification.dto.response.NotificationDetailResponse;
+import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
 import com.example.schedulebook.domain.notification.dto.response.NotificationSummaryResponse;
 import com.example.schedulebook.domain.notification.dto.response.UnreadNotificationCountResponse;
 import com.example.schedulebook.domain.notification.entity.Notification;
+import com.example.schedulebook.domain.notification.enums.NotificationEventType;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
+import com.example.schedulebook.domain.notification.event.NotificationEventPublisher;
 import com.example.schedulebook.domain.notification.repository.NotificationRepository;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional
 public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final NotificationEventPublisher notificationEventPublisher;
 
     public void createFriendRequestNotification(Long receiverId, String requesterNickname, Long friendId) {
         createNotification(
@@ -103,12 +112,38 @@ public class NotificationService {
         validateNotificationOwner(notification, currentUserId);
 
         notification.read();
+
+        publishAfterCommit(() ->
+                new NotificationEventResponse(
+                        NotificationEventType.READ,
+                        currentUserId,
+                        notificationId,
+                        null,
+                        null,
+                        null,
+                        notificationRepository.countUnreadNotifications(currentUserId),
+                        System.currentTimeMillis()
+                )
+        );
     }
 
     public void readAllNotifications(Long currentUserId) {
         validateUser(currentUserId);
 
         notificationRepository.readAllNotifications(currentUserId);
+
+        publishAfterCommit(() ->
+                new NotificationEventResponse(
+                        NotificationEventType.ALL_READ,
+                        currentUserId,
+                        null,
+                        null,
+                        null,
+                        null,
+                        notificationRepository.countUnreadNotifications(currentUserId),
+                        System.currentTimeMillis()
+                )
+        );
     }
 
     private Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
@@ -159,5 +194,24 @@ public class NotificationService {
         if (!notification.getReceiver().getId().equals(currentUserId)) {
             throw new BaseException(ErrorEnum.NOTIFICATION_FORBIDDEN);
         }
+    }
+
+    private void publishAfterCommit(Supplier<NotificationEventResponse> responseSupplier) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            notificationEventPublisher.publish(responseSupplier.get());
+
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    notificationEventPublisher.publish(responseSupplier.get());
+                } catch (Exception e) {
+                    log.error("커밋 후 알림 이벤트 발행 실패", e);
+                }
+            }
+        });
     }
 }
