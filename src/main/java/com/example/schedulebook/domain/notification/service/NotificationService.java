@@ -3,10 +3,13 @@ package com.example.schedulebook.domain.notification.service;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.notification.dto.response.NotificationDetailResponse;
+import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
 import com.example.schedulebook.domain.notification.dto.response.NotificationSummaryResponse;
 import com.example.schedulebook.domain.notification.dto.response.UnreadNotificationCountResponse;
 import com.example.schedulebook.domain.notification.entity.Notification;
+import com.example.schedulebook.domain.notification.enums.NotificationEventType;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
+import com.example.schedulebook.domain.notification.event.NotificationEventPublisher;
 import com.example.schedulebook.domain.notification.repository.NotificationRepository;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
@@ -23,6 +26,7 @@ import java.util.List;
 public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final NotificationEventPublisher notificationEventPublisher;
 
     public void createFriendRequestNotification(Long receiverId, String requesterNickname, Long friendId) {
         createNotification(
@@ -103,12 +107,38 @@ public class NotificationService {
         validateNotificationOwner(notification, currentUserId);
 
         notification.read();
+
+        long unreadCount = notificationRepository.countUnreadNotifications(currentUserId);
+
+        notificationEventPublisher.publish(
+                new NotificationEventResponse(
+                        NotificationEventType.READ,
+                        currentUserId,
+                        notificationId,
+                        null,
+                        null,
+                        null,
+                        unreadCount
+                )
+        );
     }
 
     public void readAllNotifications(Long currentUserId) {
         validateUser(currentUserId);
 
         notificationRepository.readAllNotifications(currentUserId);
+
+        notificationEventPublisher.publish(
+                new NotificationEventResponse(
+                        NotificationEventType.ALL_READ,
+                        currentUserId,
+                        null,
+                        null,
+                        null,
+                        null,
+                        0
+                )
+        );
     }
 
     private Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
