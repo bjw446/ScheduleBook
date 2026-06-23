@@ -23,7 +23,7 @@ public class ChatRoomController {
     public ResponseEntity<ApiResponse<ChatRoomResponse>> createDirectRoom(@PathVariable Long friendId) {
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
-                        SuccessEnum.CREATE_SUCCESS,
+                        SuccessEnum.READ_SUCCESS,
                         chatRoomService.createDirectRoom(SecurityUtils.getCurrentUserId(), friendId)
                 )
         );
