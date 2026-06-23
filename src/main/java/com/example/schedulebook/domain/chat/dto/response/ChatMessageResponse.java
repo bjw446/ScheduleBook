@@ -12,7 +12,7 @@ public record ChatMessageResponse(
         String senderNickname,
         String content,
         ChatMessageType chatMessageType,
-        Long replyMessageId,
+        ReplyMessageResponse replyMessageResponse,
         boolean edited,
         LocalDateTime createdAt
 ) {
@@ -24,7 +24,7 @@ public record ChatMessageResponse(
                 chatMessage.getSender().getNickname(),
                 chatMessage.getContent(),
                 chatMessage.getChatMessageType(),
-                chatMessage.getReplyMessage() == null ? null : chatMessage.getReplyMessage().getId(),
+                chatMessage.getReplyMessage() == null ? null : ReplyMessageResponse.from(chatMessage.getReplyMessage()),
                 chatMessage.isEdited(),
                 chatMessage.getCreatedAt()
         );
