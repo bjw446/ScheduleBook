@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -50,10 +52,14 @@ public class ChatMessageService {
 
         ChatMessageResponse response = ChatMessageResponse.from(chatMessage);
 
-        simpMessagingTemplate.convertAndSend(
-                "/topic/chat/" + chatRoom.getId(),
-                response
-        );
+        String destination = "/topic/chat/" + chatRoom.getId();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                simpMessagingTemplate.convertAndSend(destination, response);
+            }
+        });
     }
 
     private ChatRoom validateChatRoom(Long roomId) {
