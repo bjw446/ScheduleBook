@@ -1,0 +1,100 @@
+package com.example.schedulebook.domain.chat.service;
+
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.chat.dto.response.ChatRoomResponse;
+import com.example.schedulebook.domain.chat.entity.ChatRoom;
+import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
+import com.example.schedulebook.domain.chat.entity.DirectChatRoom;
+import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
+import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
+import com.example.schedulebook.domain.chat.repository.DirectChatRoomRepository;
+import com.example.schedulebook.domain.friend.enums.FriendStatus;
+import com.example.schedulebook.domain.friend.repository.FriendRepository;
+import com.example.schedulebook.domain.user.entity.User;
+import com.example.schedulebook.domain.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+@Transactional
+public class ChatRoomService {
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatRoomMemberRepository chatRoomMemberRepository;
+    private final UserRepository userRepository;
+    private final FriendRepository friendRepository;
+    private final DirectChatRoomRepository directChatRoomRepository;
+
+    public ChatRoomResponse createDirectRoom(Long currentUserId, Long friendId) {
+        User currentUser = getUser(currentUserId);
+
+        User friendUser = getUser(friendId);
+
+        validateUser(currentUserId, friendId);
+
+        validateFriend(currentUserId, friendId);
+
+        Optional<DirectChatRoom> existingRoom = findDirectRoom(currentUserId, friendId);
+
+        if (existingRoom.isPresent()) {
+            return ChatRoomResponse.from(existingRoom.get().getChatRoom());
+        }
+
+        ChatRoom chatRoom = ChatRoom.direct();
+
+        chatRoomRepository.save(chatRoom);
+
+        chatRoomMemberRepository.save(ChatRoomMember.of(chatRoom, currentUser, LocalDateTime.now()));
+
+        chatRoomMemberRepository.save(ChatRoomMember.of(chatRoom, friendUser, LocalDateTime.now()));
+
+        try {
+            directChatRoomRepository.save(DirectChatRoom.of(currentUserId, friendId, chatRoom));
+        } catch (DataIntegrityViolationException e) {
+            log.info("1:1 채팅방 중복 생성 발생, user1 = {}, user2 = {}", currentUserId, friendId);
+
+            DirectChatRoom directChatRoom = findDirectRoom(currentUserId, friendId).orElseThrow();
+
+            return ChatRoomResponse.from(directChatRoom.getChatRoom());
+        }
+
+        return ChatRoomResponse.from(chatRoom);
+    }
+
+    private void validateFriend(Long currentUserId, Long friendId) {
+        if (!friendRepository.existsAcceptedFriend(currentUserId, friendId, FriendStatus.ACCEPTED)) {
+            throw new BaseException(ErrorEnum.FRIEND_NOT_FOUND);
+        }
+    }
+
+    private void validateUser(Long currentUserId, Long friendId) {
+        if (currentUserId.equals(friendId)) {
+            throw new BaseException(ErrorEnum.INVALID_CHAT_TARGET);
+        }
+
+        getUser(currentUserId);
+        getUser(friendId);
+    }
+
+    private User getUser(Long userId) {
+        return userRepository.findById(userId).orElseThrow(
+                () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
+        );
+    }
+
+    private Optional<DirectChatRoom> findDirectRoom(Long userId1, Long userId2) {
+        long min = Math.min(userId1, userId2);
+
+        long max = Math.max(userId1, userId2);
+
+        return directChatRoomRepository.findByUser1IdAndUser2Id(min, max);
+    }
+}

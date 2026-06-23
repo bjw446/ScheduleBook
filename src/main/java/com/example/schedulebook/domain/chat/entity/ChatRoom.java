@@ -40,7 +40,7 @@ public class ChatRoom extends DeleteEntity {
         ChatRoom chatRoom = new ChatRoom();
 
         chatRoom.chatRoomType = ChatRoomType.DIRECT;
-        chatRoom.memberCount = 0;
+        chatRoom.memberCount = 2;
 
         return chatRoom;
     }

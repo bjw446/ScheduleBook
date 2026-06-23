@@ -61,7 +61,7 @@ public class ChatMessage extends DeleteEntity {
 
     public void updateMessage(String content) {
         if (chatMessageType != ChatMessageType.TEXT) {
-            throw new BaseException(ErrorEnum.MESSAGE_TYPE_INVALID);
+            throw new BaseException(ErrorEnum.INVALID_MESSAGE_TYPE);
         }
 
         this.content = content;
