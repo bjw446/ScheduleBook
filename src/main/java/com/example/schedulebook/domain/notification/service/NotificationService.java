@@ -21,6 +21,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
@@ -110,9 +111,7 @@ public class NotificationService {
 
         notification.read();
 
-        long unreadCount = notificationRepository.countUnreadNotifications(currentUserId);
-
-        publishAfterCommit(
+        publishAfterCommit(() ->
                 new NotificationEventResponse(
                         NotificationEventType.READ,
                         currentUserId,
@@ -120,7 +119,7 @@ public class NotificationService {
                         null,
                         null,
                         null,
-                        unreadCount,
+                        notificationRepository.countUnreadNotifications(currentUserId),
                         System.currentTimeMillis()
                 )
         );
@@ -131,7 +130,7 @@ public class NotificationService {
 
         notificationRepository.readAllNotifications(currentUserId);
 
-        publishAfterCommit(
+        publishAfterCommit(() ->
                 new NotificationEventResponse(
                         NotificationEventType.ALL_READ,
                         currentUserId,
@@ -139,7 +138,7 @@ public class NotificationService {
                         null,
                         null,
                         null,
-                        0,
+                        notificationRepository.countUnreadNotifications(currentUserId),
                         System.currentTimeMillis()
                 )
         );
@@ -195,9 +194,9 @@ public class NotificationService {
         }
     }
 
-    private void publishAfterCommit(NotificationEventResponse response) {
+    private void publishAfterCommit(Supplier<NotificationEventResponse> responseSupplier) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
-            notificationEventPublisher.publish(response);
+            notificationEventPublisher.publish(responseSupplier.get());
 
             return;
         }
@@ -205,7 +204,7 @@ public class NotificationService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                notificationEventPublisher.publish(response);
+                notificationEventPublisher.publish(responseSupplier.get());
             }
         });
     }
