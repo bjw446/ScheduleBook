@@ -39,14 +39,25 @@ public class ChatRoomMember extends DeleteEntity {
     @Column(nullable = false, name = "joined_at")
     private LocalDateTime joinedAt;
 
-    private ChatRoomMember(ChatRoom chatRoom, User user, LocalDateTime joinedAt) {
-        this.chatRoom = chatRoom;
+    private ChatRoomMember(User user, LocalDateTime joinedAt) {
         this.user = user;
         this.joinedAt = joinedAt;
     }
 
     public static ChatRoomMember of(ChatRoom chatRoom, User user, LocalDateTime joinedAt) {
-        return new ChatRoomMember(chatRoom, user, joinedAt);
+        ChatRoomMember chatRoomMember = new ChatRoomMember();
+
+        chatRoomMember.user = user;
+
+        chatRoomMember.joinedAt = joinedAt;
+
+        chatRoom.addMember(chatRoomMember);
+
+        return chatRoomMember;
+    }
+
+    public void assignChatRoom(ChatRoom chatRoom) {
+        this.chatRoom = chatRoom;
     }
 
     public void updateLastRead(Long lastReadMessageId) {

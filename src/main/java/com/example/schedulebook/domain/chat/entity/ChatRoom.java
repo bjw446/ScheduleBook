@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.chat.entity;
 
 import com.example.schedulebook.common.entity.DeleteEntity;
 import com.example.schedulebook.domain.chat.enums.ChatRoomType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -23,6 +24,7 @@ public class ChatRoom extends DeleteEntity {
     @Column(length = 100)
     private String name;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "last_message_id")
     private ChatMessage lastMessage;
@@ -34,7 +36,7 @@ public class ChatRoom extends DeleteEntity {
         ChatRoom chatRoom = new ChatRoom();
 
         chatRoom.chatRoomType = ChatRoomType.DIRECT;
-        chatRoom.memberCount = 2;
+        chatRoom.memberCount = 0;
 
         return chatRoom;
     }
@@ -53,8 +55,9 @@ public class ChatRoom extends DeleteEntity {
         this.lastMessage = lastMessage;
     }
 
-    public void increaseMemberCount() {
+    public void addMember(ChatRoomMember chatRoomMember) {
         this.memberCount++;
+        chatRoomMember.assignChatRoom(this);
     }
 
     public void decreaseMemberCount() {

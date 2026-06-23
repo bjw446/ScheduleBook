@@ -53,9 +53,13 @@ public class ChatRoomService {
 
             chatRoomRepository.save(chatRoom);
 
-            chatRoomMemberRepository.save(ChatRoomMember.of(chatRoom, currentUser, LocalDateTime.now()));
+            ChatRoomMember member1 = ChatRoomMember.of(chatRoom, currentUser, LocalDateTime.now());
 
-            chatRoomMemberRepository.save(ChatRoomMember.of(chatRoom, friendUser, LocalDateTime.now()));
+            ChatRoomMember member2 = ChatRoomMember.of(chatRoom, friendUser, LocalDateTime.now());
+
+            chatRoomMemberRepository.save(member1);
+
+            chatRoomMemberRepository.save(member2);
 
             directChatRoomRepository.save(DirectChatRoom.of(currentUserId, friendId, chatRoom));
 
