@@ -21,7 +21,7 @@ public class ChatRoomController {
 
     @PostMapping("/direct/{friendId}")
     public ResponseEntity<ApiResponse<ChatRoomResponse>> createDirectRoom(@PathVariable Long friendId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(
+        return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
                         SuccessEnum.CREATE_SUCCESS,
                         chatRoomService.createDirectRoom(SecurityUtils.getCurrentUserId(), friendId)

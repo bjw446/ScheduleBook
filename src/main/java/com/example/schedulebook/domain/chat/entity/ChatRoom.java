@@ -30,12 +30,6 @@ public class ChatRoom extends DeleteEntity {
     @Column(nullable = false, name = "member_count")
     private Integer memberCount;
 
-    private ChatRoom(ChatRoomType chatRoomType, String name, Integer memberCount) {
-        this.chatRoomType = chatRoomType;
-        this.name = name;
-        this.memberCount = memberCount;
-    }
-
     public static ChatRoom direct() {
         ChatRoom chatRoom = new ChatRoom();
 

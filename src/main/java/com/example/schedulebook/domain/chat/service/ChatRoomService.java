@@ -34,39 +34,41 @@ public class ChatRoomService {
     private final DirectChatRoomRepository directChatRoomRepository;
 
     public ChatRoomResponse createDirectRoom(Long currentUserId, Long friendId) {
+        validateUser(currentUserId, friendId);
+
         User currentUser = getUser(currentUserId);
 
         User friendUser = getUser(friendId);
 
-        validateUser(currentUserId, friendId);
-
         validateFriend(currentUserId, friendId);
 
-        Optional<DirectChatRoom> existingRoom = findDirectRoom(currentUserId, friendId);
-
-        if (existingRoom.isPresent()) {
-            return ChatRoomResponse.from(existingRoom.get().getChatRoom());
-        }
-
-        ChatRoom chatRoom = ChatRoom.direct();
-
-        chatRoomRepository.save(chatRoom);
-
-        chatRoomMemberRepository.save(ChatRoomMember.of(chatRoom, currentUser, LocalDateTime.now()));
-
-        chatRoomMemberRepository.save(ChatRoomMember.of(chatRoom, friendUser, LocalDateTime.now()));
-
         try {
+            Optional<DirectChatRoom> existingRoom = findDirectRoom(currentUserId, friendId);
+
+            if (existingRoom.isPresent()) {
+                return ChatRoomResponse.from(existingRoom.get().getChatRoom());
+            }
+
+            ChatRoom chatRoom = ChatRoom.direct();
+
+            chatRoomRepository.save(chatRoom);
+
+            chatRoomMemberRepository.save(ChatRoomMember.of(chatRoom, currentUser, LocalDateTime.now()));
+
+            chatRoomMemberRepository.save(ChatRoomMember.of(chatRoom, friendUser, LocalDateTime.now()));
+
             directChatRoomRepository.save(DirectChatRoom.of(currentUserId, friendId, chatRoom));
+
+            return ChatRoomResponse.from(chatRoom);
         } catch (DataIntegrityViolationException e) {
             log.info("1:1 채팅방 중복 생성 발생, user1 = {}, user2 = {}", currentUserId, friendId);
 
-            DirectChatRoom directChatRoom = findDirectRoom(currentUserId, friendId).orElseThrow();
+            DirectChatRoom directChatRoom = findDirectRoom(currentUserId, friendId).orElseThrow(
+                    () -> new BaseException(ErrorEnum.CHAT_ROOM_NOT_FOUND)
+            );
 
             return ChatRoomResponse.from(directChatRoom.getChatRoom());
         }
-
-        return ChatRoomResponse.from(chatRoom);
     }
 
     private void validateFriend(Long currentUserId, Long friendId) {
@@ -79,9 +81,6 @@ public class ChatRoomService {
         if (currentUserId.equals(friendId)) {
             throw new BaseException(ErrorEnum.INVALID_CHAT_TARGET);
         }
-
-        getUser(currentUserId);
-        getUser(friendId);
     }
 
     private User getUser(Long userId) {
