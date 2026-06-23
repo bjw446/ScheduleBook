@@ -15,6 +15,7 @@ import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -25,6 +26,7 @@ import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional
 public class NotificationService {
     private final NotificationRepository notificationRepository;
@@ -204,7 +206,11 @@ public class NotificationService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                notificationEventPublisher.publish(responseSupplier.get());
+                try {
+                    notificationEventPublisher.publish(responseSupplier.get());
+                } catch (Exception e) {
+                    log.error("커밋 후 알림 이벤트 발행 실패", e);
+                }
             }
         });
     }
