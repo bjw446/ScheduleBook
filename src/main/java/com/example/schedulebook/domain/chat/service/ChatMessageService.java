@@ -80,8 +80,6 @@ public class ChatMessageService {
     public ChatMessageSliceResponse findMessages(Long currentUserId, Long roomId, ChatMessageSearchRequest request) {
         validateChatRoom(roomId);
 
-        validateMember(roomId, currentUserId);
-
         ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
 
         int requestedSize = request.size() == null ? 30 : request.size();
