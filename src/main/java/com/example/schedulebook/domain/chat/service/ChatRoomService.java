@@ -104,7 +104,7 @@ public class ChatRoomService {
     }
 
     private ChatRoomMember validateChatRoomMember(Long currentUserId, Long roomId) {
-        return chatRoomMemberRepository.findByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
+        return chatRoomMemberRepository.findByChatRoomIdAndUserIdAndDeletedAtIsNull(roomId, currentUserId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
         );
     }
