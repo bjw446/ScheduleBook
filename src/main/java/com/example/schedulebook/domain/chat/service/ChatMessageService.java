@@ -139,7 +139,7 @@ public class ChatMessageService {
 
         chatRoomMember.updateUnreadCount((int) unreadCount);
 
-        publishAfterCommit(roomId, currentUserId, lastReadMessageId);
+        publishAfterCommit(roomId, currentUserId, chatRoomMember.getLastReadMessageId());
     }
 
     private ChatRoom validateChatRoom(Long roomId) {
@@ -250,7 +250,8 @@ public class ChatMessageService {
     private long recalculateUnreadCount(ChatRoomMember chatRoomMember) {
         return chatMessageRepository.countUnreadMessages(
                 chatRoomMember.getChatRoom().getId(),
-                chatRoomMember.getLastReadMessageId(),
+                chatRoomMember.getLastReadMessageId() == null
+                        ? 0L : chatRoomMember.getLastReadMessageId(),
                 chatRoomMember.getUser().getId(),
                 chatRoomMember.getJoinedAt()
         );

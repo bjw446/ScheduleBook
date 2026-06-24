@@ -26,7 +26,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     @Query("SELECT COUNT(cm) FROM ChatMessage cm WHERE cm.chatRoom.id = :roomId " +
             "AND cm.createdAt >= :joinedAt and cm.id > :lastReadMessageId " +
-            "AND cm.sender.id <> :userId")
+            "AND (cm.sender IS NULL OR cm.sender.id <> :userId) ")
     long countUnreadMessages(
             @Param("roomId") Long roomId,
             @Param("lastReadMessageId") Long lastReadMessageId,

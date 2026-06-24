@@ -178,6 +178,8 @@ public class ChatRoomService {
 
         ChatMessage leaveMessage = createLeaveSystemMessage(chatRoom, chatRoomMember);
 
+        updateUnreadCount(chatRoom, chatRoomMember.getUser().getId());
+
         int unreadCount = calculateUnreadCount(
                 leaveMessage,
                 chatRoomMember.getUser().getId(),
@@ -238,5 +240,9 @@ public class ChatRoomService {
                 .filter(member ->
                         !chatMessage.getCreatedAt().isBefore(member.getJoinedAt()))
                 .count();
+    }
+
+    private void updateUnreadCount(ChatRoom chatRoom, Long userId) {
+        chatRoomMemberRepository.increaseUnreadCount(chatRoom.getId(), userId);
     }
 }
