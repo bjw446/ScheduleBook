@@ -22,7 +22,7 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
     void increaseUnreadCount(@Param("roomId") Long roomId, @Param("senderId") Long senderId);
 
     @Query("SELECT crm.chatRoom.id as roomId, crm.chatRoom.name as roomName, " +
-            "CASE WHEN crm.chatRoom.chatRoomType = 'DIRECT' " +
+            "CASE WHEN crm.chatRoom.chatRoomType = com.example.schedulebook.domain.chat.enums.ChatRoomType.DIRECT " +
             "THEN (SELECT opponent.user.nickname FROM ChatRoomMember opponent " +
             "WHERE opponent.chatRoom.id = crm.chatRoom.id AND opponent.user.id <> :userId " +
             "AND opponent.deletedAt IS NULL) ELSE NULL END as opponentNickname, " +
