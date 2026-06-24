@@ -65,4 +65,8 @@ public class ChatRoom extends DeleteEntity {
             this.memberCount--;
         }
     }
+
+    public void increaseMemberCount() {
+        this.memberCount++;
+    }
 }
