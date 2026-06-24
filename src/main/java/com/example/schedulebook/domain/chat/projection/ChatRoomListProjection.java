@@ -1,4 +1,4 @@
-package com.example.schedulebook.domain.chat.repository;
+package com.example.schedulebook.domain.chat.projection;
 
 import com.example.schedulebook.domain.chat.enums.ChatRoomType;
 

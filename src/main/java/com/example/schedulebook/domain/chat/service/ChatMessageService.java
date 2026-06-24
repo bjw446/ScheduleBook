@@ -6,11 +6,13 @@ import com.example.schedulebook.domain.chat.dto.request.ChatMessageSearchRequest
 import com.example.schedulebook.domain.chat.dto.request.ChatMessageSendRequest;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageSliceResponse;
+import com.example.schedulebook.domain.chat.dto.response.ReadMessageEvent;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
 import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chat.enums.ChatMessageType;
 import com.example.schedulebook.domain.chat.enums.ChatRoomType;
+import com.example.schedulebook.domain.chat.projection.MemberReadStatusProjection;
 import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
@@ -64,7 +66,9 @@ public class ChatMessageService {
 
         updateUnreadCount(chatRoom, currentUserId);
 
-        ChatMessageResponse response = ChatMessageResponse.from(chatMessage);
+        int unreadCount = calculateUnreadCount(chatMessage.getId(), readStatuses(chatRoom.getId(), currentUserId));
+
+        ChatMessageResponse response = ChatMessageResponse.from(chatMessage, unreadCount);
 
         String destination = "/topic/chat/" + chatRoom.getId();
 
@@ -105,25 +109,31 @@ public class ChatMessageService {
             nextCursor = messages.get(messages.size() - 1).getId();
         }
 
-        return new ChatMessageSliceResponse(
-                messages.stream()
-                        .map(ChatMessageResponse::from)
-                        .toList(),
-                nextCursor,
-                hasNext
-        );
+        List<ChatMessageResponse> responses = messages.stream()
+                .map(message -> {
+                    int unreadCount = calculateUnreadCount(
+                            message.getId(),
+                            readStatuses(roomId, currentUserId)
+                    );
+
+                    return ChatMessageResponse.from(message, unreadCount);
+
+                })
+                .toList();
+
+        return new ChatMessageSliceResponse(responses, nextCursor, hasNext);
     }
 
     public void readMessage(Long currentUserId, Long roomId, Long lastReadMessageId) {
-        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findActiveByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
-                () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
-        );
+        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
 
         validateChatMessage(lastReadMessageId, roomId);
 
         chatRoomMember.updateLastRead(lastReadMessageId);
 
         chatRoomMember.clearUnreadCount();
+
+        publishAfterCommit(roomId, currentUserId, lastReadMessageId);
     }
 
     private ChatRoom validateChatRoom(Long roomId) {
@@ -190,5 +200,30 @@ public class ChatMessageService {
         for (ChatRoomMember chatRoomMember : leftMembers) {
             chatRoomMember.rejoin(joinedAt);
         }
+    }
+
+    private void publishAfterCommit(Long roomId, Long currentUserId, Long lastReadMessageId) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                simpMessagingTemplate.convertAndSend(
+                        "/topic/chat/" + roomId + "/read",
+                        ReadMessageEvent.from(roomId, currentUserId, lastReadMessageId)
+                );
+            }
+        });
+    }
+
+    private List<MemberReadStatusProjection> readStatuses(Long roomId, Long currentUserId) {
+        return chatRoomMemberRepository.findReadStatuses(roomId, currentUserId);
+    }
+
+    private int calculateUnreadCount(Long messageId, List<MemberReadStatusProjection> readStatuses) {
+        return (int) readStatuses.stream()
+                .filter(status ->
+                        status.getLastReadMessageId() == null
+                                || status.getLastReadMessageId() < messageId
+                )
+                .count();
     }
 }

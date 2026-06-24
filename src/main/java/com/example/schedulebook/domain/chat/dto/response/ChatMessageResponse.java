@@ -15,9 +15,11 @@ public record ChatMessageResponse(
         ChatMessageType chatMessageType,
         ReplyMessageResponse replyMessageResponse,
         boolean edited,
+        int unreadMemberCount,
         LocalDateTime createdAt
+
 ) {
-    public static ChatMessageResponse from(ChatMessage chatMessage) {
+    public static ChatMessageResponse from(ChatMessage chatMessage, int unreadMemberCount) {
         User sender = chatMessage.getSender();
 
         return new ChatMessageResponse(
@@ -29,7 +31,9 @@ public record ChatMessageResponse(
                 chatMessage.getChatMessageType(),
                 chatMessage.getReplyMessage() == null ? null : ReplyMessageResponse.from(chatMessage.getReplyMessage()),
                 chatMessage.isEdited(),
+                unreadMemberCount,
                 chatMessage.getCreatedAt()
+
         );
     }
 }
