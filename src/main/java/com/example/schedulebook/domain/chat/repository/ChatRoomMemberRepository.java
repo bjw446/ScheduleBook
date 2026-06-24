@@ -26,7 +26,8 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
 
     @Query("SELECT crm.chatRoom.id as roomId, crm.chatRoom.name as roomName, " +
             "CASE WHEN crm.chatRoom.chatRoomType = com.example.schedulebook.domain.chat.enums.ChatRoomType.DIRECT " +
-            "THEN (SELECT opponent.user.nickname FROM ChatRoomMember opponent " +
+            "THEN (SELECT CASE WHEN opponent.user.deletedAt IS NOT NULL THEN '알 수 없음' " +
+            "ELSE opponent.user.nickname END FROM ChatRoomMember opponent " +
             "WHERE opponent.chatRoom.id = crm.chatRoom.id AND opponent.user.id <> :userId) " +
             "ELSE NULL END as opponentNickname, lm.content as lastMessage, lm.createdAt " +
             "as lastMessageAt, crm.unreadCount as unreadCount, crm.chatRoom.chatRoomType " +
