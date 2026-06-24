@@ -107,7 +107,7 @@ public class ChatMessageService {
     }
 
     public void readMessage(Long currentUserId, Long roomId, Long lastReadMessageId) {
-        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomIdAndUserIdAndDeletedAtIsNull(roomId, currentUserId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
         );
 

@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, Long> {
-    @Query("SELECT crm.user FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId AND crm.user.id = :userId")
+    @Query("SELECT crm.user FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId AND crm.user.id = :userId AND crm.deletedAt IS NULL")
     Optional<User> findUserInRoom(@Param("roomId") Long roomId, @Param("userId") Long userId);
 
-    Optional<ChatRoomMember> findByChatRoomIdAndUserId(Long roomId, Long userId);
+    Optional<ChatRoomMember> findByChatRoomIdAndUserIdAndDeletedAtIsNull(Long roomId, Long userId);
 
     @Modifying
     @Query("UPDATE ChatRoomMember crm SET crm.unreadCount = crm.unreadCount + 1 " +
@@ -32,4 +32,8 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
             "WHERE crm.user.id = :userId AND crm.deletedAt IS NULL " +
             "ORDER BY CASE WHEN lm.createdAt IS NULL THEN 1 ELSE 0 END, lm.createdAt DESC")
     List<ChatRoomListProjection> findMyChatRooms(@Param("userId") Long userId);
+
+    @Query("SELECT crm.user.nickname FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId " +
+            "AND crm.user.id <> :currentUserId AND crm.deletedAt IS NULL")
+    String findOpponentNickname(@Param("roomId") Long roomId, @Param("currentUserId") Long currentUserId);
 }
