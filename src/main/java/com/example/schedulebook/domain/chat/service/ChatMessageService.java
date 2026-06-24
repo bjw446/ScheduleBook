@@ -10,6 +10,7 @@ import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
 import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chat.enums.ChatMessageType;
+import com.example.schedulebook.domain.chat.enums.ChatRoomType;
 import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.example.schedulebook.domain.chat.consts.ChatConst.MAX_PAGE_SIZE;
@@ -56,6 +58,10 @@ public class ChatMessageService {
 
         chatRoom.updateLastMessage(chatMessage);
 
+        if (chatRoom.getChatRoomType() == ChatRoomType.DIRECT) {
+            rejoinLeftMembers(chatRoom.getId(), currentUserId, chatMessage.getCreatedAt());
+        }
+
         updateUnreadCount(chatRoom, currentUserId);
 
         ChatMessageResponse response = ChatMessageResponse.from(chatMessage);
@@ -76,12 +82,15 @@ public class ChatMessageService {
 
         validateMember(roomId, currentUserId);
 
+        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
+
         int requestedSize = request.size() == null ? 30 : request.size();
 
         int pageSize = requestedSize <= 0 ? 30 : Math.min(requestedSize, MAX_PAGE_SIZE);
 
         List<ChatMessage> messages = chatMessageRepository.findMessages(
                 roomId,
+                chatRoomMember.getJoinedAt(),
                 request.cursor(),
                 PageRequest.of(0, pageSize + 1)
         );
@@ -122,6 +131,12 @@ public class ChatMessageService {
     private ChatRoom validateChatRoom(Long roomId) {
         return chatRoomRepository.findById(roomId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_ROOM_NOT_FOUND)
+        );
+    }
+
+    private ChatRoomMember validateChatRoomMember(Long currentUserId, Long roomId) {
+        return chatRoomMemberRepository.findActiveByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
+                () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
         );
     }
 
@@ -169,5 +184,13 @@ public class ChatMessageService {
 
     private void updateUnreadCount(ChatRoom chatRoom, Long currentUserId) {
         chatRoomMemberRepository.increaseUnreadCount(chatRoom.getId(), currentUserId);
+    }
+
+    private void rejoinLeftMembers(Long roomId, Long senderId, LocalDateTime joinedAt) {
+        List<ChatRoomMember> leftMembers = chatRoomMemberRepository.findDeletedMembers(roomId, senderId);
+
+        for (ChatRoomMember chatRoomMember : leftMembers) {
+            chatRoomMember.rejoin(joinedAt);
+        }
     }
 }
