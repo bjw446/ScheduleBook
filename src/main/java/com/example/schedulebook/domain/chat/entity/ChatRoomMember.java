@@ -76,10 +76,10 @@ public class ChatRoomMember extends DeleteEntity {
         delete();
     }
 
-    public void rejoin() {
+    public void rejoin(LocalDateTime joinedAt) {
         restore();
         unreadCount = 0;
         lastReadMessageId = null;
-        joinedAt = LocalDateTime.now();
+        this.joinedAt = joinedAt;
     }
 }

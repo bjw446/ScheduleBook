@@ -39,4 +39,8 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
     @Query("SELECT crm.user.nickname as nickname, crm.user.deletedAt as userDeletedAt " +
             "FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId AND crm.user.id <> :currentUserId")
     OpponentInfoProjection findOpponentInfo(@Param("roomId") Long roomId, @Param("currentUserId") Long currentUserId);
+
+    @Query("SELECT crm FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId " +
+            "AND crm.user.id <> :senderId AND crm.deletedAt IS NOT NULL")
+    List<ChatRoomMember> findDeletedMembers(@Param("roomId") Long roomId, @Param("senderId") Long senderId);
 }
