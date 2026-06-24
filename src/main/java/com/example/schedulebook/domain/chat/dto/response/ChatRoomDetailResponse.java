@@ -5,6 +5,7 @@ import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chat.enums.ChatRoomType;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ChatRoomDetailResponse(
         Long roomId,
@@ -16,9 +17,15 @@ public record ChatRoomDetailResponse(
         Long lastMessageId,
         String lastMessage,
         LocalDateTime lastMessageAt,
-        int unreadCount
+        int unreadCount,
+        List<MemberReadStatusResponse> readStatuses
 ) {
-    public static ChatRoomDetailResponse from(ChatRoom chatRoom, ChatRoomMember chatRoomMember, String roomName) {
+    public static ChatRoomDetailResponse from(
+            ChatRoom chatRoom,
+            ChatRoomMember chatRoomMember,
+            String roomName,
+            List<MemberReadStatusResponse> readStatuses
+    ) {
         return new ChatRoomDetailResponse(
                 chatRoom.getId(),
                 roomName,
@@ -29,7 +36,8 @@ public record ChatRoomDetailResponse(
                 chatRoom.getLastMessage() == null ? null : chatRoom.getLastMessage().getId(),
                 chatRoom.getLastMessage() == null ? null : chatRoom.getLastMessage().getContent(),
                 chatRoom.getLastMessage() == null ? null : chatRoom.getLastMessage().getCreatedAt(),
-                chatRoomMember.getUnreadCount()
+                chatRoomMember.getUnreadCount(),
+                readStatuses
         );
     }
 }

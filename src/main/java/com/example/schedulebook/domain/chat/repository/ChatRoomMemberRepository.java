@@ -1,6 +1,9 @@
 package com.example.schedulebook.domain.chat.repository;
 
 import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
+import com.example.schedulebook.domain.chat.projection.ChatRoomListProjection;
+import com.example.schedulebook.domain.chat.projection.MemberReadStatusProjection;
+import com.example.schedulebook.domain.chat.projection.OpponentInfoProjection;
 import com.example.schedulebook.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -43,4 +46,9 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
     @Query("SELECT crm FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId " +
             "AND crm.user.id <> :senderId AND crm.deletedAt IS NOT NULL")
     List<ChatRoomMember> findDeletedMembers(@Param("roomId") Long roomId, @Param("senderId") Long senderId);
+
+    @Query("SELECT crm.user.id as userId, crm.user.nickname as nickname, " +
+            "crm.lastReadMessageId as lastReadMessageId, crm.joinedAt as joinedAt FROM ChatRoomMember crm " +
+            "WHERE crm.chatRoom.id = :roomId AND crm.deletedAt IS NULL AND crm.user.deletedAt IS NULL")
+    List<MemberReadStatusProjection> findReadStatuses(@Param("roomId") Long roomId);
 }

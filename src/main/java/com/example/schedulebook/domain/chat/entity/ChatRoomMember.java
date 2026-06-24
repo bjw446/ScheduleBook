@@ -68,8 +68,8 @@ public class ChatRoomMember extends DeleteEntity {
         }
     }
 
-    public void clearUnreadCount() {
-        this.unreadCount = 0;
+    public void updateUnreadCount(int unreadCount) {
+        this.unreadCount = unreadCount;
     }
 
     public void leaveChatRoom() {

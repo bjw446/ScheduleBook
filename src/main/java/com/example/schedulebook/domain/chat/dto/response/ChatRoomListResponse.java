@@ -1,7 +1,7 @@
 package com.example.schedulebook.domain.chat.dto.response;
 
 import com.example.schedulebook.domain.chat.enums.ChatRoomType;
-import com.example.schedulebook.domain.chat.repository.ChatRoomListProjection;
+import com.example.schedulebook.domain.chat.projection.ChatRoomListProjection;
 
 import java.time.LocalDateTime;
 

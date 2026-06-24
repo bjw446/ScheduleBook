@@ -2,16 +2,15 @@ package com.example.schedulebook.domain.chat.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
-import com.example.schedulebook.domain.chat.dto.response.ChatRoomDetailResponse;
-import com.example.schedulebook.domain.chat.dto.response.ChatRoomListResponse;
-import com.example.schedulebook.domain.chat.dto.response.ChatRoomResponse;
+import com.example.schedulebook.domain.chat.dto.response.*;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
 import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chat.entity.DirectChatRoom;
 import com.example.schedulebook.domain.chat.enums.ChatMessageType;
 import com.example.schedulebook.domain.chat.enums.ChatRoomType;
+import com.example.schedulebook.domain.chat.projection.MemberReadStatusProjection;
+import com.example.schedulebook.domain.chat.projection.OpponentInfoProjection;
 import com.example.schedulebook.domain.chat.repository.*;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
@@ -103,7 +102,13 @@ public class ChatRoomService {
 
         String roomName = resolveRoomName(chatRoom, currentUserId);
 
-        return ChatRoomDetailResponse.from(chatRoom, chatRoomMember, roomName);
+        List<MemberReadStatusResponse> readStatuses = chatRoomMemberRepository.findReadStatuses(roomId)
+                .stream()
+                .filter(status -> !status.getUserId().equals(currentUserId))
+                .map(MemberReadStatusResponse::from)
+                .toList();
+
+        return ChatRoomDetailResponse.from(chatRoom, chatRoomMember, roomName, readStatuses);
     }
 
     public void leaveChatRoom(Long currentUserId, Long roomId) {
@@ -174,7 +179,15 @@ public class ChatRoomService {
 
         ChatMessage leaveMessage = createLeaveSystemMessage(chatRoom, chatRoomMember);
 
-        publishSystemMessage(chatRoom, leaveMessage);
+        updateUnreadCount(chatRoom, chatRoomMember.getUser().getId());
+
+        int unreadCount = calculateUnreadCount(
+                leaveMessage,
+                chatRoomMember.getUser().getId(),
+                readStatuses(chatRoom.getId())
+        );
+
+        publishSystemMessage(chatRoom, leaveMessage, unreadCount);
     }
 
     private void handleLeave(ChatRoom chatRoom, ChatRoomMember chatRoomMember) {
@@ -200,15 +213,37 @@ public class ChatRoomService {
         return chatMessage;
     }
 
-    private void publishSystemMessage(ChatRoom chatRoom, ChatMessage chatMessage) {
+    private void publishSystemMessage(ChatRoom chatRoom, ChatMessage chatMessage, int unreadMemberCount) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
                 simpMessagingTemplate.convertAndSend(
                         "/topic/chat/" + chatRoom.getId(),
-                        ChatMessageResponse.from(chatMessage)
+                        ChatMessageResponse.from(chatMessage, unreadMemberCount)
                 );
             }
         });
+    }
+
+    private List<MemberReadStatusProjection> readStatuses(Long roomId) {
+        return chatRoomMemberRepository.findReadStatuses(roomId);
+    }
+
+    private int calculateUnreadCount(ChatMessage chatMessage, Long excludedUserId, List<MemberReadStatusProjection> members) {
+        return (int) members.stream()
+                .filter(member ->
+                        !member.getUserId().equals(excludedUserId)
+                )
+                .filter(member ->
+                        member.getLastReadMessageId() == null
+                                || member.getLastReadMessageId() < chatMessage.getId()
+                )
+                .filter(member ->
+                        !chatMessage.getCreatedAt().isBefore(member.getJoinedAt()))
+                .count();
+    }
+
+    private void updateUnreadCount(ChatRoom chatRoom, Long userId) {
+        chatRoomMemberRepository.increaseUnreadCount(chatRoom.getId(), userId);
     }
 }

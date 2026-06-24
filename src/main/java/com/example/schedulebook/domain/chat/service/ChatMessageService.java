@@ -6,11 +6,13 @@ import com.example.schedulebook.domain.chat.dto.request.ChatMessageSearchRequest
 import com.example.schedulebook.domain.chat.dto.request.ChatMessageSendRequest;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageSliceResponse;
+import com.example.schedulebook.domain.chat.dto.response.ReadMessageEvent;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
 import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chat.enums.ChatMessageType;
 import com.example.schedulebook.domain.chat.enums.ChatRoomType;
+import com.example.schedulebook.domain.chat.projection.MemberReadStatusProjection;
 import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
@@ -64,7 +66,9 @@ public class ChatMessageService {
 
         updateUnreadCount(chatRoom, currentUserId);
 
-        ChatMessageResponse response = ChatMessageResponse.from(chatMessage);
+        int unreadCount = calculateUnreadCount(chatMessage, readStatuses(chatRoom.getId()));
+
+        ChatMessageResponse response = ChatMessageResponse.from(chatMessage, unreadCount);
 
         String destination = "/topic/chat/" + chatRoom.getId();
 
@@ -105,25 +109,37 @@ public class ChatMessageService {
             nextCursor = messages.get(messages.size() - 1).getId();
         }
 
-        return new ChatMessageSliceResponse(
-                messages.stream()
-                        .map(ChatMessageResponse::from)
-                        .toList(),
-                nextCursor,
-                hasNext
-        );
+        List<MemberReadStatusProjection> readStatusProjections = readStatuses(roomId);
+
+        List<ChatMessageResponse> responses = messages.stream()
+                .map(message -> {
+                    int unreadCount = calculateUnreadCount(
+                            message,
+                            readStatusProjections
+                    );
+
+                    return ChatMessageResponse.from(message, unreadCount);
+
+                })
+                .toList();
+
+        return new ChatMessageSliceResponse(responses, nextCursor, hasNext);
     }
 
     public void readMessage(Long currentUserId, Long roomId, Long lastReadMessageId) {
-        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findActiveByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
-                () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
-        );
+        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
 
-        validateChatMessage(lastReadMessageId, roomId);
+        ChatMessage chatMessage = validateChatMessage(lastReadMessageId, roomId);
+
+        validateReadableMessage(chatRoomMember, chatMessage);
 
         chatRoomMember.updateLastRead(lastReadMessageId);
 
-        chatRoomMember.clearUnreadCount();
+        long unreadCount = recalculateUnreadCount(chatRoomMember);
+
+        chatRoomMember.updateUnreadCount((int) unreadCount);
+
+        publishAfterCommit(roomId, currentUserId, chatRoomMember.getLastReadMessageId());
     }
 
     private ChatRoom validateChatRoom(Long roomId) {
@@ -170,12 +186,12 @@ public class ChatMessageService {
         );
     }
 
-    private void validateChatMessage(Long messageId, Long roomId) {
+    private ChatMessage validateChatMessage(Long messageId, Long roomId) {
         if (messageId == null) {
             throw new BaseException(ErrorEnum.INVALID_INPUT);
         }
 
-        chatMessageRepository.findByIdAndChatRoomId(messageId, roomId).orElseThrow(
+        return chatMessageRepository.findByIdAndChatRoomId(messageId, roomId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_MESSAGE_NOT_FOUND)
         );
     }
@@ -190,5 +206,54 @@ public class ChatMessageService {
         for (ChatRoomMember chatRoomMember : leftMembers) {
             chatRoomMember.rejoin(joinedAt);
         }
+    }
+
+    private void publishAfterCommit(Long roomId, Long currentUserId, Long lastReadMessageId) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                simpMessagingTemplate.convertAndSend(
+                        "/topic/chat/" + roomId + "/read",
+                        ReadMessageEvent.from(roomId, currentUserId, lastReadMessageId)
+                );
+            }
+        });
+    }
+
+    private List<MemberReadStatusProjection> readStatuses(Long roomId) {
+        return chatRoomMemberRepository.findReadStatuses(roomId);
+    }
+
+    private int calculateUnreadCount(ChatMessage chatMessage, List<MemberReadStatusProjection> members) {
+        Long senderId = chatMessage.getSender() == null ? null : chatMessage.getSender().getId();
+
+        return (int) members.stream()
+                .filter(member ->
+                        senderId == null
+                                || !member.getUserId().equals(senderId)
+                )
+                .filter(member ->
+                        member.getLastReadMessageId() == null
+                                || member.getLastReadMessageId() < chatMessage.getId()
+                )
+                .filter(member ->
+                        !chatMessage.getCreatedAt().isBefore(member.getJoinedAt()))
+                .count();
+    }
+
+    private void validateReadableMessage(ChatRoomMember chatRoomMember, ChatMessage chatMessage) {
+        if (chatMessage.getCreatedAt().isBefore(chatRoomMember.getJoinedAt())) {
+            throw new BaseException(ErrorEnum.CHAT_MESSAGE_FORBIDDEN);
+        }
+    }
+
+    private long recalculateUnreadCount(ChatRoomMember chatRoomMember) {
+        return chatMessageRepository.countUnreadMessages(
+                chatRoomMember.getChatRoom().getId(),
+                chatRoomMember.getLastReadMessageId() == null
+                        ? 0L : chatRoomMember.getLastReadMessageId(),
+                chatRoomMember.getUser().getId(),
+                chatRoomMember.getJoinedAt()
+        );
     }
 }
