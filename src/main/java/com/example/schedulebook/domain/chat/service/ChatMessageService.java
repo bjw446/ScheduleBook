@@ -109,11 +109,13 @@ public class ChatMessageService {
             nextCursor = messages.get(messages.size() - 1).getId();
         }
 
+        List<MemberReadStatusProjection> readStatusProjections = readStatuses(roomId, currentUserId);
+
         List<ChatMessageResponse> responses = messages.stream()
                 .map(message -> {
                     int unreadCount = calculateUnreadCount(
                             message.getId(),
-                            readStatuses(roomId, currentUserId)
+                            readStatusProjections
                     );
 
                     return ChatMessageResponse.from(message, unreadCount);
