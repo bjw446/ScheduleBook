@@ -104,6 +104,7 @@ public class ChatRoomService {
 
         List<MemberReadStatusResponse> readStatuses = chatRoomMemberRepository.findReadStatuses(roomId)
                 .stream()
+                .filter(status -> !status.getUserId().equals(currentUserId))
                 .map(MemberReadStatusResponse::from)
                 .toList();
 
