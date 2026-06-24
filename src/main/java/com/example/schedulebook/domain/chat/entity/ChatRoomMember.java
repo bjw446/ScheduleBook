@@ -36,13 +36,11 @@ public class ChatRoomMember extends DeleteEntity {
     @Column(name = "last_read_message_id")
     private Long lastReadMessageId;
 
+    @Column(nullable = false, name = "unread_count")
+    private int unreadCount;
+
     @Column(nullable = false, name = "joined_at")
     private LocalDateTime joinedAt;
-
-    private ChatRoomMember(User user, LocalDateTime joinedAt) {
-        this.user = user;
-        this.joinedAt = joinedAt;
-    }
 
     public static ChatRoomMember of(ChatRoom chatRoom, User user, LocalDateTime joinedAt) {
         ChatRoomMember chatRoomMember = new ChatRoomMember();
@@ -50,6 +48,8 @@ public class ChatRoomMember extends DeleteEntity {
         chatRoomMember.user = user;
 
         chatRoomMember.joinedAt = joinedAt;
+
+        chatRoomMember.unreadCount = 0;
 
         chatRoom.addMember(chatRoomMember);
 
@@ -68,5 +68,9 @@ public class ChatRoomMember extends DeleteEntity {
         if (this.lastReadMessageId == null || lastReadMessageId > this.lastReadMessageId) {
             this.lastReadMessageId = lastReadMessageId;
         }
+    }
+
+    public void clearUnreadCount() {
+        this.unreadCount = 0;
     }
 }
