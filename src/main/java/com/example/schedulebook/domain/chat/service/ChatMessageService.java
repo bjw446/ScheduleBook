@@ -109,9 +109,9 @@ public class ChatMessageService {
                 () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
         );
 
-        ChatMessage chatMessage = validateChatMessage(lastReadMessageId, roomId);
+        validateChatMessage(lastReadMessageId, roomId);
 
-        chatRoomMember.updateLastRead(chatMessage.getId());
+        chatRoomMember.updateLastRead(lastReadMessageId);
     }
 
     private ChatRoom validateChatRoom(Long roomId) {
@@ -152,8 +152,12 @@ public class ChatMessageService {
         );
     }
 
-    private ChatMessage validateChatMessage(Long messageId, Long roomId) {
-        return chatMessageRepository.findByIdAndChatRoomId(messageId, roomId).orElseThrow(
+    private void validateChatMessage(Long messageId, Long roomId) {
+        if (messageId == null) {
+            throw new BaseException(ErrorEnum.INVALID_INPUT);
+        }
+
+        chatMessageRepository.findByIdAndChatRoomId(messageId, roomId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_MESSAGE_NOT_FOUND)
         );
     }
