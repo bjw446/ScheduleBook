@@ -10,7 +10,8 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, Long> {@Query("SELECT crm.user FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId AND crm.user.id = :userId")
+public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, Long> {
+    @Query("SELECT crm.user FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId AND crm.user.id = :userId AND crm.deletedAt IS NULL")
     Optional<User> findUserInRoom(@Param("roomId") Long roomId, @Param("userId") Long userId);
 
     Optional<ChatRoomMember> findByChatRoomIdAndUserIdAndDeletedAtIsNull(Long roomId, Long userId);
