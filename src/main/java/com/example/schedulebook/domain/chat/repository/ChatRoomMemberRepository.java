@@ -17,13 +17,19 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
     Optional<ChatRoomMember> findByChatRoomIdAndUserId(Long roomId, Long userId);
 
     @Modifying
-    @Query("UPDATE ChatRoomMember crm SET crm.unreadCount = crm.unreadCount + 1 WHERE crm.chatRoom.id = :roomId AND crm.user.id <> :senderId")
+    @Query("UPDATE ChatRoomMember crm SET crm.unreadCount = crm.unreadCount + 1 " +
+            "WHERE crm.chatRoom.id = :roomId AND crm.user.id <> :senderId AND crm.deletedAt IS NULL")
     void increaseUnreadCount(@Param("roomId") Long roomId, @Param("senderId") Long senderId);
 
-    @Query("SELECT crm.chatRoom.id as roomId, crm.chatRoom.name as roomName, opponent.user.nickname as opponentNickname, " +
-            "lm.content as lastMessage, lm.createdAt as lastMessageAt, crm.unreadCount as unreadCount, " +
-            "crm.chatRoom.chatRoomType as chatRoomType FROM ChatRoomMember crm LEFT JOIN crm.chatRoom.lastMessage lm " +
-            "LEFT JOIN ChatRoomMember opponent ON opponent.chatRoom.id = crm.chatRoom.id AND opponent.user.id <> :userId " +
-            "WHERE crm.user.id = :userId ORDER BY CASE WHEN lm.createdAt IS NULL THEN 1 ELSE 0 END, lm.createdAt DESC")
+    @Query("SELECT crm.chatRoom.id as roomId, crm.chatRoom.name as roomName, " +
+            "CASE WHEN crm.chatRoom.chatRoomType = 'DIRECT' " +
+            "THEN (SELECT opponent.user.nickname FROM ChatRoomMember opponent " +
+            "WHERE opponent.chatRoom.id = crm.chatRoom.id AND opponent.user.id <> :userId " +
+            "AND opponent.deletedAt IS NULL) ELSE NULL END as opponentNickname, " +
+            "lm.content as lastMessage, lm.createdAt as lastMessageAt, " +
+            "crm.unreadCount as unreadCount, crm.chatRoom.chatRoomType as chatRoomType " +
+            "FROM ChatRoomMember crm LEFT JOIN crm.chatRoom.lastMessage lm " +
+            "WHERE crm.user.id = :userId AND crm.deletedAt IS NULL " +
+            "ORDER BY CASE WHEN lm.createdAt IS NULL THEN 1 ELSE 0 END, lm.createdAt DESC")
     List<ChatRoomListProjection> findMyChatRooms(@Param("userId") Long userId);
 }

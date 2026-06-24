@@ -7,6 +7,7 @@ import com.example.schedulebook.domain.chat.dto.response.ChatRoomResponse;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
 import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chat.entity.DirectChatRoom;
+import com.example.schedulebook.domain.chat.enums.ChatRoomType;
 import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
 import com.example.schedulebook.domain.chat.repository.DirectChatRoomRepository;
