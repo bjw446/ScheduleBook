@@ -5,6 +5,7 @@ import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
 import com.example.schedulebook.domain.chat.dto.request.ChatMessageSearchRequest;
 import com.example.schedulebook.domain.chat.dto.request.ChatMessageSendRequest;
+import com.example.schedulebook.domain.chat.dto.request.ChatReadRequest;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageSliceResponse;
 import com.example.schedulebook.domain.chat.service.ChatMessageService;
 import lombok.RequiredArgsConstructor;
@@ -12,10 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 
 @Controller
@@ -42,6 +40,18 @@ public class ChatMessageController {
                                 roomId,
                                 new ChatMessageSearchRequest(cursor, size)
                         )
+                )
+        );
+    }
+
+    @PostMapping("/{roomId}/read")
+    public ResponseEntity<ApiResponse<Void>> readMessage(@PathVariable Long roomId, @RequestBody ChatReadRequest request) {
+        chatMessageService.readMessage(SecurityUtils.getCurrentUserId(), roomId, request.lastReadMessageId());
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.UPDATE_SUCCESS,
+                        null
                 )
         );
     }

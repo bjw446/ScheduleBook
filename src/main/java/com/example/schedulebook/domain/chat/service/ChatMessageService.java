@@ -8,6 +8,7 @@ import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageSliceResponse;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
+import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chat.enums.ChatMessageType;
 import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
@@ -15,7 +16,6 @@ import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
 import com.example.schedulebook.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -104,6 +104,16 @@ public class ChatMessageService {
         );
     }
 
+    public void readMessage(Long currentUserId, Long roomId, Long lastReadMessageId) {
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
+                () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
+        );
+
+        ChatMessage chatMessage = validateChatMessage(lastReadMessageId, roomId);
+
+        chatRoomMember.updateLastRead(chatMessage.getId());
+    }
+
     private ChatRoom validateChatRoom(Long roomId) {
         return chatRoomRepository.findById(roomId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_ROOM_NOT_FOUND)
@@ -139,6 +149,12 @@ public class ChatMessageService {
 
         return chatMessageRepository.findByIdAndChatRoomId(replyMessageId, roomId).orElseThrow(
                 () -> new BaseException(ErrorEnum.INVALID_REPLY_MESSAGE)
+        );
+    }
+
+    private ChatMessage validateChatMessage(Long messageId, Long roomId) {
+        return chatMessageRepository.findByIdAndChatRoomId(messageId, roomId).orElseThrow(
+                () -> new BaseException(ErrorEnum.CHAT_MESSAGE_NOT_FOUND)
         );
     }
 }
