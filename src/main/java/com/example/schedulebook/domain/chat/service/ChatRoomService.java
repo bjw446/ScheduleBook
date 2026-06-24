@@ -102,7 +102,7 @@ public class ChatRoomService {
 
         String roomName = resolveRoomName(chatRoom, currentUserId);
 
-        List<MemberReadStatusResponse> readStatuses = chatRoomMemberRepository.findReadStatuses(roomId, currentUserId)
+        List<MemberReadStatusResponse> readStatuses = chatRoomMemberRepository.findReadStatuses(roomId)
                 .stream()
                 .map(MemberReadStatusResponse::from)
                 .toList();
@@ -179,8 +179,9 @@ public class ChatRoomService {
         ChatMessage leaveMessage = createLeaveSystemMessage(chatRoom, chatRoomMember);
 
         int unreadCount = calculateUnreadCount(
-                leaveMessage.getId(),
-                readStatuses(chatRoom.getId(), chatRoomMember.getUser().getId())
+                leaveMessage,
+                chatRoomMember.getUser().getId(),
+                readStatuses(chatRoom.getId())
         );
 
         publishSystemMessage(chatRoom, leaveMessage, unreadCount);
@@ -221,16 +222,21 @@ public class ChatRoomService {
         });
     }
 
-    private List<MemberReadStatusProjection> readStatuses(Long roomId, Long currentUserId) {
-        return chatRoomMemberRepository.findReadStatuses(roomId, currentUserId);
+    private List<MemberReadStatusProjection> readStatuses(Long roomId) {
+        return chatRoomMemberRepository.findReadStatuses(roomId);
     }
 
-    private int calculateUnreadCount(Long messageId, List<MemberReadStatusProjection> readStatuses) {
-        return (int) readStatuses.stream()
-                .filter(status ->
-                        status.getLastReadMessageId() == null
-                                || status.getLastReadMessageId() < messageId
+    private int calculateUnreadCount(ChatMessage chatMessage, Long excludedUserId, List<MemberReadStatusProjection> members) {
+        return (int) members.stream()
+                .filter(member ->
+                        !member.getUserId().equals(excludedUserId)
                 )
+                .filter(member ->
+                        member.getLastReadMessageId() == null
+                                || member.getLastReadMessageId() < chatMessage.getId()
+                )
+                .filter(member ->
+                        !chatMessage.getCreatedAt().isBefore(member.getJoinedAt()))
                 .count();
     }
 }

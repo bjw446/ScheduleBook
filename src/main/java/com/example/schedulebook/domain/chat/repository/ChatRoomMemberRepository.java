@@ -48,7 +48,7 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
     List<ChatRoomMember> findDeletedMembers(@Param("roomId") Long roomId, @Param("senderId") Long senderId);
 
     @Query("SELECT crm.user.id as userId, crm.user.nickname as nickname, " +
-            "crm.lastReadMessageId as lastReadMessageId FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId " +
-            "AND crm.user.id <> :currentUserId AND crm.deletedAt IS NULL AND crm.user.deletedAt IS NULL")
-    List<MemberReadStatusProjection> findReadStatuses(@Param("roomId") Long roomId, @Param("currentUserId") Long currentUserId);
+            "crm.lastReadMessageId as lastReadMessageId, crm.joinedAt as joinedAt FROM ChatRoomMember crm " +
+            "WHERE crm.chatRoom.id = :roomId AND crm.deletedAt IS NULL AND crm.user.deletedAt IS NULL")
+    List<MemberReadStatusProjection> findReadStatuses(@Param("roomId") Long roomId);
 }
