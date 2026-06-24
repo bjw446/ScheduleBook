@@ -46,9 +46,7 @@ public class ChatRoomMember extends DeleteEntity {
         ChatRoomMember chatRoomMember = new ChatRoomMember();
 
         chatRoomMember.user = user;
-
         chatRoomMember.joinedAt = joinedAt;
-
         chatRoomMember.unreadCount = 0;
 
         chatRoom.addMember(chatRoomMember);
@@ -72,5 +70,16 @@ public class ChatRoomMember extends DeleteEntity {
 
     public void clearUnreadCount() {
         this.unreadCount = 0;
+    }
+
+    public void leaveChatRoom() {
+        delete();
+    }
+
+    public void rejoin() {
+        restore();
+        unreadCount = 0;
+        lastReadMessageId = null;
+        joinedAt = LocalDateTime.now();
     }
 }

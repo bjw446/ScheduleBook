@@ -49,4 +49,16 @@ public class ChatRoomController {
                 )
         );
     }
+
+    @DeleteMapping("/{roomId}/leave")
+    public ResponseEntity<ApiResponse<Void>> leaveChatRoom(@PathVariable Long roomId) {
+        chatRoomService.leaveChatRoom(SecurityUtils.getCurrentUserId(), roomId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.DELETE_SUCCESS,
+                        null
+                )
+        );
+    }
 }

@@ -2,16 +2,17 @@ package com.example.schedulebook.domain.chat.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomListResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomResponse;
+import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
 import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chat.entity.DirectChatRoom;
+import com.example.schedulebook.domain.chat.enums.ChatMessageType;
 import com.example.schedulebook.domain.chat.enums.ChatRoomType;
-import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
-import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
-import com.example.schedulebook.domain.chat.repository.DirectChatRoomRepository;
+import com.example.schedulebook.domain.chat.repository.*;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
 import com.example.schedulebook.domain.user.entity.User;
@@ -19,12 +20,18 @@ import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import static com.example.schedulebook.domain.chat.consts.ChatConst.LEAVE_MESSAGE;
+import static com.example.schedulebook.domain.chat.consts.ChatConst.UNKNOWN_NICKNAME;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +43,8 @@ public class ChatRoomService {
     private final UserRepository userRepository;
     private final FriendRepository friendRepository;
     private final DirectChatRoomRepository directChatRoomRepository;
+    private final ChatMessageRepository chatMessageRepository;
+    private final SimpMessagingTemplate simpMessagingTemplate;
 
     public ChatRoomResponse createDirectRoom(Long currentUserId, Long friendId) {
         validateUser(currentUserId, friendId);
@@ -92,19 +101,21 @@ public class ChatRoomService {
 
         ChatRoom chatRoom = chatRoomMember.getChatRoom();
 
-        String roomName;
-
-        if (chatRoom.getChatRoomType() == ChatRoomType.DIRECT) {
-            roomName = chatRoomMemberRepository.findOpponentNickname(roomId, currentUserId);
-        } else {
-            roomName = chatRoom.getName();
-        }
+        String roomName = resolveRoomName(chatRoom, currentUserId);
 
         return ChatRoomDetailResponse.from(chatRoom, chatRoomMember, roomName);
     }
 
+    public void leaveChatRoom(Long currentUserId, Long roomId) {
+        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
+
+        ChatRoom chatRoom = chatRoomMember.getChatRoom();
+
+        handleLeave(chatRoom, chatRoomMember);
+    }
+
     private ChatRoomMember validateChatRoomMember(Long currentUserId, Long roomId) {
-        return chatRoomMemberRepository.findByChatRoomIdAndUserIdAndDeletedAtIsNull(roomId, currentUserId).orElseThrow(
+        return chatRoomMemberRepository.findActiveByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
         );
     }
@@ -133,5 +144,71 @@ public class ChatRoomService {
         long max = Math.max(userId1, userId2);
 
         return directChatRoomRepository.findByUser1IdAndUser2Id(min, max);
+    }
+
+    private String resolveRoomName(ChatRoom chatRoom, Long currentUserId) {
+        if (chatRoom.getChatRoomType() == ChatRoomType.DIRECT) {
+            OpponentInfoProjection opponent = chatRoomMemberRepository.findOpponentInfo(
+                    chatRoom.getId(),
+                    currentUserId
+            );
+
+            if (opponent == null || opponent.getUserDeletedAt() != null) {
+                return UNKNOWN_NICKNAME;
+            }
+
+            return opponent.getNickname();
+        }
+
+        return chatRoom.getName();
+    }
+
+    private void leaveDirectRoom(ChatRoomMember chatRoomMember) {
+        chatRoomMember.leaveChatRoom();
+    }
+
+    private void leaveGroupRoom(ChatRoom chatRoom, ChatRoomMember chatRoomMember) {
+        chatRoomMember.leaveChatRoom();
+
+        chatRoom.decreaseMemberCount();
+
+        ChatMessage leaveMessage = createLeaveSystemMessage(chatRoom, chatRoomMember);
+
+        publishSystemMessage(chatRoom, leaveMessage);
+    }
+
+    private void handleLeave(ChatRoom chatRoom, ChatRoomMember chatRoomMember) {
+        switch (chatRoom.getChatRoomType()) {
+            case DIRECT -> leaveDirectRoom(chatRoomMember);
+            case GROUP -> leaveGroupRoom(chatRoom, chatRoomMember);
+        }
+    }
+
+    private ChatMessage createLeaveSystemMessage(ChatRoom chatRoom, ChatRoomMember chatRoomMember){
+        ChatMessage chatMessage = ChatMessage.of(
+                chatRoom,
+                null,
+                chatRoomMember.getUser().getNickname() + LEAVE_MESSAGE,
+                ChatMessageType.SYSTEM,
+                null
+        );
+
+        chatMessageRepository.save(chatMessage);
+
+        chatRoom.updateLastMessage(chatMessage);
+
+        return chatMessage;
+    }
+
+    private void publishSystemMessage(ChatRoom chatRoom, ChatMessage chatMessage) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                simpMessagingTemplate.convertAndSend(
+                        "/topic/chat/" + chatRoom.getId(),
+                        ChatMessageResponse.from(chatMessage)
+                );
+            }
+        });
     }
 }

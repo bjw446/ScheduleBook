@@ -24,6 +24,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.util.List;
 
+import static com.example.schedulebook.domain.chat.consts.ChatConst.MAX_PAGE_SIZE;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -32,7 +34,6 @@ public class ChatMessageService {
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate simpMessagingTemplate;
-    private static final int MAX_PAGE_SIZE = 100;
 
     public void sendMessage(Long currentUserId, ChatMessageSendRequest request) {
         ChatRoom chatRoom = validateChatRoom(request.roomId());
@@ -107,7 +108,7 @@ public class ChatMessageService {
     }
 
     public void readMessage(Long currentUserId, Long roomId, Long lastReadMessageId) {
-        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findByChatRoomIdAndUserIdAndDeletedAtIsNull(roomId, currentUserId).orElseThrow(
+        ChatRoomMember chatRoomMember = chatRoomMemberRepository.findActiveByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
         );
 
