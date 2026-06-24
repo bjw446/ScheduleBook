@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.chat.controller;
 import com.example.schedulebook.common.enums.SuccessEnum;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
+import com.example.schedulebook.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomListResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomResponse;
 import com.example.schedulebook.domain.chat.service.ChatRoomService;
@@ -15,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("chat_rooms")
+@RequestMapping("/chat_rooms")
 public class ChatRoomController {
     private final ChatRoomService chatRoomService;
 
@@ -35,6 +36,16 @@ public class ChatRoomController {
                 ApiResponse.success(
                         SuccessEnum.READ_SUCCESS,
                         chatRoomService.findMyChatRooms(SecurityUtils.getCurrentUserId())
+                )
+        );
+    }
+
+    @GetMapping("/{roomId}")
+    public ResponseEntity<ApiResponse<ChatRoomDetailResponse>> getChatRoom(@PathVariable Long roomId) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.READ_SUCCESS,
+                        chatRoomService.findChatRoom(SecurityUtils.getCurrentUserId(), roomId)
                 )
         );
     }

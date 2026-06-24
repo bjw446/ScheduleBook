@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.chat.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomListResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomResponse;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
@@ -83,6 +84,29 @@ public class ChatRoomService {
         return chatRoomMemberRepository.findMyChatRooms(currentUserId).stream()
                 .map(ChatRoomListResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ChatRoomDetailResponse findChatRoom(Long currentUserId, Long roomId) {
+        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
+
+        ChatRoom chatRoom = chatRoomMember.getChatRoom();
+
+        String roomName;
+
+        if (chatRoom.getChatRoomType() == ChatRoomType.DIRECT) {
+            roomName = chatRoomMemberRepository.findOpponentNickname(roomId, currentUserId);
+        } else {
+            roomName = chatRoom.getName();
+        }
+
+        return ChatRoomDetailResponse.from(chatRoom, chatRoomMember, roomName);
+    }
+
+    private ChatRoomMember validateChatRoomMember(Long currentUserId, Long roomId) {
+        return chatRoomMemberRepository.findByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
+                () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
+        );
     }
 
     private void validateFriend(Long currentUserId, Long friendId) {

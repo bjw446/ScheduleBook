@@ -10,8 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, Long> {
-    @Query("SELECT crm.user FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId AND crm.user.id = :userId")
+public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, Long> {@Query("SELECT crm.user FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId AND crm.user.id = :userId")
     Optional<User> findUserInRoom(@Param("roomId") Long roomId, @Param("userId") Long userId);
 
     Optional<ChatRoomMember> findByChatRoomIdAndUserId(Long roomId, Long userId);
@@ -32,4 +31,8 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
             "WHERE crm.user.id = :userId AND crm.deletedAt IS NULL " +
             "ORDER BY CASE WHEN lm.createdAt IS NULL THEN 1 ELSE 0 END, lm.createdAt DESC")
     List<ChatRoomListProjection> findMyChatRooms(@Param("userId") Long userId);
+
+    String findOpponentNickname(Long roomId, Long currentUserId);
+
+    List<ChatRoomMember> findAllByChatRoomId(Long roomId);
 }
