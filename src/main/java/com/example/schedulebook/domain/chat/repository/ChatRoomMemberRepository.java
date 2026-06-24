@@ -32,7 +32,7 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
             "ORDER BY CASE WHEN lm.createdAt IS NULL THEN 1 ELSE 0 END, lm.createdAt DESC")
     List<ChatRoomListProjection> findMyChatRooms(@Param("userId") Long userId);
 
-    String findOpponentNickname(Long roomId, Long currentUserId);
-
-    List<ChatRoomMember> findAllByChatRoomId(Long roomId);
+    @Query("SELECT crm.user.nickname FROM ChatRoomMember crm WHERE crm.chatRoom.id = :roomId " +
+            "AND crm.user.id <> :currentUserId AND crm.deletedAt IS NULL")
+    String findOpponentNickname(@Param("roomId") Long roomId, @Param("currentUserId") Long currentUserId);
 }
