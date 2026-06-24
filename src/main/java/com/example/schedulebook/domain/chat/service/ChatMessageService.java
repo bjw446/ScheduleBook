@@ -55,6 +55,8 @@ public class ChatMessageService {
 
         chatRoom.updateLastMessage(chatMessage);
 
+        updateUnreadCount(chatRoom, currentUserId);
+
         ChatMessageResponse response = ChatMessageResponse.from(chatMessage);
 
         String destination = "/topic/chat/" + chatRoom.getId();
@@ -112,6 +114,8 @@ public class ChatMessageService {
         validateChatMessage(lastReadMessageId, roomId);
 
         chatRoomMember.updateLastRead(lastReadMessageId);
+
+        chatRoomMember.clearUnreadCount();
     }
 
     private ChatRoom validateChatRoom(Long roomId) {
@@ -160,5 +164,9 @@ public class ChatMessageService {
         chatMessageRepository.findByIdAndChatRoomId(messageId, roomId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_MESSAGE_NOT_FOUND)
         );
+    }
+
+    private void updateUnreadCount(ChatRoom chatRoom, Long currentUserId) {
+        chatRoomMemberRepository.increaseUnreadCount(chatRoom.getId(), currentUserId);
     }
 }

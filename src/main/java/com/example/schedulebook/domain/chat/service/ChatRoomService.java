@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.chat.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.chat.dto.response.ChatRoomListResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomResponse;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
 import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -73,6 +75,13 @@ public class ChatRoomService {
 
             return ChatRoomResponse.from(directChatRoom.getChatRoom());
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatRoomListResponse> findMyChatRooms(Long currentUserId) {
+        return chatRoomMemberRepository.findMyChatRooms(currentUserId).stream()
+                .map(ChatRoomListResponse::from)
+                .toList();
     }
 
     private void validateFriend(Long currentUserId, Long friendId) {
