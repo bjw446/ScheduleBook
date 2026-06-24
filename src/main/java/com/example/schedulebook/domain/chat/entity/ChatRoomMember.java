@@ -61,6 +61,12 @@ public class ChatRoomMember extends DeleteEntity {
     }
 
     public void updateLastRead(Long lastReadMessageId) {
-        this.lastReadMessageId = lastReadMessageId;
+        if (lastReadMessageId == null) {
+            return;
+        }
+
+        if (this.lastReadMessageId == null || lastReadMessageId > this.lastReadMessageId) {
+            this.lastReadMessageId = lastReadMessageId;
+        }
     }
 }
