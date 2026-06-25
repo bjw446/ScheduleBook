@@ -89,7 +89,7 @@ public class ChatRoomService {
     }
 
     public ChatRoomResponse createGroupRoom(Long currentUserId, GroupChatRoomCreateRequest request) {
-        validateGroupRoomMembers(currentUserId, request.memberIds());
+        validateInviteMembers(currentUserId, request.memberIds());
 
         User owner = getUser(currentUserId);
 
@@ -185,30 +185,6 @@ public class ChatRoomService {
     private void validateMyself(Long currentUserId, Long friendId) {
         if (currentUserId.equals(friendId)) {
             throw new BaseException(ErrorEnum.INVALID_CHAT_TARGET);
-        }
-    }
-
-    private void validateGroupRoomMembers(Long currentUserId, List<Long> memberIds) {
-        if (memberIds.contains(currentUserId)) {
-            throw new BaseException(ErrorEnum.INVALID_CHAT_TARGET);
-        }
-
-        Set<Long> uniqueIds = new HashSet<>(memberIds);
-
-        if (uniqueIds.size() != memberIds.size()) {
-            throw new BaseException(ErrorEnum.INVALID_INPUT);
-        }
-
-        List<User> users = userRepository.findAllById(memberIds);
-
-        if (users.size() != memberIds.size()) {
-            throw new BaseException(ErrorEnum.USER_NOT_FOUND);
-        }
-
-        long friendCount = friendRepository.countAcceptedFriends(currentUserId, memberIds, FriendStatus.ACCEPTED);
-
-        if (friendCount != memberIds.size()) {
-            throw new BaseException(ErrorEnum.FRIEND_NOT_FOUND);
         }
     }
 

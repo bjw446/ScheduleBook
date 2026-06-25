@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.chat.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
@@ -12,6 +13,6 @@ public record GroupChatRoomCreateRequest(
         String name,
 
         @NotEmpty
-        List<Long> memberIds
+        List<@NotNull Long> memberIds
 ) {
 }
