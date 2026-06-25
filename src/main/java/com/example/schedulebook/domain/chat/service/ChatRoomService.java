@@ -4,6 +4,7 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.chat.dto.request.ChatRoomInviteRequest;
 import com.example.schedulebook.domain.chat.dto.request.GroupChatRoomCreateRequest;
+import com.example.schedulebook.domain.chat.dto.request.ChatRoomUpdateNameRequest;
 import com.example.schedulebook.domain.chat.dto.response.*;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
@@ -172,6 +173,30 @@ public class ChatRoomService {
         return ChatRoomDetailResponse.from(chatRoom, chatRoomMember, roomName, readStatuses);
     }
 
+    public ChatRoomResponse updateRoomName(Long currentUserId, Long roomId, ChatRoomUpdateNameRequest request) {
+        ChatRoom chatRoom = validateChatRoom(roomId);
+
+        validateChatRoomMember(currentUserId, roomId);
+
+        validateChatRoomType(chatRoom);
+
+        validateUpdateName(chatRoom, request.name().trim());
+
+        String oldName = chatRoom.getName();
+
+        chatRoom.updateName(request.name().trim());
+
+        ChatMessage systemMessage = createUpdateNameSystemMessage(chatRoom, getUser(currentUserId), oldName, request.name().trim());
+
+        updateUnreadCount(chatRoom, currentUserId);
+
+        int unreadCount = calculateUnreadCount(systemMessage, currentUserId, readStatuses(chatRoom.getId()));
+
+        publishSystemMessage(chatRoom, systemMessage, unreadCount);
+
+        return ChatRoomResponse.from(chatRoom);
+    }
+
     public void leaveChatRoom(Long currentUserId, Long roomId) {
         ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
 
@@ -231,6 +256,12 @@ public class ChatRoomService {
     private void validateChatRoomType(ChatRoom chatRoom) {
         if (chatRoom.getChatRoomType() != ChatRoomType.GROUP) {
             throw new BaseException(ErrorEnum.INVALID_CHAT_ROOM_TYPE);
+        }
+    }
+
+    private void validateUpdateName(ChatRoom chatRoom, String newName) {
+        if (chatRoom.getName().trim().equals(newName.trim())) {
+            throw new BaseException(ErrorEnum.INVALID_INPUT);
         }
     }
 
@@ -392,6 +423,23 @@ public class ChatRoomService {
                 chatRoom,
                 null,
                 content,
+                ChatMessageType.SYSTEM,
+                null
+        );
+
+        chatMessageRepository.save(chatMessage);
+
+        chatRoom.updateLastMessage(chatMessage);
+
+        return chatMessage;
+    }
+
+    private ChatMessage createUpdateNameSystemMessage(ChatRoom chatRoom, User user, String oldName, String newName) {
+        ChatMessage chatMessage = ChatMessage.of(
+                chatRoom,
+                null,
+                user.getNickname() + UPDATE_ROOM_NAME_MESSAGE
+                        + " (" + oldName + " -> " + newName + ")",
                 ChatMessageType.SYSTEM,
                 null
         );

@@ -5,6 +5,7 @@ import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
 import com.example.schedulebook.domain.chat.dto.request.ChatRoomInviteRequest;
 import com.example.schedulebook.domain.chat.dto.request.GroupChatRoomCreateRequest;
+import com.example.schedulebook.domain.chat.dto.request.ChatRoomUpdateNameRequest;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomListResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomResponse;
@@ -74,6 +75,19 @@ public class ChatRoomController {
                 ApiResponse.success(
                         SuccessEnum.READ_SUCCESS,
                         chatRoomService.findChatRoom(SecurityUtils.getCurrentUserId(), roomId)
+                )
+        );
+    }
+
+    @PatchMapping("/{roomId}/name")
+    public ResponseEntity<ApiResponse<ChatRoomResponse>> updateRoomName(
+            @PathVariable Long roomId,
+            @Valid @RequestBody ChatRoomUpdateNameRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.UPDATE_SUCCESS,
+                        chatRoomService.updateRoomName(SecurityUtils.getCurrentUserId(), roomId, request)
                 )
         );
     }

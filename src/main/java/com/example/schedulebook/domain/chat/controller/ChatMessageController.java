@@ -56,4 +56,16 @@ public class ChatMessageController {
                 )
         );
     }
+
+    @DeleteMapping("/{roomId}/delete/{messageId}")
+    public ResponseEntity<ApiResponse<Void>> deleteMessage(@PathVariable Long roomId, @PathVariable Long messageId) {
+        chatMessageService.deleteMessage(SecurityUtils.getCurrentUserId(), roomId, messageId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.DELETE_SUCCESS,
+                        null
+                )
+        );
+    }
 }
