@@ -145,7 +145,7 @@ public class ChatMessageService {
     }
 
     public void deleteMessage(Long currentUserId, Long roomId, Long messageId) {
-        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
+        validateChatRoomMember(currentUserId, roomId);
 
         ChatMessage chatMessage = validateChatMessage(messageId, roomId);
 

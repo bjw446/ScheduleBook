@@ -1,6 +1,6 @@
 package com.example.schedulebook.domain.chat.entity;
 
-import com.example.schedulebook.common.entity.DeleteEntity;
+import com.example.schedulebook.common.entity.ModifyEntity;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.chat.enums.ChatMessageType;
@@ -18,7 +18,7 @@ import static com.example.schedulebook.domain.chat.consts.ChatConst.DELETE_MESSA
 @Entity
 @Table(name = "chat_messages")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ChatMessage extends DeleteEntity {
+public class ChatMessage extends ModifyEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -77,7 +77,7 @@ public class ChatMessage extends DeleteEntity {
 
     public void deleteMessage(Long userId) {
         if (sender == null) {
-            throw new BaseException(ErrorEnum.INVALID_MESSAGE_TYPE);
+            throw new BaseException(ErrorEnum.CHAT_MESSAGE_DELETE_NOT_ALLOWED);
         }
 
         if (!sender.getId().equals(userId)) {

@@ -180,13 +180,13 @@ public class ChatRoomService {
 
         validateChatRoomType(chatRoom);
 
-        validateUpdateName(chatRoom, request.name());
+        validateUpdateName(chatRoom, request.name().trim());
 
         String oldName = chatRoom.getName();
 
-        chatRoom.updateName(request.name());
+        chatRoom.updateName(request.name().trim());
 
-        ChatMessage systemMessage = createUpdateNameSystemMessage(chatRoom, getUser(currentUserId), oldName, request.name());
+        ChatMessage systemMessage = createUpdateNameSystemMessage(chatRoom, getUser(currentUserId), oldName, request.name().trim());
 
         updateUnreadCount(chatRoom, currentUserId);
 
