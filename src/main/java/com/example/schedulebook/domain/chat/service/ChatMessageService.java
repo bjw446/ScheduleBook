@@ -157,12 +157,12 @@ public class ChatMessageService {
     }
 
     private void validateDeleteMessage(ChatMessage chatMessage) {
-        if (chatMessage.getCreatedAt().isBefore(LocalDateTime.now().minusMinutes(5))) {
-            throw new BaseException(ErrorEnum.CHAT_MESSAGE_DELETE_NOT_ALLOWED);
-        }
-
         if (chatMessage.isDeleted()) {
             throw new BaseException(ErrorEnum.CHAT_MESSAGE_ALREADY_DELETE);
+        }
+
+        if (chatMessage.getCreatedAt().isBefore(LocalDateTime.now().minusMinutes(5))) {
+            throw new BaseException(ErrorEnum.CHAT_MESSAGE_DELETE_NOT_ALLOWED);
         }
     }
 
