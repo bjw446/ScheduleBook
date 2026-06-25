@@ -119,21 +119,31 @@ public class ChatRoomService {
 
         validateChatRoomMember(currentUserId, roomId);
 
+        validateChatRoomType(chatRoom);
+
         validateInviteMembers(currentUserId, request.memberIds());
 
         List<User> users = userRepository.findAllById(request.memberIds());
 
+        List<User> invitedUsers = new ArrayList<>();
+
         for (User user : users) {
-            processInvitation(chatRoom, user, LocalDateTime.now());
+            boolean invited = processInvitation(chatRoom, user, LocalDateTime.now());
+
+            if (invited) {
+                invitedUsers.add(user);
+            }
         }
 
-        ChatMessage inviteMessage = createInviteSystemMessage(chatRoom, getUser(currentUserId), users);
+        if (!invitedUsers.isEmpty()) {
+            ChatMessage inviteMessage = createInviteSystemMessage(chatRoom, getUser(currentUserId), users);
 
-        updateUnreadCount(chatRoom, currentUserId);
+            updateUnreadCount(chatRoom, currentUserId);
 
-        int unreadCount = calculateUnreadCount(inviteMessage, currentUserId, readStatuses(chatRoom.getId()));
+            int unreadCount = calculateUnreadCount(inviteMessage, currentUserId, readStatuses(chatRoom.getId()));
 
-        publishSystemMessage(chatRoom, inviteMessage, unreadCount);
+            publishSystemMessage(chatRoom, inviteMessage, unreadCount);
+        }
 
         return ChatRoomResponse.from(chatRoom);
     }
@@ -218,24 +228,32 @@ public class ChatRoomService {
         }
     }
 
-    private void processInvitation(ChatRoom chatRoom, User user, LocalDateTime now) {
+    private void validateChatRoomType(ChatRoom chatRoom) {
+        if (chatRoom.getChatRoomType() != ChatRoomType.GROUP) {
+            throw new BaseException(ErrorEnum.INVALID_CHAT_ROOM_TYPE);
+        }
+    }
+
+    private boolean processInvitation(ChatRoom chatRoom, User user, LocalDateTime now) {
         Optional<ChatRoomMember> memberOpt = chatRoomMemberRepository.findByChatRoomIdAndUserId(chatRoom.getId(), user.getId());
 
         if (memberOpt.isPresent()) {
             ChatRoomMember chatRoomMember = memberOpt.get();
 
             if (chatRoomMember.getDeletedAt() == null) {
-                return;
+                return false;
             }
 
             chatRoomMember.rejoin(now);
 
-            return;
+            return true;
         }
 
         ChatRoomMember chatRoomMember = ChatRoomMember.of(chatRoom, user, now);
 
         chatRoomMemberRepository.save(chatRoomMember);
+
+        return true;
     }
 
     private User getUser(Long userId) {
