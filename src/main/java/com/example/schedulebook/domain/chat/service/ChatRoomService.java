@@ -2,6 +2,8 @@ package com.example.schedulebook.domain.chat.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.chat.dto.request.ChatRoomInviteRequest;
+import com.example.schedulebook.domain.chat.dto.request.GroupChatRoomCreateRequest;
 import com.example.schedulebook.domain.chat.dto.response.*;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
@@ -26,11 +28,10 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import static com.example.schedulebook.domain.chat.consts.ChatConst.LEAVE_MESSAGE;
-import static com.example.schedulebook.domain.chat.consts.ChatConst.UNKNOWN_NICKNAME;
+import static com.example.schedulebook.domain.chat.consts.ChatConst.*;
 
 @Service
 @RequiredArgsConstructor
@@ -46,7 +47,7 @@ public class ChatRoomService {
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     public ChatRoomResponse createDirectRoom(Long currentUserId, Long friendId) {
-        validateUser(currentUserId, friendId);
+        validateMyself(currentUserId, friendId);
 
         User currentUser = getUser(currentUserId);
 
@@ -85,6 +86,66 @@ public class ChatRoomService {
 
             return ChatRoomResponse.from(directChatRoom.getChatRoom());
         }
+    }
+
+    public ChatRoomResponse createGroupRoom(Long currentUserId, GroupChatRoomCreateRequest request) {
+        validateInviteMembers(currentUserId, request.memberIds());
+
+        User owner = getUser(currentUserId);
+
+        List<User> members = userRepository.findAllById(request.memberIds());
+
+        ChatRoom chatRoom = ChatRoom.group(request.name());
+
+        chatRoomRepository.save(chatRoom);
+
+        ChatRoomMember ownerMember = ChatRoomMember.of(chatRoom, owner, LocalDateTime.now());
+
+        chatRoomMemberRepository.save(ownerMember);
+
+        for (User member : members) {
+            ChatRoomMember chatRoomMember = ChatRoomMember.of(chatRoom, member, LocalDateTime.now());
+
+            chatRoomMemberRepository.save(chatRoomMember);
+        }
+
+        createGroupRoomSystemMessage(chatRoom, owner);
+
+        return ChatRoomResponse.from(chatRoom);
+    }
+
+    public ChatRoomResponse inviteMembers(Long currentUserId, Long roomId, ChatRoomInviteRequest request) {
+        ChatRoom chatRoom = validateChatRoom(roomId);
+
+        validateChatRoomMember(currentUserId, roomId);
+
+        validateChatRoomType(chatRoom);
+
+        validateInviteMembers(currentUserId, request.memberIds());
+
+        List<User> users = userRepository.findAllById(request.memberIds());
+
+        List<User> invitedUsers = new ArrayList<>();
+
+        for (User user : users) {
+            boolean invited = processInvitation(chatRoom, user, LocalDateTime.now());
+
+            if (invited) {
+                invitedUsers.add(user);
+            }
+        }
+
+        if (!invitedUsers.isEmpty()) {
+            ChatMessage inviteMessage = createInviteSystemMessage(chatRoom, getUser(currentUserId), invitedUsers);
+
+            updateUnreadCount(chatRoom, currentUserId);
+
+            int unreadCount = calculateUnreadCount(inviteMessage, currentUserId, readStatuses(chatRoom.getId()));
+
+            publishSystemMessage(chatRoom, inviteMessage, unreadCount);
+        }
+
+        return ChatRoomResponse.from(chatRoom);
     }
 
     @Transactional(readOnly = true)
@@ -131,10 +192,68 @@ public class ChatRoomService {
         }
     }
 
-    private void validateUser(Long currentUserId, Long friendId) {
+    private void validateMyself(Long currentUserId, Long friendId) {
         if (currentUserId.equals(friendId)) {
             throw new BaseException(ErrorEnum.INVALID_CHAT_TARGET);
         }
+    }
+
+    private ChatRoom validateChatRoom(Long roomId) {
+        return chatRoomRepository.findById(roomId).orElseThrow(
+                () -> new BaseException(ErrorEnum.CHAT_ROOM_NOT_FOUND)
+        );
+    }
+
+    private void validateInviteMembers(Long currentUserId, List<Long> memberIds) {
+        if (memberIds.contains(currentUserId)) {
+            throw new BaseException(ErrorEnum.INVALID_CHAT_TARGET);
+        }
+
+        Set<Long> uniqueIds = new HashSet<>(memberIds);
+
+        if (uniqueIds.size() != memberIds.size()) {
+            throw new BaseException(ErrorEnum.INVALID_INPUT);
+        }
+
+        List<User> users = userRepository.findAllById(memberIds);
+
+        if (users.size() != memberIds.size()) {
+            throw new BaseException(ErrorEnum.USER_NOT_FOUND);
+        }
+
+        long friendCount = friendRepository.countAcceptedFriends(currentUserId, memberIds, FriendStatus.ACCEPTED);
+
+        if (friendCount != memberIds.size()) {
+            throw new BaseException(ErrorEnum.FRIEND_NOT_FOUND);
+        }
+    }
+
+    private void validateChatRoomType(ChatRoom chatRoom) {
+        if (chatRoom.getChatRoomType() != ChatRoomType.GROUP) {
+            throw new BaseException(ErrorEnum.INVALID_CHAT_ROOM_TYPE);
+        }
+    }
+
+    private boolean processInvitation(ChatRoom chatRoom, User user, LocalDateTime now) {
+        Optional<ChatRoomMember> memberOpt = chatRoomMemberRepository.findByChatRoomIdAndUserId(chatRoom.getId(), user.getId());
+
+        if (memberOpt.isPresent()) {
+            ChatRoomMember chatRoomMember = memberOpt.get();
+
+            if (chatRoomMember.getDeletedAt() == null) {
+                return false;
+            }
+
+            chatRoomMember.rejoin(now);
+
+            return true;
+        }
+
+        ChatRoomMember chatRoomMember = ChatRoomMember.of(chatRoom, user, now);
+
+        chatRoomMemberRepository.save(chatRoomMember);
+
+        return true;
     }
 
     private User getUser(Long userId) {
@@ -197,22 +316,6 @@ public class ChatRoomService {
         }
     }
 
-    private ChatMessage createLeaveSystemMessage(ChatRoom chatRoom, ChatRoomMember chatRoomMember){
-        ChatMessage chatMessage = ChatMessage.of(
-                chatRoom,
-                null,
-                chatRoomMember.getUser().getNickname() + LEAVE_MESSAGE,
-                ChatMessageType.SYSTEM,
-                null
-        );
-
-        chatMessageRepository.save(chatMessage);
-
-        chatRoom.updateLastMessage(chatMessage);
-
-        return chatMessage;
-    }
-
     private void publishSystemMessage(ChatRoom chatRoom, ChatMessage chatMessage, int unreadMemberCount) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
@@ -245,5 +348,58 @@ public class ChatRoomService {
 
     private void updateUnreadCount(ChatRoom chatRoom, Long userId) {
         chatRoomMemberRepository.increaseUnreadCount(chatRoom.getId(), userId);
+    }
+
+    private ChatMessage createLeaveSystemMessage(ChatRoom chatRoom, ChatRoomMember chatRoomMember){
+        ChatMessage chatMessage = ChatMessage.of(
+                chatRoom,
+                null,
+                chatRoomMember.getUser().getNickname() + LEAVE_MESSAGE,
+                ChatMessageType.SYSTEM,
+                null
+        );
+
+        chatMessageRepository.save(chatMessage);
+
+        chatRoom.updateLastMessage(chatMessage);
+
+        return chatMessage;
+    }
+
+    private void createGroupRoomSystemMessage(ChatRoom chatRoom, User owner) {
+        ChatMessage chatMessage = ChatMessage.of(
+                chatRoom,
+                null,
+                owner.getNickname() + CREATE_MESSAGE,
+                ChatMessageType.SYSTEM,
+                null
+        );
+
+        chatMessageRepository.save(chatMessage);
+
+        chatRoom.updateLastMessage(chatMessage);
+    }
+
+    private ChatMessage createInviteSystemMessage(ChatRoom chatRoom, User inviter, List<User> users) {
+        String invitedNames = users
+                .stream()
+                .map(user -> user.getNickname() + "님")
+                .collect(Collectors.joining(", "));
+
+        String content = inviter.getNickname() + "님이 " + invitedNames + INVITE_MESSAGE;
+
+        ChatMessage chatMessage = ChatMessage.of(
+                chatRoom,
+                null,
+                content,
+                ChatMessageType.SYSTEM,
+                null
+        );
+
+        chatMessageRepository.save(chatMessage);
+
+        chatRoom.updateLastMessage(chatMessage);
+
+        return chatMessage;
     }
 }
