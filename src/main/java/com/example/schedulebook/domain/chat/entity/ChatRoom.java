@@ -30,7 +30,7 @@ public class ChatRoom extends DeleteEntity {
     private ChatMessage lastMessage;
 
     @Column(nullable = false, name = "member_count")
-    private Integer memberCount;
+    private int memberCount;
 
     public static ChatRoom direct() {
         ChatRoom chatRoom = new ChatRoom();

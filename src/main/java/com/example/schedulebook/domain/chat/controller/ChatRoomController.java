@@ -3,10 +3,12 @@ package com.example.schedulebook.domain.chat.controller;
 import com.example.schedulebook.common.enums.SuccessEnum;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
+import com.example.schedulebook.domain.chat.dto.request.GroupChatRoomCreateRequest;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomDetailResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomListResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatRoomResponse;
 import com.example.schedulebook.domain.chat.service.ChatRoomService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,18 @@ public class ChatRoomController {
                 ApiResponse.success(
                         SuccessEnum.READ_SUCCESS,
                         chatRoomService.createDirectRoom(SecurityUtils.getCurrentUserId(), friendId)
+                )
+        );
+    }
+
+    @PostMapping("/group")
+    public ResponseEntity<ApiResponse<ChatRoomResponse>> createGroupRoom(
+            @Valid @RequestBody GroupChatRoomCreateRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success(
+                        SuccessEnum.CREATE_SUCCESS,
+                        chatRoomService.createGroupRoom(SecurityUtils.getCurrentUserId(), request)
                 )
         );
     }
