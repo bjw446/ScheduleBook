@@ -4,6 +4,7 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.chat.dto.request.ChatMessageSearchRequest;
 import com.example.schedulebook.domain.chat.dto.request.ChatMessageSendRequest;
+import com.example.schedulebook.domain.chat.dto.response.ChatMessageDeletedEvent;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageSliceResponse;
 import com.example.schedulebook.domain.chat.dto.response.ReadMessageEvent;
@@ -28,6 +29,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.example.schedulebook.domain.chat.consts.ChatConst.DELETE_MESSAGE;
 import static com.example.schedulebook.domain.chat.consts.ChatConst.MAX_PAGE_SIZE;
 
 @Service
@@ -142,6 +144,28 @@ public class ChatMessageService {
         publishAfterCommit(roomId, currentUserId, chatRoomMember.getLastReadMessageId());
     }
 
+    public void deleteMessage(Long currentUserId, Long roomId, Long messageId) {
+        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
+
+        ChatMessage chatMessage = validateChatMessage(messageId, roomId);
+
+        validateDeleteMessage(chatMessage);
+
+        chatMessage.deleteMessage(currentUserId);
+
+        publishDeleteMessageAfterCommit(roomId, messageId);
+    }
+
+    private void validateDeleteMessage(ChatMessage chatMessage) {
+        if (chatMessage.getCreatedAt().isBefore(LocalDateTime.now().minusMinutes(5))) {
+            throw new BaseException(ErrorEnum.CHAT_MESSAGE_DELETE_NOT_ALLOWED);
+        }
+
+        if (chatMessage.isDeleted()) {
+            throw new BaseException(ErrorEnum.CHAT_MESSAGE_ALREADY_DELETE);
+        }
+    }
+
     private ChatRoom validateChatRoom(Long roomId) {
         return chatRoomRepository.findById(roomId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_ROOM_NOT_FOUND)
@@ -215,6 +239,22 @@ public class ChatMessageService {
                 simpMessagingTemplate.convertAndSend(
                         "/topic/chat/" + roomId + "/read",
                         ReadMessageEvent.from(roomId, currentUserId, lastReadMessageId)
+                );
+            }
+        });
+    }
+
+    private void publishDeleteMessageAfterCommit(Long roomId, Long messageId) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                simpMessagingTemplate.convertAndSend(
+                        "/topic/chat/" + roomId + "/delete",
+                        new ChatMessageDeletedEvent(
+                                roomId,
+                                messageId,
+                                DELETE_MESSAGE
+                        )
                 );
             }
         });

@@ -69,4 +69,8 @@ public class ChatRoom extends DeleteEntity {
     public void increaseMemberCount() {
         this.memberCount++;
     }
+
+    public void updateName(String name) {
+        this.name = name;
+    }
 }

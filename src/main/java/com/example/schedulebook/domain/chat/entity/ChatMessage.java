@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+import static com.example.schedulebook.domain.chat.consts.ChatConst.DELETE_MESSAGE;
+
 @Getter
 @Entity
 @Table(name = "chat_messages")
@@ -46,6 +48,9 @@ public class ChatMessage extends DeleteEntity {
     @Column(name = "edited_at")
     private LocalDateTime editedAt;
 
+    @Column(nullable = false)
+    private boolean deleted;
+
     private ChatMessage(ChatRoom chatRoom, User sender, String content, ChatMessageType chatMessageType, ChatMessage replyMessage) {
         this.chatRoom = chatRoom;
         this.sender = sender;
@@ -53,6 +58,7 @@ public class ChatMessage extends DeleteEntity {
         this.chatMessageType = chatMessageType;
         this.replyMessage = replyMessage;
         this.edited = false;
+        this.deleted = false;
     }
 
     public static ChatMessage of(ChatRoom chatRoom, User sender, String content, ChatMessageType chatMessageType, ChatMessage replyMessage) {
@@ -67,5 +73,18 @@ public class ChatMessage extends DeleteEntity {
         this.content = content;
         this.edited = true;
         this.editedAt = LocalDateTime.now();
+    }
+
+    public void deleteMessage(Long userId) {
+        if (sender == null) {
+            throw new BaseException(ErrorEnum.INVALID_MESSAGE_TYPE);
+        }
+
+        if (!sender.getId().equals(userId)) {
+            throw new BaseException(ErrorEnum.CHAT_MESSAGE_FORBIDDEN);
+        }
+
+        this.deleted = true;
+        this.content = DELETE_MESSAGE;
     }
 }
