@@ -136,7 +136,7 @@ public class ChatRoomService {
         }
 
         if (!invitedUsers.isEmpty()) {
-            ChatMessage inviteMessage = createInviteSystemMessage(chatRoom, getUser(currentUserId), users);
+            ChatMessage inviteMessage = createInviteSystemMessage(chatRoom, getUser(currentUserId), invitedUsers);
 
             updateUnreadCount(chatRoom, currentUserId);
 
