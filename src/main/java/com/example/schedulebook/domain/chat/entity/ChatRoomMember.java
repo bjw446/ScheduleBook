@@ -81,5 +81,6 @@ public class ChatRoomMember extends DeleteEntity {
         unreadCount = 0;
         lastReadMessageId = null;
         this.joinedAt = joinedAt;
+        chatRoom.increaseMemberCount();
     }
 }
