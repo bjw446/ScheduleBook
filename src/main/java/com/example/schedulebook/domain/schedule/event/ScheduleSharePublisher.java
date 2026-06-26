@@ -42,25 +42,29 @@ public class ScheduleSharePublisher {
     }
 
     public void publishScheduleUpdated(List<ChatMessage> chatMessages) {
+        List<ChatMessageResponse> responses = chatMessages
+                .stream()
+                .map(chatMessage ->
+                        ChatMessageResponse.from(
+                                chatMessage,
+                                0,
+                                SchedulePreviewResponse.from(
+                                        chatMessage.getId(),
+                                        chatMessage.getScheduleId(),
+                                        chatMessage.getScheduleSnapshot(),
+                                        false,
+                                        false,
+                                        true
+                                )
+                        ))
+                .toList();
+
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                for (ChatMessage chatMessage : chatMessages) {
-                    ChatMessageResponse response = ChatMessageResponse.from(
-                            chatMessage,
-                            0,
-                            SchedulePreviewResponse.from(
-                                    chatMessage.getId(),
-                                    chatMessage.getScheduleId(),
-                                    chatMessage.getScheduleSnapshot(),
-                                    false,
-                                    false,
-                                    true
-                            )
-                    );
-
+                for (ChatMessageResponse response : responses) {
                     simpMessagingTemplate.convertAndSend(
-                            "/topic/chat/" + chatMessage.getChatRoom().getId(),
+                            "/topic/chat/" + response.roomId(),
                             response
                     );
                 }
@@ -94,25 +98,29 @@ public class ScheduleSharePublisher {
     }
 
     public void publishSharedScheduleDeleted(List<ChatMessage> chatMessages) {
+        List<ChatMessageResponse> responses = chatMessages
+                .stream()
+                .map(chatMessage ->
+                        ChatMessageResponse.from(
+                                chatMessage,
+                                0,
+                                SchedulePreviewResponse.from(
+                                        chatMessage.getId(),
+                                        chatMessage.getScheduleId(),
+                                        chatMessage.getScheduleSnapshot(),
+                                        true,
+                                        true,
+                                        false
+                                )
+                        ))
+                .toList();
+
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                for (ChatMessage chatMessage : chatMessages) {
-                    ChatMessageResponse response = ChatMessageResponse.from(
-                            chatMessage,
-                            0,
-                            SchedulePreviewResponse.from(
-                                    chatMessage.getId(),
-                                    chatMessage.getScheduleId(),
-                                    chatMessage.getScheduleSnapshot(),
-                                    true,
-                                    true,
-                                    false
-                            )
-                    );
-
+                for (ChatMessageResponse response : responses) {
                     simpMessagingTemplate.convertAndSend(
-                            "/topic/chat/" + chatMessage.getChatRoom().getId(),
+                            "/topic/chat/" + response.roomId(),
                             response
                     );
                 }

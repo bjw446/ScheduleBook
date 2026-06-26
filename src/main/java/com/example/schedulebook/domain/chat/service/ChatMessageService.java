@@ -18,10 +18,11 @@ import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
 import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewDetailResponse;
-import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewResponse;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleSnapshotHistoryResponse;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharePublisher;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
+import com.example.schedulebook.domain.schedule.repository.ScheduleSnapshotHistoryRepository;
 import com.example.schedulebook.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -43,6 +44,7 @@ public class ChatMessageService {
     private final ScheduleRepository scheduleRepository;
     private final ScheduleSharePublisher scheduleSharePublisher;
     private final ChatMessagePublisher chatMessagePublisher;
+    private final ScheduleSnapshotHistoryRepository scheduleSnapshotHistoryRepository;
 
     public void sendMessage(Long currentUserId, ChatMessageSendRequest request) {
         ChatRoom chatRoom = validateChatRoom(request.roomId());
@@ -196,6 +198,24 @@ public class ChatMessageService {
         validateReadableSharedSchedule(chatMessage);
 
         return SchedulePreviewDetailResponse.from(chatMessage, false, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ScheduleSnapshotHistoryResponse> findScheduleSnapshotHistory(Long currentUserId, Long messageId) {
+        ChatMessage chatMessage = validateChatMessage(messageId);
+
+        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
+
+        validateReadableMessage(chatRoomMember, chatMessage);
+
+        validateScheduleMessageType(chatMessage);
+
+        validateReadableSharedSchedule(chatMessage);
+
+        return scheduleSnapshotHistoryRepository.findAllByChatMessageId(chatMessage.getId())
+                .stream()
+                .map(ScheduleSnapshotHistoryResponse::from)
+                .toList();
     }
 
     private Schedule validateSchedule(Long currentUserId, Long scheduleId) {
