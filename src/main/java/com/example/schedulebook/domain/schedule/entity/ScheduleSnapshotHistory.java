@@ -15,8 +15,8 @@ public class ScheduleSnapshotHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chat_message_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "chat_message_id", nullable = false)
     private ChatMessage chatMessage;
 
     @Embedded
