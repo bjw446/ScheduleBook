@@ -10,8 +10,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 import static com.example.schedulebook.domain.chat.consts.ChatConst.DELETE_MESSAGE;
 
 @Getter
@@ -31,6 +29,9 @@ public class ChatMessage extends ModifyEntity {
     @JoinColumn(name = "sender_id")
     private User sender;
 
+    @Column(name = "schedule_id")
+    private Long scheduleId;
+
     @Column(length = 1000)
     private String content;
 
@@ -45,11 +46,12 @@ public class ChatMessage extends ModifyEntity {
     @Column(nullable = false)
     private boolean edited;
 
-    @Column(name = "edited_at")
-    private LocalDateTime editedAt;
 
     @Column(nullable = false)
     private boolean deleted;
+
+    @Column(name = "schedule_share_canceled")
+    private boolean scheduleShareCanceled;
 
     private ChatMessage(ChatRoom chatRoom, User sender, String content, ChatMessageType chatMessageType, ChatMessage replyMessage) {
         this.chatRoom = chatRoom;
@@ -65,14 +67,23 @@ public class ChatMessage extends ModifyEntity {
         return new ChatMessage(chatRoom, sender, content, chatMessageType, replyMessage);
     }
 
-    public void updateMessage(String content) {
-        if (chatMessageType != ChatMessageType.TEXT) {
-            throw new BaseException(ErrorEnum.INVALID_MESSAGE_TYPE);
-        }
+    public static ChatMessage schedule(ChatRoom chatRoom, User sender, Long scheduleId) {
+        ChatMessage chatMessage = new ChatMessage();
 
-        this.content = content;
-        this.edited = true;
-        this.editedAt = LocalDateTime.now();
+        chatMessage.chatRoom = chatRoom;
+        chatMessage.sender = sender;
+        chatMessage.scheduleId = scheduleId;
+
+        chatMessage.chatMessageType = ChatMessageType.SCHEDULE;
+
+        chatMessage.content = null;
+        chatMessage.replyMessage = null;
+
+        chatMessage.edited = false;
+        chatMessage.deleted = false;
+        chatMessage.scheduleShareCanceled = false;
+
+        return chatMessage;
     }
 
     public void deleteMessage(Long userId) {
@@ -86,5 +97,13 @@ public class ChatMessage extends ModifyEntity {
 
         this.deleted = true;
         this.content = DELETE_MESSAGE;
+    }
+
+    public void cancelScheduleShare(Long userId) {
+        if (!sender.getId().equals(userId)) {
+            throw new BaseException(ErrorEnum.CHAT_MESSAGE_FORBIDDEN);
+        }
+
+        this.scheduleShareCanceled = true;
     }
 }
