@@ -182,6 +182,8 @@ public class ChatMessageService {
         scheduleSharePublisher.publishScheduleShareCanceled(chatMessage, unreadCount);
     }
 
+
+    @Transactional(readOnly = true)
     public SchedulePreviewDetailResponse findSharedSchedule(Long currentUserId, Long messageId) {
         ChatMessage chatMessage = validateChatMessage(messageId);
 
@@ -190,6 +192,8 @@ public class ChatMessageService {
         validateReadableMessage(chatRoomMember, chatMessage);
 
         validateScheduleMessageType(chatMessage);
+
+        validateReadableSharedSchedule(chatMessage);
 
         return SchedulePreviewDetailResponse.from(chatMessage, false, false);
     }
@@ -209,10 +213,6 @@ public class ChatMessageService {
     private void validateScheduleMessageType(ChatMessage chatMessage) {
         if (chatMessage.getChatMessageType() != ChatMessageType.SCHEDULE) {
             throw new BaseException(ErrorEnum.INVALID_MESSAGE_TYPE);
-        }
-
-        if (chatMessage.isScheduleShareCanceled()) {
-            throw new BaseException(ErrorEnum.SCHEDULE_SHARE_CANCELED);
         }
     }
 
@@ -293,6 +293,12 @@ public class ChatMessageService {
     private void validateReadableMessage(ChatRoomMember chatRoomMember, ChatMessage chatMessage) {
         if (chatMessage.getCreatedAt().isBefore(chatRoomMember.getJoinedAt())) {
             throw new BaseException(ErrorEnum.CHAT_MESSAGE_FORBIDDEN);
+        }
+    }
+
+    private void validateReadableSharedSchedule(ChatMessage chatMessage) {
+        if (chatMessage.isScheduleShareCanceled()) {
+            throw new BaseException(ErrorEnum.SCHEDULE_SHARE_CANCELED);
         }
     }
 
