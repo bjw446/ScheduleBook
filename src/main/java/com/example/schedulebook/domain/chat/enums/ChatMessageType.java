@@ -4,5 +4,6 @@ public enum ChatMessageType {
     TEXT,
     IMAGE,
     FILE,
-    SYSTEM
+    SYSTEM,
+    SCHEDULE
 }

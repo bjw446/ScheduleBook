@@ -4,6 +4,8 @@ import com.example.schedulebook.common.entity.ModifyEntity;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.chat.enums.ChatMessageType;
+import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.schedule.entity.ScheduleSnapshot;
 import com.example.schedulebook.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -31,6 +33,42 @@ public class ChatMessage extends ModifyEntity {
     @JoinColumn(name = "sender_id")
     private User sender;
 
+    @Column(name = "schedule_id")
+    private Long scheduleId;
+
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(
+                    name = "title",
+                    column = @Column(name = "snapshot_title")
+            ),
+            @AttributeOverride(
+                    name = "content",
+                    column = @Column(name = "snapshot_content", length = 1000)
+            ),
+            @AttributeOverride(
+                    name = "scheduleDate",
+                    column = @Column(name = "snapshot_schedule_date")
+            ),
+            @AttributeOverride(
+                    name = "startTime",
+                    column = @Column(name = "snapshot_start_time")
+            ),
+            @AttributeOverride(
+                    name = "endTime",
+                    column = @Column(name = "snapshot_end_time")
+            ),
+            @AttributeOverride(
+                    name = "scheduleVersion",
+                    column = @Column(name = "snapshot_version")
+            ),
+            @AttributeOverride(
+                    name = "scheduleUpdatedAt",
+                    column = @Column(name = "snapshot_updated_at")
+            )
+    })
+    private ScheduleSnapshot scheduleSnapshot;
+
     @Column(length = 1000)
     private String content;
 
@@ -45,11 +83,11 @@ public class ChatMessage extends ModifyEntity {
     @Column(nullable = false)
     private boolean edited;
 
-    @Column(name = "edited_at")
-    private LocalDateTime editedAt;
-
     @Column(nullable = false)
     private boolean deleted;
+
+    @Column(name = "schedule_share_canceled")
+    private boolean scheduleShareCanceled;
 
     private ChatMessage(ChatRoom chatRoom, User sender, String content, ChatMessageType chatMessageType, ChatMessage replyMessage) {
         this.chatRoom = chatRoom;
@@ -65,14 +103,20 @@ public class ChatMessage extends ModifyEntity {
         return new ChatMessage(chatRoom, sender, content, chatMessageType, replyMessage);
     }
 
-    public void updateMessage(String content) {
-        if (chatMessageType != ChatMessageType.TEXT) {
-            throw new BaseException(ErrorEnum.INVALID_MESSAGE_TYPE);
-        }
+    public static ChatMessage schedule(ChatRoom chatRoom, User sender, Schedule schedule) {
+        ChatMessage chatMessage = new ChatMessage();
 
-        this.content = content;
-        this.edited = true;
-        this.editedAt = LocalDateTime.now();
+        chatMessage.chatRoom = chatRoom;
+        chatMessage.sender = sender;
+
+        chatMessage.scheduleId = schedule.getId();
+        chatMessage.scheduleSnapshot = ScheduleSnapshot.from(schedule);
+        chatMessage.chatMessageType = ChatMessageType.SCHEDULE;
+
+        chatMessage.deleted = false;
+        chatMessage.scheduleShareCanceled = false;
+
+        return chatMessage;
     }
 
     public void deleteMessage(Long userId) {
@@ -86,5 +130,32 @@ public class ChatMessage extends ModifyEntity {
 
         this.deleted = true;
         this.content = DELETE_MESSAGE;
+    }
+
+    public void cancelScheduleShare(Long userId) {
+        if (sender == null) {
+            throw new BaseException(ErrorEnum.CHAT_MESSAGE_DELETE_NOT_ALLOWED);
+        }
+
+        if (!sender.getId().equals(userId)) {
+            throw new BaseException(ErrorEnum.CHAT_MESSAGE_FORBIDDEN);
+        }
+
+        this.scheduleShareCanceled = true;
+    }
+
+    public void cancelScheduleShare() {
+        this.scheduleShareCanceled = true;
+    }
+
+    public void updateScheduleSnapshot(Schedule schedule) {
+        Long currentVersion = scheduleSnapshot.getScheduleVersion();
+        Long newVersion = schedule.getScheduleVersion();
+
+        if (currentVersion != null && newVersion != null && currentVersion >= newVersion) {
+            return;
+        }
+
+        scheduleSnapshot = ScheduleSnapshot.from(schedule);
     }
 }

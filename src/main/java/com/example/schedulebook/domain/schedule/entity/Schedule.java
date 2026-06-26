@@ -54,6 +54,9 @@ public class Schedule extends DeleteEntity {
     @Column(nullable = false, name = "reminder_sent")
     private boolean reminderSent;
 
+    @Column(nullable = false, name = "schedule_version")
+    private Long scheduleVersion;
+
     public static Schedule create(
             User user,
             String title,
@@ -69,6 +72,7 @@ public class Schedule extends DeleteEntity {
         schedule.content = content;
         schedule.scheduleDate = scheduleDate;
         schedule.reminderSent = false;
+        schedule.scheduleVersion = 1L;
 
         schedule.applyTime(startTime, endTime);
 
@@ -93,6 +97,7 @@ public class Schedule extends DeleteEntity {
         applyTime(startTime, endTime);
 
         handleReminderReset(reminderChanged);
+        scheduleVersion++;
     }
 
     public void markReminderSent() {

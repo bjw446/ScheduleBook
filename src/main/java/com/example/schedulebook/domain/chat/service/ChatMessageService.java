@@ -2,12 +2,12 @@ package com.example.schedulebook.domain.chat.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.chat.dto.request.ChatMessageScheduleShareRequest;
 import com.example.schedulebook.domain.chat.dto.request.ChatMessageSearchRequest;
 import com.example.schedulebook.domain.chat.dto.request.ChatMessageSendRequest;
-import com.example.schedulebook.domain.chat.dto.response.ChatMessageDeletedEvent;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageSliceResponse;
-import com.example.schedulebook.domain.chat.dto.response.ReadMessageEvent;
+import com.example.schedulebook.domain.chat.event.ChatMessagePublisher;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
 import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
@@ -17,19 +17,18 @@ import com.example.schedulebook.domain.chat.projection.MemberReadStatusProjectio
 import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
+import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.schedule.event.ScheduleSharePublisher;
+import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static com.example.schedulebook.domain.chat.consts.ChatConst.DELETE_MESSAGE;
 import static com.example.schedulebook.domain.chat.consts.ChatConst.MAX_PAGE_SIZE;
 
 @Service
@@ -39,7 +38,9 @@ public class ChatMessageService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final ChatMessageRepository chatMessageRepository;
-    private final SimpMessagingTemplate simpMessagingTemplate;
+    private final ScheduleRepository scheduleRepository;
+    private final ScheduleSharePublisher scheduleSharePublisher;
+    private final ChatMessagePublisher chatMessagePublisher;
 
     public void sendMessage(Long currentUserId, ChatMessageSendRequest request) {
         ChatRoom chatRoom = validateChatRoom(request.roomId());
@@ -70,16 +71,7 @@ public class ChatMessageService {
 
         int unreadCount = calculateUnreadCount(chatMessage, readStatuses(chatRoom.getId()));
 
-        ChatMessageResponse response = ChatMessageResponse.from(chatMessage, unreadCount);
-
-        String destination = "/topic/chat/" + chatRoom.getId();
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                simpMessagingTemplate.convertAndSend(destination, response);
-            }
-        });
+        chatMessagePublisher.publishMessage(chatMessage, unreadCount);
     }
 
     @Transactional(readOnly = true)
@@ -141,7 +133,7 @@ public class ChatMessageService {
 
         chatRoomMember.updateUnreadCount((int) unreadCount);
 
-        publishAfterCommit(roomId, currentUserId, chatRoomMember.getLastReadMessageId());
+        chatMessagePublisher.publishReadMessageAfterCommit(roomId, currentUserId, chatRoomMember.getLastReadMessageId());
     }
 
     public void deleteMessage(Long currentUserId, Long roomId, Long messageId) {
@@ -153,7 +145,57 @@ public class ChatMessageService {
 
         chatMessage.deleteMessage(currentUserId);
 
-        publishDeleteMessageAfterCommit(roomId, messageId);
+        chatMessagePublisher.publishDeleteMessageAfterCommit(roomId, messageId);
+    }
+
+    public void shareSchedule(Long currentUserId, ChatMessageScheduleShareRequest request) {
+        ChatRoom chatRoom = validateChatRoom(request.roomId());
+
+        User user = validateMember(request.roomId(), currentUserId);
+
+        Schedule schedule = validateSchedule(currentUserId, request.scheduleId());
+
+        ChatMessage chatMessage = ChatMessage.schedule(chatRoom, user, schedule);
+
+        chatMessageRepository.save(chatMessage);
+
+        chatRoom.updateLastMessage(chatMessage);
+
+        updateUnreadCount(chatRoom, currentUserId);
+
+        int unreadCount = calculateUnreadCount(chatMessage, readStatuses(chatRoom.getId()));
+
+        scheduleSharePublisher.publishScheduleShared(chatMessage, unreadCount);
+    }
+
+    public void cancelScheduleShare(Long currentUserId, Long messageId) {
+        ChatMessage chatMessage = validateChatMessage(messageId);
+
+        validateScheduleMessageType(chatMessage);
+
+        chatMessage.cancelScheduleShare(currentUserId);
+
+        int unreadCount = calculateUnreadCount(chatMessage, readStatuses(chatMessage.getChatRoom().getId()));
+
+        scheduleSharePublisher.publishScheduleShareCanceled(chatMessage, unreadCount);
+    }
+
+    private Schedule validateSchedule(Long currentUserId, Long scheduleId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow(
+                () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
+        );
+
+        if (!schedule.getUser().getId().equals(currentUserId)) {
+            throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
+        }
+
+        return schedule;
+    }
+
+    private void validateScheduleMessageType(ChatMessage chatMessage) {
+        if (chatMessage.getChatMessageType() != ChatMessageType.SCHEDULE) {
+            throw new BaseException(ErrorEnum.INVALID_MESSAGE_TYPE);
+        }
     }
 
     private void validateDeleteMessage(ChatMessage chatMessage) {
@@ -220,6 +262,16 @@ public class ChatMessageService {
         );
     }
 
+    private ChatMessage validateChatMessage(Long messageId) {
+        if (messageId == null) {
+            throw new BaseException(ErrorEnum.INVALID_INPUT);
+        }
+
+        return chatMessageRepository.findById(messageId).orElseThrow(
+                () -> new BaseException(ErrorEnum.CHAT_MESSAGE_NOT_FOUND)
+        );
+    }
+
     private void updateUnreadCount(ChatRoom chatRoom, Long currentUserId) {
         chatRoomMemberRepository.increaseUnreadCount(chatRoom.getId(), currentUserId);
     }
@@ -230,34 +282,6 @@ public class ChatMessageService {
         for (ChatRoomMember chatRoomMember : leftMembers) {
             chatRoomMember.rejoin(joinedAt);
         }
-    }
-
-    private void publishAfterCommit(Long roomId, Long currentUserId, Long lastReadMessageId) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                simpMessagingTemplate.convertAndSend(
-                        "/topic/chat/" + roomId + "/read",
-                        ReadMessageEvent.from(roomId, currentUserId, lastReadMessageId)
-                );
-            }
-        });
-    }
-
-    private void publishDeleteMessageAfterCommit(Long roomId, Long messageId) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                simpMessagingTemplate.convertAndSend(
-                        "/topic/chat/" + roomId + "/delete",
-                        new ChatMessageDeletedEvent(
-                                roomId,
-                                messageId,
-                                DELETE_MESSAGE
-                        )
-                );
-            }
-        });
     }
 
     private List<MemberReadStatusProjection> readStatuses(Long roomId) {

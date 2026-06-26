@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.chat.controller;
 import com.example.schedulebook.common.enums.SuccessEnum;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
+import com.example.schedulebook.domain.chat.dto.request.ChatMessageScheduleShareRequest;
 import com.example.schedulebook.domain.chat.dto.request.ChatMessageSearchRequest;
 import com.example.schedulebook.domain.chat.dto.request.ChatMessageSendRequest;
 import com.example.schedulebook.domain.chat.dto.request.ChatReadRequest;
@@ -27,6 +28,18 @@ public class ChatMessageController {
         chatMessageService.sendMessage(SecurityUtils.getCurrentUserId(), request);
     }
 
+    @PostMapping("/schedule")
+    public ResponseEntity<ApiResponse<Void>> shareSchedule(@RequestBody ChatMessageScheduleShareRequest request) {
+        chatMessageService.shareSchedule(SecurityUtils.getCurrentUserId(), request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success(
+                        SuccessEnum.CREATE_SUCCESS,
+                        null
+                )
+        );
+    }
+
     @GetMapping("/{roomId}/messages")
     public ResponseEntity<ApiResponse<ChatMessageSliceResponse>> getMessages(
             @PathVariable Long roomId,
@@ -48,6 +61,18 @@ public class ChatMessageController {
     @PostMapping("/{roomId}/read")
     public ResponseEntity<ApiResponse<Void>> readMessage(@PathVariable Long roomId, @RequestBody ChatReadRequest request) {
         chatMessageService.readMessage(SecurityUtils.getCurrentUserId(), roomId, request.lastReadMessageId());
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.UPDATE_SUCCESS,
+                        null
+                )
+        );
+    }
+
+    @PatchMapping("/{messageId}/schedule/cancel")
+    public ResponseEntity<ApiResponse<Void>> cancelScheduleShare(@PathVariable Long messageId) {
+        chatMessageService.cancelScheduleShare(SecurityUtils.getCurrentUserId(), messageId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(

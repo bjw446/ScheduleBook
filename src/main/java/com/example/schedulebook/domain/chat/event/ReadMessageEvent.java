@@ -1,4 +1,4 @@
-package com.example.schedulebook.domain.chat.dto.response;
+package com.example.schedulebook.domain.chat.event;
 
 import java.time.LocalDateTime;
 
