@@ -25,7 +25,7 @@ public class ScheduleShareEventListener {
     public void handleScheduleUpdated(ScheduleUpdatedEvent event) {
         Schedule schedule = scheduleRepository.findById(event.scheduleId()).orElseThrow();
 
-        List<ChatMessage> chatMessages = chatMessageRepository.findAllByScheduleId(event.scheduleId())
+        List<ChatMessage> chatMessages = chatMessageRepository.findAllByScheduleIdAndDeletedFalse(event.scheduleId())
                 .stream()
                 .filter(cm -> !cm.isScheduleShareCanceled())
                 .toList();
@@ -40,7 +40,7 @@ public class ScheduleShareEventListener {
     @Transactional
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void handleScheduleCanceled(ScheduleDeletedEvent event) {
-        List<ChatMessage> chatMessages = chatMessageRepository.findAllByScheduleId(event.scheduleId())
+        List<ChatMessage> chatMessages = chatMessageRepository.findAllByScheduleIdAndDeletedFalse(event.scheduleId())
                 .stream()
                 .filter(cm -> !cm.isScheduleShareCanceled())
                 .toList();

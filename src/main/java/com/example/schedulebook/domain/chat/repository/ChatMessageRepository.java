@@ -34,5 +34,5 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             @Param("joinedAt") LocalDateTime joinedAt
     );
 
-    List<ChatMessage> findAllByScheduleId(Long scheduleId);
+    List<ChatMessage> findAllByScheduleIdAndDeletedFalse(Long scheduleId);
 }
