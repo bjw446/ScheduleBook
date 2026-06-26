@@ -4,11 +4,15 @@ import com.example.schedulebook.common.entity.ModifyEntity;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.chat.enums.ChatMessageType;
+import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.schedule.entity.ScheduleSnapshot;
 import com.example.schedulebook.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 import static com.example.schedulebook.domain.chat.consts.ChatConst.DELETE_MESSAGE;
 
@@ -32,6 +36,9 @@ public class ChatMessage extends ModifyEntity {
     @Column(name = "schedule_id")
     private Long scheduleId;
 
+    @Embedded
+    private ScheduleSnapshot scheduleSnapshot;
+
     @Column(length = 1000)
     private String content;
 
@@ -45,7 +52,6 @@ public class ChatMessage extends ModifyEntity {
 
     @Column(nullable = false)
     private boolean edited;
-
 
     @Column(nullable = false)
     private boolean deleted;
@@ -67,19 +73,16 @@ public class ChatMessage extends ModifyEntity {
         return new ChatMessage(chatRoom, sender, content, chatMessageType, replyMessage);
     }
 
-    public static ChatMessage schedule(ChatRoom chatRoom, User sender, Long scheduleId) {
+    public static ChatMessage schedule(ChatRoom chatRoom, User sender, Schedule schedule) {
         ChatMessage chatMessage = new ChatMessage();
 
         chatMessage.chatRoom = chatRoom;
         chatMessage.sender = sender;
-        chatMessage.scheduleId = scheduleId;
 
+        chatMessage.scheduleId = schedule.getId();
+        chatMessage.scheduleSnapshot = ScheduleSnapshot.from(schedule);
         chatMessage.chatMessageType = ChatMessageType.SCHEDULE;
 
-        chatMessage.content = null;
-        chatMessage.replyMessage = null;
-
-        chatMessage.edited = false;
         chatMessage.deleted = false;
         chatMessage.scheduleShareCanceled = false;
 
@@ -105,5 +108,16 @@ public class ChatMessage extends ModifyEntity {
         }
 
         this.scheduleShareCanceled = true;
+    }
+
+    public void cancelScheduleShare() {
+        this.scheduleShareCanceled = true;
+    }
+
+    public void updateScheduleSnapshot(Schedule schedule) {
+        if (this.scheduleSnapshot.getScheduleVersion() >= schedule.getScheduleVersion()) {
+            return;
+        }
+        this.scheduleSnapshot = ScheduleSnapshot.from(schedule);
     }
 }

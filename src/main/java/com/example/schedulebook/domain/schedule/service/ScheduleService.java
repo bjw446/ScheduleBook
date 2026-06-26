@@ -4,14 +4,17 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.schedule.dto.request.CreateScheduleRequest;
 import com.example.schedulebook.domain.schedule.dto.request.UpdateScheduleRequest;
+import com.example.schedulebook.domain.schedule.event.ScheduleDeletedEvent;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleDetailResponse;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleSummaryResponse;
+import com.example.schedulebook.domain.schedule.event.ScheduleUpdatedEvent;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +29,7 @@ import java.util.List;
 public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public ScheduleSummaryResponse createSchedule(CreateScheduleRequest request, Long currentUserId) {
         User user = validateUser(currentUserId);
@@ -96,6 +100,8 @@ public class ScheduleService {
                 request.endTime()
         );
 
+        applicationEventPublisher.publishEvent(new ScheduleUpdatedEvent(schedule.getId()));
+
         return ScheduleSummaryResponse.from(schedule);
     }
 
@@ -105,6 +111,8 @@ public class ScheduleService {
         Schedule schedule = validateSchedule(scheduleId, currentUserId);
 
         schedule.delete();
+
+        applicationEventPublisher.publishEvent(new ScheduleDeletedEvent(schedule.getId()));
     }
 
     private User validateUser(Long userId) {

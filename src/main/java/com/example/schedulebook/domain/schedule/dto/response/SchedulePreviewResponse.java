@@ -1,34 +1,33 @@
 package com.example.schedulebook.domain.schedule.dto.response;
 
-import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.schedule.entity.ScheduleSnapshot;
 
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public record SchedulePreviewResponse(
         Long messageId,
         Long scheduleId,
         String title,
-        LocalDateTime startAt,
-        LocalDateTime endAt,
-        String owner,
+        LocalTime startTime,
+        LocalTime endTime,
         boolean deleted,
         boolean canceled,
         boolean edited
 ) {
     public static SchedulePreviewResponse from(
             Long messageId,
-            Schedule schedule,
+            Long scheduleId,
+            ScheduleSnapshot scheduleSnapshot,
             boolean deleted,
             boolean canceled,
             boolean edited
     ) {
         return new SchedulePreviewResponse(
                 messageId,
-                schedule.getId(),
-                schedule.getTitle(),
-                LocalDateTime.from(schedule.getStartTime()),
-                LocalDateTime.from(schedule.getEndTime()),
-                schedule.getUser().getNickname(),
+                scheduleId,
+                scheduleSnapshot.getTitle(),
+                scheduleSnapshot.getStartTime(),
+                scheduleSnapshot.getEndTime(),
                 deleted,
                 canceled,
                 edited
