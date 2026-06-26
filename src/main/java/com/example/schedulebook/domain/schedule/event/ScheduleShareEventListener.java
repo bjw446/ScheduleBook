@@ -4,13 +4,12 @@ import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
+import com.example.schedulebook.domain.schedule.service.ScheduleSnapshotManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -19,6 +18,7 @@ public class ScheduleShareEventListener {
     private final ChatMessageRepository chatMessageRepository;
     private final ScheduleRepository scheduleRepository;
     private final ScheduleSharePublisher scheduleSharePublisher;
+    private final ScheduleSnapshotManager scheduleSnapshotManager;
 
 
     @EventListener
@@ -30,11 +30,15 @@ public class ScheduleShareEventListener {
                 .filter(cm -> !cm.isScheduleShareCanceled())
                 .toList();
 
+        List<ChatMessage> updateMessages = new ArrayList<>();
+
         for (ChatMessage chatMessage : chatMessages) {
-            chatMessage.updateScheduleSnapshot(schedule);
+            if (scheduleSnapshotManager.updateSnapshot(chatMessage, schedule)) {
+                updateMessages.add(chatMessage);
+            }
         }
 
-        scheduleSharePublisher.publishScheduleUpdated(chatMessages);
+        scheduleSharePublisher.publishScheduleUpdated(updateMessages);
     }
 
     @EventListener

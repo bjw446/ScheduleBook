@@ -149,13 +149,17 @@ public class ChatMessage extends ModifyEntity {
     }
 
     public void updateScheduleSnapshot(Schedule schedule) {
+        this.scheduleSnapshot = ScheduleSnapshot.from(schedule);
+    }
+
+    public boolean needSnapshotUpdate(Schedule schedule) {
         Long currentVersion = scheduleSnapshot.getScheduleVersion();
         Long newVersion = schedule.getScheduleVersion();
 
-        if (currentVersion != null && newVersion != null && currentVersion >= newVersion) {
-            return;
+        if (currentVersion == null || newVersion == null) {
+            return true;
         }
 
-        scheduleSnapshot = ScheduleSnapshot.from(schedule);
+        return currentVersion < newVersion;
     }
 }

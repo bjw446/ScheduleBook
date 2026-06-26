@@ -10,12 +10,15 @@ import com.example.schedulebook.domain.chat.dto.request.ChatReadRequest;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageSliceResponse;
 import com.example.schedulebook.domain.chat.service.ChatMessageService;
 import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewDetailResponse;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleSnapshotHistoryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 
 @Controller
@@ -65,6 +68,16 @@ public class ChatMessageController {
                 ApiResponse.success(
                         SuccessEnum.READ_SUCCESS,
                         chatMessageService.findSharedSchedule(SecurityUtils.getCurrentUserId(), messageId)
+                )
+        );
+    }
+
+    @GetMapping("/{messageId}/shared-schedule/history")
+    public ResponseEntity<ApiResponse<List<ScheduleSnapshotHistoryResponse>>> getScheduleSnapshotHistory(@PathVariable Long messageId) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.READ_SUCCESS,
+                        chatMessageService.findScheduleSnapshotHistory(SecurityUtils.getCurrentUserId(), messageId)
                 )
         );
     }
