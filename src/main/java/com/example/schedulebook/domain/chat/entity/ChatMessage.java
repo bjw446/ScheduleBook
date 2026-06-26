@@ -47,6 +47,10 @@ public class ChatMessage extends ModifyEntity {
                     column = @Column(name = "snapshot_content", length = 1000)
             ),
             @AttributeOverride(
+                    name = "scheduleDate",
+                    column = @Column(name = "snapshot_schedule_date")
+            ),
+            @AttributeOverride(
                     name = "startTime",
                     column = @Column(name = "snapshot_start_time")
             ),
@@ -145,9 +149,13 @@ public class ChatMessage extends ModifyEntity {
     }
 
     public void updateScheduleSnapshot(Schedule schedule) {
-        if (this.scheduleSnapshot.getScheduleVersion() >= schedule.getScheduleVersion()) {
+        Long currentVersion = scheduleSnapshot.getScheduleVersion();
+        Long newVersion = schedule.getScheduleVersion();
+
+        if (currentVersion != null && newVersion != null && currentVersion >= newVersion) {
             return;
         }
-        this.scheduleSnapshot = ScheduleSnapshot.from(schedule);
+
+        scheduleSnapshot = ScheduleSnapshot.from(schedule);
     }
 }

@@ -16,11 +16,11 @@ public class ChatMessagePublisher {
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     public void publishMessage(ChatMessage chatMessage, int unreadCount) {
+        ChatMessageResponse response = ChatMessageResponse.from(chatMessage, unreadCount);
+
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                ChatMessageResponse response = ChatMessageResponse.from(chatMessage, unreadCount);
-
                 simpMessagingTemplate.convertAndSend(
                         "/topic/chat/" + chatMessage.getChatRoom().getId(),
                         response

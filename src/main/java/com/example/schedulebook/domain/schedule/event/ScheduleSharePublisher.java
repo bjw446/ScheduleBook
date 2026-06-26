@@ -17,22 +17,22 @@ public class ScheduleSharePublisher {
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     public void publishScheduleShared(ChatMessage chatMessage, int unreadCount) {
+        ChatMessageResponse response = ChatMessageResponse.from(
+                chatMessage,
+                unreadCount,
+                SchedulePreviewResponse.from(
+                        chatMessage.getId(),
+                        chatMessage.getScheduleId(),
+                        chatMessage.getScheduleSnapshot(),
+                        false,
+                        false,
+                        false
+                )
+        );
+
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                ChatMessageResponse response = ChatMessageResponse.from(
-                        chatMessage,
-                        unreadCount,
-                        SchedulePreviewResponse.from(
-                                chatMessage.getId(),
-                                chatMessage.getScheduleId(),
-                                chatMessage.getScheduleSnapshot(),
-                                false,
-                                false,
-                                false
-                        )
-                );
-
                 simpMessagingTemplate.convertAndSend(
                         "/topic/chat/" + chatMessage.getChatRoom().getId(),
                         response
@@ -69,22 +69,22 @@ public class ScheduleSharePublisher {
     }
 
     public void publishScheduleShareCanceled(ChatMessage chatMessage, int unreadCount) {
+        ChatMessageResponse response = ChatMessageResponse.from(
+                chatMessage,
+                unreadCount,
+                SchedulePreviewResponse.from(
+                        chatMessage.getId(),
+                        chatMessage.getScheduleId(),
+                        chatMessage.getScheduleSnapshot(),
+                        false,
+                        true,
+                        false
+                )
+        );
+
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                ChatMessageResponse response = ChatMessageResponse.from(
-                        chatMessage,
-                        unreadCount,
-                        SchedulePreviewResponse.from(
-                                chatMessage.getId(),
-                                chatMessage.getScheduleId(),
-                                chatMessage.getScheduleSnapshot(),
-                                false,
-                                true,
-                                false
-                        )
-                );
-
                 simpMessagingTemplate.convertAndSend(
                         "/topic/chat/" + chatMessage.getChatRoom().getId(),
                         response
