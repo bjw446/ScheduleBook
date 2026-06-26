@@ -35,4 +35,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     );
 
     List<ChatMessage> findAllByScheduleIdAndDeletedFalse(Long scheduleId);
+
+    @Query("SELECT cm FROM ChatMessage cm JOIN FETCH cm.chatRoom LEFT JOIN FETCH cm.sender WHERE cm.id = :messageId")
+    Optional<ChatMessage> findByIdWithChatRoom(@Param("messageId") Long messageId);
 }

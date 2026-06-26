@@ -13,6 +13,7 @@ import java.time.LocalTime;
 @Embeddable
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ScheduleSnapshot {
+    @Column(length = 50)
     private String title;
 
     @Column(length = 1000)

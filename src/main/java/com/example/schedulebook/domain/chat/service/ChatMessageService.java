@@ -17,6 +17,8 @@ import com.example.schedulebook.domain.chat.projection.MemberReadStatusProjectio
 import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
+import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewDetailResponse;
+import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewResponse;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharePublisher;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
@@ -180,6 +182,16 @@ public class ChatMessageService {
         scheduleSharePublisher.publishScheduleShareCanceled(chatMessage, unreadCount);
     }
 
+    public SchedulePreviewDetailResponse findSharedSchedule(Long currentUserId, Long messageId) {
+        ChatMessage chatMessage = validateChatMessage(messageId);
+
+        validateScheduleMessageType(chatMessage);
+
+        validateMember(chatMessage.getChatRoom().getId(), currentUserId);
+
+        return SchedulePreviewDetailResponse.from(chatMessage, false, false);
+    }
+
     private Schedule validateSchedule(Long currentUserId, Long scheduleId) {
         Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow(
                 () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
@@ -195,6 +207,10 @@ public class ChatMessageService {
     private void validateScheduleMessageType(ChatMessage chatMessage) {
         if (chatMessage.getChatMessageType() != ChatMessageType.SCHEDULE) {
             throw new BaseException(ErrorEnum.INVALID_MESSAGE_TYPE);
+        }
+
+        if (chatMessage.isScheduleShareCanceled()) {
+            throw new BaseException(ErrorEnum.SCHEDULE_SHARE_CANCELED);
         }
     }
 
@@ -267,7 +283,7 @@ public class ChatMessageService {
             throw new BaseException(ErrorEnum.INVALID_INPUT);
         }
 
-        return chatMessageRepository.findById(messageId).orElseThrow(
+        return chatMessageRepository.findByIdWithChatRoom(messageId).orElseThrow(
                 () -> new BaseException(ErrorEnum.CHAT_MESSAGE_NOT_FOUND)
         );
     }

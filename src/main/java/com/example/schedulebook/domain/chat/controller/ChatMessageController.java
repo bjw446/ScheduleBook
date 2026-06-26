@@ -9,6 +9,7 @@ import com.example.schedulebook.domain.chat.dto.request.ChatMessageSendRequest;
 import com.example.schedulebook.domain.chat.dto.request.ChatReadRequest;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageSliceResponse;
 import com.example.schedulebook.domain.chat.service.ChatMessageService;
+import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewDetailResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -54,6 +55,16 @@ public class ChatMessageController {
                                 roomId,
                                 new ChatMessageSearchRequest(cursor, size)
                         )
+                )
+        );
+    }
+
+    @GetMapping("{messageId}/shared-schedule")
+    public ResponseEntity<ApiResponse<SchedulePreviewDetailResponse>> getSharedSchedule(@PathVariable Long messageId) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.READ_SUCCESS,
+                        chatMessageService.findSharedSchedule(SecurityUtils.getCurrentUserId(), messageId)
                 )
         );
     }
