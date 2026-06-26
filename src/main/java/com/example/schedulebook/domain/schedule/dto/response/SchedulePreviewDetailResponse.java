@@ -17,8 +17,8 @@ public record SchedulePreviewDetailResponse(
         boolean deleted,
         boolean canceled,
         boolean edited,
-        Long version,
-        LocalDateTime updateAt
+        Long scheduleVersion,
+        LocalDateTime scheduleUpdatedAt
 ) {
     public static SchedulePreviewDetailResponse from(
             ChatMessage chatMessage,

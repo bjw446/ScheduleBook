@@ -185,9 +185,11 @@ public class ChatMessageService {
     public SchedulePreviewDetailResponse findSharedSchedule(Long currentUserId, Long messageId) {
         ChatMessage chatMessage = validateChatMessage(messageId);
 
-        validateScheduleMessageType(chatMessage);
+        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
 
-        validateMember(chatMessage.getChatRoom().getId(), currentUserId);
+        validateReadableMessage(chatRoomMember, chatMessage);
+
+        validateScheduleMessageType(chatMessage);
 
         return SchedulePreviewDetailResponse.from(chatMessage, false, false);
     }
@@ -288,6 +290,12 @@ public class ChatMessageService {
         );
     }
 
+    private void validateReadableMessage(ChatRoomMember chatRoomMember, ChatMessage chatMessage) {
+        if (chatMessage.getCreatedAt().isBefore(chatRoomMember.getJoinedAt())) {
+            throw new BaseException(ErrorEnum.CHAT_MESSAGE_FORBIDDEN);
+        }
+    }
+
     private void updateUnreadCount(ChatRoom chatRoom, Long currentUserId) {
         chatRoomMemberRepository.increaseUnreadCount(chatRoom.getId(), currentUserId);
     }
@@ -319,12 +327,6 @@ public class ChatMessageService {
                 .filter(member ->
                         !chatMessage.getCreatedAt().isBefore(member.getJoinedAt()))
                 .count();
-    }
-
-    private void validateReadableMessage(ChatRoomMember chatRoomMember, ChatMessage chatMessage) {
-        if (chatMessage.getCreatedAt().isBefore(chatRoomMember.getJoinedAt())) {
-            throw new BaseException(ErrorEnum.CHAT_MESSAGE_FORBIDDEN);
-        }
     }
 
     private long recalculateUnreadCount(ChatRoomMember chatRoomMember) {
