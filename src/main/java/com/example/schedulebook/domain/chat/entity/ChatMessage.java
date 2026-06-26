@@ -162,4 +162,8 @@ public class ChatMessage extends ModifyEntity {
 
         return currentVersion < newVersion;
     }
+
+    public ScheduleSnapshot currentSnapshot() {
+        return this.scheduleSnapshot;
+    }
 }

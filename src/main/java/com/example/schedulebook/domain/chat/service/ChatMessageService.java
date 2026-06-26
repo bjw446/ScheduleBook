@@ -18,11 +18,16 @@ import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
 import com.example.schedulebook.domain.chat.repository.ChatRoomRepository;
 import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewDetailResponse;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleSnapshotDiffResponse;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleSnapshotHistoryResponse;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.schedule.entity.ScheduleSnapshot;
+import com.example.schedulebook.domain.schedule.entity.ScheduleSnapshotHistory;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharePublisher;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.schedule.repository.ScheduleSnapshotHistoryRepository;
+import com.example.schedulebook.domain.schedule.service.ScheduleSnapshotComparator;
+import com.example.schedulebook.domain.schedule.service.ScheduleSnapshotHistoryManager;
 import com.example.schedulebook.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -45,6 +50,8 @@ public class ChatMessageService {
     private final ScheduleSharePublisher scheduleSharePublisher;
     private final ChatMessagePublisher chatMessagePublisher;
     private final ScheduleSnapshotHistoryRepository scheduleSnapshotHistoryRepository;
+    private final ScheduleSnapshotComparator scheduleSnapshotComparator;
+    private final ScheduleSnapshotHistoryManager scheduleSnapshotHistoryManager;
 
     public void sendMessage(Long currentUserId, ChatMessageSendRequest request) {
         ChatRoom chatRoom = validateChatRoom(request.roomId());
@@ -216,6 +223,25 @@ public class ChatMessageService {
                 .stream()
                 .map(ScheduleSnapshotHistoryResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ScheduleSnapshotDiffResponse findScheduleSnapshotDiff(Long currentUserId, Long messageId, Long fromVersion, Long toVersion) {
+        ChatMessage chatMessage = validateChatMessage(messageId);
+
+        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
+
+        validateReadableMessage(chatRoomMember, chatMessage);
+
+        validateScheduleMessageType(chatMessage);
+
+        validateReadableSharedSchedule(chatMessage);
+
+        ScheduleSnapshot before = scheduleSnapshotHistoryManager.findSnapshot(chatMessage, fromVersion);
+
+        ScheduleSnapshot after = scheduleSnapshotHistoryManager.findSnapshot(chatMessage, toVersion);
+
+        return scheduleSnapshotComparator.compare(before, after);
     }
 
     private Schedule validateSchedule(Long currentUserId, Long scheduleId) {

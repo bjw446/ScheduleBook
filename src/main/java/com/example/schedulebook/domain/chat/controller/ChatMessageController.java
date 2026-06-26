@@ -10,6 +10,7 @@ import com.example.schedulebook.domain.chat.dto.request.ChatReadRequest;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageSliceResponse;
 import com.example.schedulebook.domain.chat.service.ChatMessageService;
 import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewDetailResponse;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleSnapshotDiffResponse;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleSnapshotHistoryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -78,6 +79,20 @@ public class ChatMessageController {
                 ApiResponse.success(
                         SuccessEnum.READ_SUCCESS,
                         chatMessageService.findScheduleSnapshotHistory(SecurityUtils.getCurrentUserId(), messageId)
+                )
+        );
+    }
+
+    @GetMapping("/{messageId}/shared-schedule/diff")
+    public ResponseEntity<ApiResponse<ScheduleSnapshotDiffResponse>> getScheduleSnapshotDiff(
+            @PathVariable Long messageId,
+            @RequestParam Long from,
+            @RequestParam Long to
+    ) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.READ_SUCCESS,
+                        chatMessageService.findScheduleSnapshotDiff(SecurityUtils.getCurrentUserId(), messageId, from, to)
                 )
         );
     }
