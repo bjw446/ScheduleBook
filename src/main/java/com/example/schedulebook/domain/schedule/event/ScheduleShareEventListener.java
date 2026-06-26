@@ -5,6 +5,7 @@ import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -20,8 +21,7 @@ public class ScheduleShareEventListener {
     private final ScheduleSharePublisher scheduleSharePublisher;
 
 
-    @Transactional
-    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    @EventListener
     public void handleScheduleUpdated(ScheduleUpdatedEvent event) {
         Schedule schedule = scheduleRepository.findById(event.scheduleId()).orElseThrow();
 
@@ -37,8 +37,7 @@ public class ScheduleShareEventListener {
         scheduleSharePublisher.publishScheduleUpdated(chatMessages);
     }
 
-    @Transactional
-    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    @EventListener
     public void handleScheduleCanceled(ScheduleDeletedEvent event) {
         List<ChatMessage> chatMessages = chatMessageRepository.findAllByScheduleIdAndDeletedFalse(event.scheduleId())
                 .stream()
