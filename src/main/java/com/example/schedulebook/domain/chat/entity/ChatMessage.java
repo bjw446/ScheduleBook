@@ -37,32 +37,6 @@ public class ChatMessage extends ModifyEntity {
     private Long scheduleId;
 
     @Embedded
-    @AttributeOverrides({
-            @AttributeOverride(
-                    name = "title",
-                    column = @Column(name = "snapshot_title")
-            ),
-            @AttributeOverride(
-                    name = "content",
-                    column = @Column(name = "snapshot_content", length = 1000)
-            ),
-            @AttributeOverride(
-                    name = "startTime",
-                    column = @Column(name = "snapshot_start_time")
-            ),
-            @AttributeOverride(
-                    name = "endTime",
-                    column = @Column(name = "snapshot_end_time")
-            ),
-            @AttributeOverride(
-                    name = "scheduleVersion",
-                    column = @Column(name = "snapshot_version")
-            ),
-            @AttributeOverride(
-                    name = "scheduleUpdatedAt",
-                    column = @Column(name = "snapshot_updated_at")
-            )
-    })
     private ScheduleSnapshot scheduleSnapshot;
 
     @Column(length = 1000)
