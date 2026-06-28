@@ -22,7 +22,6 @@ import com.example.schedulebook.domain.schedule.dto.response.ScheduleSnapshotDif
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleSnapshotHistoryResponse;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.entity.ScheduleSnapshot;
-import com.example.schedulebook.domain.schedule.entity.ScheduleSnapshotHistory;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharePublisher;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.schedule.repository.ScheduleSnapshotHistoryRepository;

@@ -52,7 +52,12 @@ public class ScheduleShareUpdateManager {
 
         SystemMessageType systemMessageType = SystemMessageType.SCHEDULE_UPDATED;
 
-        List<PublishChatMessage> publishChatMessages = createPublishChatMessages(updatedMessages, systemMessageType);
+        List<PublishChatMessage> publishChatMessages = collectRooms(updatedMessages).values()
+                .stream()
+                .map(room ->
+                        chatMessageManager.createSystemPublishMessage(room, systemMessageType)
+                )
+                .toList();
 
         scheduleSharePublisher.publishScheduleUpdated(updatedMessages);
 
@@ -65,13 +70,16 @@ public class ScheduleShareUpdateManager {
                 .filter(cm -> !cm.isScheduleShareCanceled())
                 .toList();
 
-        for (ChatMessage chatMessage : chatMessages) {
-            chatMessage.cancelScheduleShare();
-        }
+        chatMessages.forEach(ChatMessage::cancelScheduleShare);
 
         SystemMessageType systemMessageType = SystemMessageType.SCHEDULE_SHARE_CANCELED;
 
-        List<PublishChatMessage> publishChatMessages = createPublishChatMessages(chatMessages, systemMessageType);
+        List<PublishChatMessage> publishChatMessages = collectRooms(chatMessages).values()
+                .stream()
+                .map(room ->
+                        chatMessageManager.createSystemPublishMessage(room, systemMessageType)
+                )
+                .toList();
 
         scheduleSharePublisher.publishScheduleShareCanceled(chatMessages);
 
@@ -90,33 +98,5 @@ public class ScheduleShareUpdateManager {
         }
 
         return rooms;
-    }
-
-    private List<PublishChatMessage> createPublishChatMessages(List<ChatMessage> chatMessages, SystemMessageType systemMessageType) {
-        Map<Long, ChatRoom> notifiedRooms = collectRooms(chatMessages);
-
-        Map<Long, List<MemberReadStatusProjection>> readStatusMap = new HashMap<>();
-
-        for (ChatRoom room : notifiedRooms.values()) {
-            readStatusMap.put(
-                    room.getId(),
-                    chatRoomMemberRepository.findReadStatuses(room.getId())
-            );
-        }
-
-        List<PublishChatMessage> publishChatMessages = notifiedRooms.values()
-                .stream()
-                .map(room -> {
-                    ChatMessage systemMessage = chatMessageManager.createSystemMessage(room, systemMessageType);
-
-                    List<MemberReadStatusProjection> readStatuses = readStatusMap.get(room.getId());
-
-                    int unreadCount = chatUnreadCountManager.calculateUnreadCount(systemMessage, readStatuses);
-
-                    return new PublishChatMessage(systemMessage, unreadCount);
-                })
-                .toList();
-
-        return publishChatMessages;
     }
 }
