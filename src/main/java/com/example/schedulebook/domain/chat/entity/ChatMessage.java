@@ -4,6 +4,7 @@ import com.example.schedulebook.common.entity.ModifyEntity;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.chat.enums.ChatMessageType;
+import com.example.schedulebook.domain.chat.enums.SystemMessageType;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.entity.ScheduleSnapshot;
 import com.example.schedulebook.domain.user.entity.User;
@@ -73,8 +74,12 @@ public class ChatMessage extends ModifyEntity {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, name= "chat_message_type")
     private ChatMessageType chatMessageType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "system_message_type")
+    private SystemMessageType systemMessageType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reply_message_id")
@@ -108,13 +113,22 @@ public class ChatMessage extends ModifyEntity {
 
         chatMessage.chatRoom = chatRoom;
         chatMessage.sender = sender;
-
         chatMessage.scheduleId = schedule.getId();
         chatMessage.scheduleSnapshot = ScheduleSnapshot.from(schedule);
         chatMessage.chatMessageType = ChatMessageType.SCHEDULE;
-
         chatMessage.deleted = false;
         chatMessage.scheduleShareCanceled = false;
+
+        return chatMessage;
+    }
+
+    public static ChatMessage system(ChatRoom chatRoom, SystemMessageType systemMessageType) {
+        ChatMessage chatMessage = new ChatMessage();
+
+        chatMessage.chatRoom = chatRoom;
+        chatMessage.chatMessageType = ChatMessageType.SYSTEM;
+        chatMessage.systemMessageType = systemMessageType;
+        chatMessage.deleted = false;
 
         return chatMessage;
     }
@@ -165,5 +179,13 @@ public class ChatMessage extends ModifyEntity {
 
     public ScheduleSnapshot currentSnapshot() {
         return this.scheduleSnapshot;
+    }
+
+    public String getDisplayContent() {
+        if (chatMessageType == ChatMessageType.SYSTEM) {
+            return systemMessageType.getMessage();
+        }
+
+        return content;
     }
 }

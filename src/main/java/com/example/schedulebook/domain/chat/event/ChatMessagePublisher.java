@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.List;
+
 import static com.example.schedulebook.domain.chat.consts.ChatConst.DELETE_MESSAGE;
 
 @Component
@@ -55,5 +57,28 @@ public class ChatMessagePublisher {
                 );
             }
         });
+    }
+
+    public void publishMessages(List<ChatMessage> chatMessages) {
+        List<ChatMessageResponse> responses =
+                chatMessages.stream()
+                        .map(message -> ChatMessageResponse.from(message, 0))
+                        .toList();
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+
+                        for (int i = 0; i < responses.size(); i++) {
+                            ChatMessage message = chatMessages.get(i);
+
+                            simpMessagingTemplate.convertAndSend(
+                                    "/topic/chat/" + message.getChatRoom().getId(),
+                                    responses.get(i)
+                            );
+                        }
+                    }
+                });
     }
 }
