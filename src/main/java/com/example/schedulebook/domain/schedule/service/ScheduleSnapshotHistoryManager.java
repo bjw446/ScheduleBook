@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
+
 @Component
 @RequiredArgsConstructor
 public class ScheduleSnapshotHistoryManager {
@@ -21,14 +23,14 @@ public class ScheduleSnapshotHistoryManager {
 
     @Transactional(readOnly = true)
     public ScheduleSnapshot findSnapshot(ChatMessage chatMessage, Long version) {
-        if (chatMessage.currentSnapshot().getScheduleVersion().equals(version)) {
+        if (Objects.equals(chatMessage.currentSnapshot().getScheduleVersion(), version)) {
             return chatMessage.currentSnapshot();
         }
 
         return scheduleSnapshotHistoryRepository.findByChatMessageIdAndVersion(chatMessage.getId(), version)
                 .map(ScheduleSnapshotHistory::getScheduleSnapshot)
                 .orElseThrow(() ->
-                        new BaseException(ErrorEnum.SCHEDULE_SNAPSHOT_NOT_FOUNT)
+                        new BaseException(ErrorEnum.SCHEDULE_SNAPSHOT_NOT_FOUND)
                 );
     }
 }
