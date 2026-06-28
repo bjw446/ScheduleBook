@@ -52,11 +52,11 @@ public class ScheduleSnapshotHistory {
     })
     private ScheduleSnapshot scheduleSnapshot;
 
-    public static ScheduleSnapshotHistory of(ChatMessage chatMessage, ScheduleSnapshot scheduleSnapshot) {
+    public static ScheduleSnapshotHistory of(ChatMessage chatMessage) {
         ScheduleSnapshotHistory scheduleSnapshotHistory = new ScheduleSnapshotHistory();
 
         scheduleSnapshotHistory.chatMessage = chatMessage;
-        scheduleSnapshotHistory.scheduleSnapshot = scheduleSnapshot;
+        scheduleSnapshotHistory.scheduleSnapshot = chatMessage.currentSnapshot();
 
         return scheduleSnapshotHistory;
     }

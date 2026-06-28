@@ -28,17 +28,10 @@ public class ScheduleShareEventListener {
         List<ChatMessage> chatMessages = chatMessageRepository.findAllByScheduleIdAndDeletedFalse(event.scheduleId())
                 .stream()
                 .filter(cm -> !cm.isScheduleShareCanceled())
+                .filter(cm -> scheduleSnapshotManager.updateSnapshot(cm, schedule))
                 .toList();
 
-        List<ChatMessage> updateMessages = new ArrayList<>();
-
-        for (ChatMessage chatMessage : chatMessages) {
-            if (scheduleSnapshotManager.updateSnapshot(chatMessage, schedule)) {
-                updateMessages.add(chatMessage);
-            }
-        }
-
-        scheduleSharePublisher.publishScheduleUpdated(updateMessages);
+        scheduleSharePublisher.publishScheduleUpdated(chatMessages);
     }
 
     @EventListener

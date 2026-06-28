@@ -92,7 +92,10 @@ public enum ErrorEnum {
     CHAT_MESSAGE_DELETE_NOT_ALLOWED(400, "채팅 메시지를 삭제할 수 없습니다"),
     CHAT_MESSAGE_ALREADY_DELETE(409, "이미 삭제된 채팅 메시지 입니다."),
     INVALID_REPLY_MESSAGE(400, "잘못된 답장 메시지 입니다."),
-    CHAT_MESSAGE_FORBIDDEN(403, "해당 메시지에 대한 접근 권한이 없습니다.");
+    CHAT_MESSAGE_FORBIDDEN(403, "해당 메시지에 대한 접근 권한이 없습니다."),
+
+    //ScheduleSnapshot
+    SCHEDULE_SNAPSHOT_NOT_FOUND(404, "일정 스냅샷이 존재하지 않습니다.");
 
     private final int status;
     private final String message;
