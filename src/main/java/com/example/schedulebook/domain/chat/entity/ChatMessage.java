@@ -128,6 +128,7 @@ public class ChatMessage extends ModifyEntity {
         chatMessage.chatRoom = chatRoom;
         chatMessage.chatMessageType = ChatMessageType.SYSTEM;
         chatMessage.systemMessageType = systemMessageType;
+        chatMessage.content = systemMessageType.getMessage();
         chatMessage.deleted = false;
 
         return chatMessage;
@@ -179,13 +180,5 @@ public class ChatMessage extends ModifyEntity {
 
     public ScheduleSnapshot currentSnapshot() {
         return this.scheduleSnapshot;
-    }
-
-    public String getDisplayContent() {
-        if (chatMessageType == ChatMessageType.SYSTEM) {
-            return systemMessageType.getMessage();
-        }
-
-        return content;
     }
 }

@@ -52,6 +52,7 @@ public class ChatMessageService {
     private final ScheduleSnapshotHistoryRepository scheduleSnapshotHistoryRepository;
     private final ScheduleSnapshotComparator scheduleSnapshotComparator;
     private final ScheduleSnapshotHistoryManager scheduleSnapshotHistoryManager;
+    private final ChatUnreadCountManager chatUnreadCountManager;
 
     public void sendMessage(Long currentUserId, ChatMessageSendRequest request) {
         ChatRoom chatRoom = validateChatRoom(request.roomId());
@@ -80,7 +81,7 @@ public class ChatMessageService {
 
         updateUnreadCount(chatRoom, currentUserId);
 
-        int unreadCount = calculateUnreadCount(chatMessage, readStatuses(chatRoom.getId()));
+        int unreadCount = chatUnreadCountManager.calculateUnreadCount(chatMessage, readStatuses(chatRoom.getId()));
 
         chatMessagePublisher.publishMessage(chatMessage, unreadCount);
     }
@@ -118,7 +119,7 @@ public class ChatMessageService {
 
         List<ChatMessageResponse> responses = messages.stream()
                 .map(message -> {
-                    int unreadCount = calculateUnreadCount(
+                    int unreadCount = chatUnreadCountManager.calculateUnreadCount(
                             message,
                             readStatusProjections
                     );
@@ -140,7 +141,7 @@ public class ChatMessageService {
 
         chatRoomMember.updateLastRead(lastReadMessageId);
 
-        long unreadCount = recalculateUnreadCount(chatRoomMember);
+        long unreadCount = chatUnreadCountManager.recalculateUnreadCount(chatRoomMember);
 
         chatRoomMember.updateUnreadCount((int) unreadCount);
 
@@ -174,7 +175,7 @@ public class ChatMessageService {
 
         updateUnreadCount(chatRoom, currentUserId);
 
-        int unreadCount = calculateUnreadCount(chatMessage, readStatuses(chatRoom.getId()));
+        int unreadCount = chatUnreadCountManager.calculateUnreadCount(chatMessage, readStatuses(chatRoom.getId()));
 
         scheduleSharePublisher.publishScheduleShared(chatMessage, unreadCount);
     }
@@ -186,7 +187,7 @@ public class ChatMessageService {
 
         chatMessage.cancelScheduleShare(currentUserId);
 
-        int unreadCount = calculateUnreadCount(chatMessage, readStatuses(chatMessage.getChatRoom().getId()));
+        int unreadCount = chatUnreadCountManager.calculateUnreadCount(chatMessage, readStatuses(chatMessage.getChatRoom().getId()));
 
         scheduleSharePublisher.publishScheduleShareCanceled(chatMessage, unreadCount);
     }
@@ -362,32 +363,5 @@ public class ChatMessageService {
 
     private List<MemberReadStatusProjection> readStatuses(Long roomId) {
         return chatRoomMemberRepository.findReadStatuses(roomId);
-    }
-
-    private int calculateUnreadCount(ChatMessage chatMessage, List<MemberReadStatusProjection> members) {
-        Long senderId = chatMessage.getSender() == null ? null : chatMessage.getSender().getId();
-
-        return (int) members.stream()
-                .filter(member ->
-                        senderId == null
-                                || !member.getUserId().equals(senderId)
-                )
-                .filter(member ->
-                        member.getLastReadMessageId() == null
-                                || member.getLastReadMessageId() < chatMessage.getId()
-                )
-                .filter(member ->
-                        !chatMessage.getCreatedAt().isBefore(member.getJoinedAt()))
-                .count();
-    }
-
-    private long recalculateUnreadCount(ChatRoomMember chatRoomMember) {
-        return chatMessageRepository.countUnreadMessages(
-                chatRoomMember.getChatRoom().getId(),
-                chatRoomMember.getLastReadMessageId() == null
-                        ? 0L : chatRoomMember.getLastReadMessageId(),
-                chatRoomMember.getUser().getId(),
-                chatRoomMember.getJoinedAt()
-        );
     }
 }

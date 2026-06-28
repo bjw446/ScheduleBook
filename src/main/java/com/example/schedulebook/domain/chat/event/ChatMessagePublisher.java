@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.chat.event;
 
+import com.example.schedulebook.domain.chat.dto.request.PublishChatMessage;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import lombok.RequiredArgsConstructor;
@@ -59,10 +60,10 @@ public class ChatMessagePublisher {
         });
     }
 
-    public void publishMessages(List<ChatMessage> chatMessages) {
+    public void publishMessages(List<PublishChatMessage> publishChatMessages) {
         List<ChatMessageResponse> responses =
-                chatMessages.stream()
-                        .map(message -> ChatMessageResponse.from(message, 0))
+                publishChatMessages.stream()
+                        .map(item -> ChatMessageResponse.from(item.chatMessage(), item.unreadCount()))
                         .toList();
 
         TransactionSynchronizationManager.registerSynchronization(
@@ -71,7 +72,7 @@ public class ChatMessagePublisher {
                     public void afterCommit() {
 
                         for (int i = 0; i < responses.size(); i++) {
-                            ChatMessage message = chatMessages.get(i);
+                            ChatMessage message = publishChatMessages.get(i).chatMessage();
 
                             simpMessagingTemplate.convertAndSend(
                                     "/topic/chat/" + message.getChatRoom().getId(),

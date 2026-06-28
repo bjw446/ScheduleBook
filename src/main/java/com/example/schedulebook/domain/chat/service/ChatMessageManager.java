@@ -12,20 +12,8 @@ import org.springframework.stereotype.Component;
 public class ChatMessageManager {
     private final ChatMessageRepository chatMessageRepository;
 
-    public ChatMessage createScheduleUpdatedMessage(ChatRoom chatRoom) {
-        ChatMessage chatMessage = ChatMessage.system(chatRoom, SystemMessageType.SCHEDULE_UPDATED);
-
-        return chatMessageRepository.save(chatMessage);
-    }
-
-    public ChatMessage createScheduleDeletedMessage(ChatRoom chatRoom) {
-        ChatMessage chatMessage = ChatMessage.system(chatRoom, SystemMessageType.SCHEDULE_DELETED);
-
-        return chatMessageRepository.save(chatMessage);
-    }
-
-    public ChatMessage createScheduleCanceledMessage(ChatRoom chatRoom) {
-        ChatMessage chatMessage = ChatMessage.system(chatRoom, SystemMessageType.SCHEDULE_SHARE_CANCELED);
+    public ChatMessage createSystemMessage(ChatRoom chatRoom, SystemMessageType systemMessageType) {
+        ChatMessage chatMessage = ChatMessage.system(chatRoom, systemMessageType);
 
         return chatMessageRepository.save(chatMessage);
     }
