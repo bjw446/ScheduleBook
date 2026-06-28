@@ -46,6 +46,7 @@ public class ChatRoomService {
     private final DirectChatRoomRepository directChatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate simpMessagingTemplate;
+    private final ChatUnreadCountManager chatUnreadCountManager;
 
     public ChatRoomResponse createDirectRoom(Long currentUserId, Long friendId) {
         validateMyself(currentUserId, friendId);
@@ -141,7 +142,7 @@ public class ChatRoomService {
 
             updateUnreadCount(chatRoom, currentUserId);
 
-            int unreadCount = calculateUnreadCount(inviteMessage, currentUserId, readStatuses(chatRoom.getId()));
+            int unreadCount = chatUnreadCountManager.calculateUnreadCount(inviteMessage, currentUserId, readStatuses(chatRoom.getId()));
 
             publishSystemMessage(chatRoom, inviteMessage, unreadCount);
         }
@@ -190,7 +191,7 @@ public class ChatRoomService {
 
         updateUnreadCount(chatRoom, currentUserId);
 
-        int unreadCount = calculateUnreadCount(systemMessage, currentUserId, readStatuses(chatRoom.getId()));
+        int unreadCount = chatUnreadCountManager.calculateUnreadCount(systemMessage, currentUserId, readStatuses(chatRoom.getId()));
 
         publishSystemMessage(chatRoom, systemMessage, unreadCount);
 
@@ -331,7 +332,7 @@ public class ChatRoomService {
 
         updateUnreadCount(chatRoom, chatRoomMember.getUser().getId());
 
-        int unreadCount = calculateUnreadCount(
+        int unreadCount = chatUnreadCountManager.calculateUnreadCount(
                 leaveMessage,
                 chatRoomMember.getUser().getId(),
                 readStatuses(chatRoom.getId())
@@ -361,20 +362,6 @@ public class ChatRoomService {
 
     private List<MemberReadStatusProjection> readStatuses(Long roomId) {
         return chatRoomMemberRepository.findReadStatuses(roomId);
-    }
-
-    private int calculateUnreadCount(ChatMessage chatMessage, Long excludedUserId, List<MemberReadStatusProjection> members) {
-        return (int) members.stream()
-                .filter(member ->
-                        !member.getUserId().equals(excludedUserId)
-                )
-                .filter(member ->
-                        member.getLastReadMessageId() == null
-                                || member.getLastReadMessageId() < chatMessage.getId()
-                )
-                .filter(member ->
-                        !chatMessage.getCreatedAt().isBefore(member.getJoinedAt()))
-                .count();
     }
 
     private void updateUnreadCount(ChatRoom chatRoom, Long userId) {

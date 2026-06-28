@@ -17,114 +17,128 @@ public class ScheduleSharePublisher {
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     public void publishScheduleShared(ChatMessage chatMessage, int unreadCount) {
-        ChatMessageResponse response = ChatMessageResponse.from(
+        ChatMessageResponse response = createSchedulePreviewResponse(
                 chatMessage,
-                unreadCount,
-                SchedulePreviewResponse.from(
-                        chatMessage.getId(),
-                        chatMessage.getScheduleId(),
-                        chatMessage.getScheduleSnapshot(),
-                        false,
-                        false,
-                        false
-                )
+                false,
+                false,
+                false,
+                unreadCount
         );
 
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                simpMessagingTemplate.convertAndSend(
-                        "/topic/chat/" + chatMessage.getChatRoom().getId(),
-                        response
-                );
-            }
-        });
+        publishResponses(response);
     }
 
     public void publishScheduleUpdated(List<ChatMessage> chatMessages) {
         List<ChatMessageResponse> responses = chatMessages
                 .stream()
                 .map(chatMessage ->
-                        ChatMessageResponse.from(
+                        createSchedulePreviewResponse(
                                 chatMessage,
-                                0,
-                                SchedulePreviewResponse.from(
-                                        chatMessage.getId(),
-                                        chatMessage.getScheduleId(),
-                                        chatMessage.getScheduleSnapshot(),
-                                        false,
-                                        false,
-                                        true
-                                )
+                                false,
+                                false,
+                                true,
+                                0
                         ))
                 .toList();
 
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                for (ChatMessageResponse response : responses) {
-                    simpMessagingTemplate.convertAndSend(
-                            "/topic/chat/" + response.roomId(),
-                            response
-                    );
-                }
-            }
-        });
+        publishResponses(responses);
     }
 
     public void publishScheduleShareCanceled(ChatMessage chatMessage, int unreadCount) {
-        ChatMessageResponse response = ChatMessageResponse.from(
+        ChatMessageResponse response = createSchedulePreviewResponse(
                 chatMessage,
-                unreadCount,
-                SchedulePreviewResponse.from(
-                        chatMessage.getId(),
-                        chatMessage.getScheduleId(),
-                        chatMessage.getScheduleSnapshot(),
-                        false,
-                        true,
-                        false
-                )
+                false,
+                true,
+                false,
+                unreadCount
         );
 
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                simpMessagingTemplate.convertAndSend(
-                        "/topic/chat/" + chatMessage.getChatRoom().getId(),
-                        response
-                );
-            }
-        });
+        publishResponses(response);
+    }
+
+    public void publishScheduleShareCanceled(List<ChatMessage> chatMessages) {
+        List<ChatMessageResponse> responses = chatMessages
+                .stream()
+                .map(chatMessage ->
+                        createSchedulePreviewResponse(
+                                chatMessage,
+                                false,
+                                true,
+                                false,
+                                0
+                        ))
+                .toList();
+
+        publishResponses(responses);
     }
 
     public void publishSharedScheduleDeleted(List<ChatMessage> chatMessages) {
         List<ChatMessageResponse> responses = chatMessages
                 .stream()
                 .map(chatMessage ->
-                        ChatMessageResponse.from(
+                        createSchedulePreviewResponse(
                                 chatMessage,
-                                0,
-                                SchedulePreviewResponse.from(
-                                        chatMessage.getId(),
-                                        chatMessage.getScheduleId(),
-                                        chatMessage.getScheduleSnapshot(),
-                                        true,
-                                        true,
-                                        false
-                                )
+                                true,
+                                true,
+                                false,
+                                0
                         ))
                 .toList();
 
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+        publishResponses(responses);
+    }
+
+    private void publishResponses(ChatMessageResponse response) {
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                for (ChatMessageResponse response : responses) {
-                    simpMessagingTemplate.convertAndSend(
-                            "/topic/chat/" + response.roomId(),
-                            response
-                    );
-                }
+                simpMessagingTemplate.convertAndSend(
+                        "/topic/chat/" + response.roomId(),
+                        response
+                );
             }
         });
+    }
+
+    private void publishResponses(List<ChatMessageResponse> responses) {
+        if (responses.isEmpty()) {
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        responses.forEach(response ->
+                                simpMessagingTemplate.convertAndSend(
+                                        "/topic/chat/" + response.roomId(),
+                                        response
+                                )
+                        );
+                    }
+                }
+        );
+    }
+
+    private ChatMessageResponse createSchedulePreviewResponse(
+            ChatMessage chatMessage,
+            boolean deleted,
+            boolean canceled,
+            boolean edited,
+            int unreadCount
+    ) {
+        return ChatMessageResponse.from(
+                chatMessage,
+                unreadCount,
+                SchedulePreviewResponse.from(
+                        chatMessage.getId(),
+                        chatMessage.getScheduleId(),
+                        chatMessage.getScheduleSnapshot(),
+                        deleted,
+                        canceled,
+                        edited
+                )
+        );
     }
 }
