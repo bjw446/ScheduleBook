@@ -7,11 +7,14 @@ import com.example.schedulebook.domain.chat.event.ChatMessagePublisher;
 import com.example.schedulebook.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Transactional(propagation = Propagation.MANDATORY)
 public class ChatRoomLifecycleManager {
     private final ChatMessageManager chatMessageManager;
     private final ChatMessagePublisher chatMessagePublisher;

@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.example.schedulebook.domain.chat.consts.ChatConst.MAX_NAMES;
+
 @Component
 @RequiredArgsConstructor
 public class ChatMessageManager {
@@ -39,10 +41,7 @@ public class ChatMessageManager {
     }
 
     public PublishChatMessage createInviteSystemMessage(ChatRoom chatRoom, User inviter, List<User> users) {
-        String invitedNames = users
-                .stream()
-                .map(user -> user.getNickname() + "님")
-                .collect(Collectors.joining(", "));
+        String invitedNames = createInvitedNames(users);
 
         return createSystemMessage(
                 chatRoom,
@@ -106,5 +105,21 @@ public class ChatMessageManager {
         int unreadCount = chatUnreadCountManager.calculateUnreadCount(chatMessage, readStatuses);
 
         return new PublishChatMessage(chatMessage, unreadCount);
+    }
+
+    private String createInvitedNames(List<User> users) {
+        if (users.size() <= MAX_NAMES) {
+            return users.stream()
+                    .map(user -> user.getNickname() + "님")
+                    .collect(Collectors.joining(", "));
+        }
+
+        String firstUsers = users
+                .stream()
+                .limit(MAX_NAMES)
+                .map(user -> user.getNickname() + "님")
+                .collect(Collectors.joining(", "));
+
+        return firstUsers + " 외 " + (users.size() - MAX_NAMES) + "명";
     }
 }

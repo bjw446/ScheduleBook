@@ -128,7 +128,9 @@ public class ChatRoomService {
             }
         }
 
-        chatRoomLifecycleManager.afterMemberInvited(chatRoom, getUser(currentUserId), invitedUsers);
+        if (!invitedUsers.isEmpty()) {
+            chatRoomLifecycleManager.afterMemberInvited(chatRoom, getUser(currentUserId), invitedUsers);
+        }
 
         return ChatRoomResponse.from(chatRoom);
     }
