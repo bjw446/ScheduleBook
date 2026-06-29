@@ -13,8 +13,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 import static com.example.schedulebook.domain.chat.consts.ChatConst.DELETE_MESSAGE;
 
 @Getter

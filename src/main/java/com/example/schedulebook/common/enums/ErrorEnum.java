@@ -95,7 +95,10 @@ public enum ErrorEnum {
     CHAT_MESSAGE_FORBIDDEN(403, "해당 메시지에 대한 접근 권한이 없습니다."),
 
     //ScheduleSnapshot
-    SCHEDULE_SNAPSHOT_NOT_FOUND(404, "일정 스냅샷이 존재하지 않습니다.");
+    SCHEDULE_SNAPSHOT_NOT_FOUND(404, "일정 스냅샷이 존재하지 않습니다."),
+
+    //ScheduleParticipant
+    INVALID_SCHEDULE_ATTENDANCE_STATUS(400, "잘못된 일정 참석 여부 상태 입니다.");
 
     private final int status;
     private final String message;
