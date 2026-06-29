@@ -12,6 +12,7 @@ import com.example.schedulebook.domain.chat.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chat.entity.DirectChatRoom;
 import com.example.schedulebook.domain.chat.enums.ChatMessageType;
 import com.example.schedulebook.domain.chat.enums.ChatRoomType;
+import com.example.schedulebook.domain.chat.enums.SystemMessageType;
 import com.example.schedulebook.domain.chat.projection.MemberReadStatusProjection;
 import com.example.schedulebook.domain.chat.projection.OpponentInfoProjection;
 import com.example.schedulebook.domain.chat.repository.*;
@@ -372,7 +373,7 @@ public class ChatRoomService {
         ChatMessage chatMessage = ChatMessage.of(
                 chatRoom,
                 null,
-                chatRoomMember.getUser().getNickname() + LEAVE_MESSAGE,
+                SystemMessageType.USER_LEAVE.format(chatRoomMember.getUser().getNickname()),
                 ChatMessageType.SYSTEM,
                 null
         );
@@ -388,7 +389,7 @@ public class ChatRoomService {
         ChatMessage chatMessage = ChatMessage.of(
                 chatRoom,
                 null,
-                owner.getNickname() + CREATE_MESSAGE,
+                SystemMessageType.GROUP_ROOM_CREATED.format(owner.getNickname()),
                 ChatMessageType.SYSTEM,
                 null
         );
@@ -404,7 +405,7 @@ public class ChatRoomService {
                 .map(user -> user.getNickname() + "님")
                 .collect(Collectors.joining(", "));
 
-        String content = inviter.getNickname() + "님이 " + invitedNames + INVITE_MESSAGE;
+        String content = SystemMessageType.USER_INVITED.format(inviter.getNickname(), invitedNames);
 
         ChatMessage chatMessage = ChatMessage.of(
                 chatRoom,
@@ -425,8 +426,11 @@ public class ChatRoomService {
         ChatMessage chatMessage = ChatMessage.of(
                 chatRoom,
                 null,
-                user.getNickname() + UPDATE_ROOM_NAME_MESSAGE
-                        + " (" + oldName + " -> " + newName + ")",
+                SystemMessageType.ROOM_NAME_UPDATED.format(
+                        user.getNickname(),
+                        oldName,
+                        newName
+                ),
                 ChatMessageType.SYSTEM,
                 null
         );
