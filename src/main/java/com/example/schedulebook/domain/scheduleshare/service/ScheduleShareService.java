@@ -110,6 +110,8 @@ public class ScheduleShareService {
 
         ScheduleShare scheduleShare = validateScheduleShare(shareId);
 
+        validateSharedUser(scheduleShare, currentUserId);
+
         validateScheduleAccessible(scheduleShare.getSchedule(), currentUserId);
 
         return SharedScheduleDetailResponse.from(scheduleShare);
@@ -144,7 +146,9 @@ public class ScheduleShareService {
 
         Schedule schedule = validateSchedule(scheduleId);
 
-        validateScheduleAccessible(schedule, currentUserId);
+        if (!schedule.getUser().getId().equals(currentUserId)) {
+            validateActiveShareRelation(scheduleId, currentUserId);
+        }
 
         ScheduleParticipant scheduleParticipant = scheduleParticipantRepository.findBySchedule_IdAndUser_Id(scheduleId, currentUserId)
                 .orElseThrow(
@@ -214,6 +218,12 @@ public class ScheduleShareService {
         );
     }
 
+    private void validateSharedUser(ScheduleShare scheduleShare, Long currentUserId) {
+        if (!scheduleShare.getSharedUser().getId().equals(currentUserId)) {
+            throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
+        }
+    }
+
     private ScheduleShare validateActiveScheduleShare(Long shareId) {
         ScheduleShare scheduleShare = scheduleShareRepository.findByIdWithSchedule(shareId).orElseThrow(
                 () -> new BaseException(ErrorEnum.SCHEDULE_SHARE_NOT_FOUND)
@@ -248,6 +258,12 @@ public class ScheduleShareService {
         if (!isScheduleAccessible(schedule, currentUserId)) {
             throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
         }
+    }
+
+    private void validateActiveShareRelation(Long scheduleId, Long currentUserId) {
+        scheduleShareRepository.findActiveRelation(scheduleId, currentUserId, ScheduleShareStatus.ACTIVE).orElseThrow(
+                () -> new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN)
+        );
     }
 
     private void createParticipants(Schedule schedule, List<User> users) {

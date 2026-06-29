@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface ScheduleParticipantRepository extends JpaRepository<ScheduleParticipant, Long> {
     Optional<ScheduleParticipant> findBySchedule_IdAndUser_Id(Long scheduleId, Long userId);
 
-    List<ScheduleParticipant> finaAllBySchedule_Id(Long scheduleId);
+    List<ScheduleParticipant> findAllBySchedule_Id(Long scheduleId);
 
     @Query("SELECT sp.user.id FROM ScheduleParticipant sp WHERE sp.schedule.id = :scheduleId")
     List<Long> findParticipantIds(@Param("scheduleId") Long scheduleId);
