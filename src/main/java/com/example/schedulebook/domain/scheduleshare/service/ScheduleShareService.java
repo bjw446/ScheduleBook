@@ -4,8 +4,11 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
+import com.example.schedulebook.domain.scheduleshare.dto.request.UpdateAttendanceRequest;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.scheduleshare.entity.ScheduleParticipant;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharedEvent;
+import com.example.schedulebook.domain.scheduleshare.repository.ScheduleParticipantRepository;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.scheduleshare.dto.request.ScheduleShareRequest;
 import com.example.schedulebook.domain.scheduleshare.dto.response.*;
@@ -21,7 +24,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +37,7 @@ public class ScheduleShareService {
     private final UserRepository userRepository;
     private final FriendRepository friendRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ScheduleParticipantRepository scheduleParticipantRepository;
 
     public ScheduleShareResponse shareSchedule(Long scheduleId, ScheduleShareRequest request, Long currentUserId) {
         validateUser(currentUserId);
@@ -63,6 +69,8 @@ public class ScheduleShareService {
 
             ScheduleShare savedScheduleShare = scheduleShareRepository.save(scheduleShare);
 
+            createParticipants(schedule, List.of(friendUser));
+
             eventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), savedScheduleShare.getId()));
 
             return ScheduleShareResponse.from(savedScheduleShare);
@@ -81,6 +89,7 @@ public class ScheduleShareService {
         }
     }
 
+    // 다른 사람에게 공유 받은 일정 목록 조회
     @Transactional(readOnly = true)
     public List<SharedScheduleResponse> findAllSharedSchedules(Long currentUserId) {
         validateUser(currentUserId);
@@ -88,21 +97,25 @@ public class ScheduleShareService {
         List<ScheduleShare> scheduleShares = scheduleShareRepository.findSharedSchedules(currentUserId, ScheduleShareStatus.ACTIVE);
 
         return scheduleShares.stream()
+                .filter(scheduleShare ->
+                        isScheduleAccessible(scheduleShare.getSchedule(), currentUserId))
                 .map(SharedScheduleResponse::from)
                 .toList();
     }
 
+    // 다른 사람에게 공유 받은 일정 상세 조회
     @Transactional(readOnly = true)
     public SharedScheduleDetailResponse findOneSharedSchedule(Long shareId, Long currentUserId) {
         validateUser(currentUserId);
 
         ScheduleShare scheduleShare = validateScheduleShare(shareId);
 
-        validateSharedUser(scheduleShare, currentUserId);
+        validateScheduleAccessible(scheduleShare.getSchedule(), currentUserId);
 
         return SharedScheduleDetailResponse.from(scheduleShare);
     }
 
+    // 내가 다른 사람에게 공유한 일정 목록 조회
     @Transactional(readOnly = true)
     public List<OwnedShareResponse> findAllOwnedShares(Long currentUserId) {
         validateUser(currentUserId);
@@ -114,6 +127,7 @@ public class ScheduleShareService {
                 .toList();
     }
 
+    // 내가 다른 사람에게 공유한 일정 상세 조회
     @Transactional(readOnly = true)
     public OwnedShareDetailResponse findOneOwnedShareDetail(Long shareId, Long currentUserId) {
         validateUser(currentUserId);
@@ -123,6 +137,21 @@ public class ScheduleShareService {
         validateShareOwner(scheduleShare, currentUserId);
 
         return OwnedShareDetailResponse.from(scheduleShare);
+    }
+
+    public void updateAttendance(Long currentUserId, Long scheduleId, UpdateAttendanceRequest request) {
+        validateUser(currentUserId);
+
+        Schedule schedule = validateSchedule(scheduleId);
+
+        validateScheduleAccessible(schedule, currentUserId);
+
+        ScheduleParticipant scheduleParticipant = scheduleParticipantRepository.findBySchedule_IdAndUser_Id(scheduleId, currentUserId)
+                .orElseThrow(
+                        () -> new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN)
+                );
+
+        scheduleParticipant.updateAttendanceStatus(request.attendanceStatus());
     }
 
     public void cancelShare(Long shareId, Long currentUserId) {
@@ -185,12 +214,6 @@ public class ScheduleShareService {
         );
     }
 
-    private void validateSharedUser(ScheduleShare scheduleShare, Long currentUserId) {
-        if (!scheduleShare.getSharedUser().getId().equals(currentUserId)) {
-            throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
-        }
-    }
-
     private ScheduleShare validateActiveScheduleShare(Long shareId) {
         ScheduleShare scheduleShare = scheduleShareRepository.findByIdWithSchedule(shareId).orElseThrow(
                 () -> new BaseException(ErrorEnum.SCHEDULE_SHARE_NOT_FOUND)
@@ -213,5 +236,28 @@ public class ScheduleShareService {
         return scheduleShareRepository.findOwnedShareDetail(shareId, ScheduleShareStatus.ACTIVE).orElseThrow(
                 () -> new BaseException(ErrorEnum.SCHEDULE_SHARE_NOT_FOUND)
         );
+    }
+
+    private boolean isScheduleAccessible(Schedule schedule, Long currentUserId) {
+        return schedule.getUser().getId().equals(currentUserId)
+                || scheduleParticipantRepository.existsBySchedule_IdAndUser_Id(
+                        schedule.getId(), currentUserId);
+    }
+
+    private void validateScheduleAccessible(Schedule schedule, Long currentUserId) {
+        if (!isScheduleAccessible(schedule, currentUserId)) {
+            throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
+        }
+    }
+
+    private void createParticipants(Schedule schedule, List<User> users) {
+        Set<Long> participantIds = new HashSet<>(scheduleParticipantRepository.findParticipantIds(schedule.getId()));
+
+        List<ScheduleParticipant> participants = users.stream()
+                .filter(user -> !participantIds.contains(user.getId()))
+                .map(user -> ScheduleParticipant.of(schedule, user))
+                .toList();
+
+        scheduleParticipantRepository.saveAll(participants);
     }
 }
