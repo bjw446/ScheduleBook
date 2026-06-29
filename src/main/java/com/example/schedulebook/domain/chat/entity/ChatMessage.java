@@ -134,6 +134,18 @@ public class ChatMessage extends ModifyEntity {
         return chatMessage;
     }
 
+    public static ChatMessage system(ChatRoom chatRoom, SystemMessageType systemMessageType, String content) {
+        ChatMessage chatMessage = new ChatMessage();
+
+        chatMessage.chatRoom = chatRoom;
+        chatMessage.chatMessageType = ChatMessageType.SYSTEM;
+        chatMessage.systemMessageType = systemMessageType;
+        chatMessage.content = content;
+        chatMessage.deleted = false;
+
+        return chatMessage;
+    }
+
     public void deleteMessage(Long userId) {
         if (sender == null) {
             throw new BaseException(ErrorEnum.CHAT_MESSAGE_DELETE_NOT_ALLOWED);

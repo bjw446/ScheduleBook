@@ -21,43 +21,28 @@ public class ChatMessagePublisher {
     public void publishMessage(ChatMessage chatMessage, int unreadCount) {
         ChatMessageResponse response = ChatMessageResponse.from(chatMessage, unreadCount);
 
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                simpMessagingTemplate.convertAndSend(
-                        "/topic/chat/" + chatMessage.getChatRoom().getId(),
-                        response
-                );
-            }
-        });
+        afterCommit(() -> simpMessagingTemplate.convertAndSend(
+                "/topic/chat/" + chatMessage.getChatRoom().getId(),
+                response
+        ));
     }
 
     public void publishReadMessageAfterCommit(Long roomId, Long currentUserId, Long lastReadMessageId) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                simpMessagingTemplate.convertAndSend(
-                        "/topic/chat/" + roomId + "/read",
-                        ReadMessageEvent.from(roomId, currentUserId, lastReadMessageId)
-                );
-            }
-        });
+        afterCommit(() -> simpMessagingTemplate.convertAndSend(
+                "/topic/chat/" + roomId + "/read",
+                ReadMessageEvent.from(roomId, currentUserId, lastReadMessageId)
+        ));
     }
 
     public void publishDeleteMessageAfterCommit(Long roomId, Long messageId) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                simpMessagingTemplate.convertAndSend(
-                        "/topic/chat/" + roomId + "/delete",
-                        new ChatMessageDeletedEvent(
-                                roomId,
-                                messageId,
-                                DELETE_MESSAGE
-                        )
-                );
-            }
-        });
+        afterCommit(() -> simpMessagingTemplate.convertAndSend(
+                "/topic/chat/" + roomId + "/delete",
+                new ChatMessageDeletedEvent(
+                        roomId,
+                        messageId,
+                        DELETE_MESSAGE
+                )
+        ));
     }
 
     public void publishMessages(List<PublishChatMessage> publishChatMessages) {
@@ -66,20 +51,24 @@ public class ChatMessagePublisher {
                         .map(item -> ChatMessageResponse.from(item.chatMessage(), item.unreadCount()))
                         .toList();
 
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
+        afterCommit(() -> {
+            for (int i = 0; i < responses.size(); i++) {
+                ChatMessage message = publishChatMessages.get(i).chatMessage();
 
-                        for (int i = 0; i < responses.size(); i++) {
-                            ChatMessage message = publishChatMessages.get(i).chatMessage();
+                simpMessagingTemplate.convertAndSend(
+                        "/topic/chat/" + message.getChatRoom().getId(),
+                        responses.get(i)
+                );
+            }
+        });
+    }
 
-                            simpMessagingTemplate.convertAndSend(
-                                    "/topic/chat/" + message.getChatRoom().getId(),
-                                    responses.get(i)
-                            );
-                        }
-                    }
-                });
+    private void afterCommit(Runnable action) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
     }
 }

@@ -3,13 +3,9 @@ package com.example.schedulebook.domain.schedule.service;
 import com.example.schedulebook.domain.chat.dto.request.PublishChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
-import com.example.schedulebook.domain.chat.enums.SystemMessageType;
 import com.example.schedulebook.domain.chat.event.ChatMessagePublisher;
-import com.example.schedulebook.domain.chat.projection.MemberReadStatusProjection;
 import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
-import com.example.schedulebook.domain.chat.repository.ChatRoomMemberRepository;
 import com.example.schedulebook.domain.chat.service.ChatMessageManager;
-import com.example.schedulebook.domain.chat.service.ChatUnreadCountManager;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharePublisher;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
@@ -17,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,31 +27,20 @@ public class ScheduleShareUpdateManager {
     private final ChatMessageManager chatMessageManager;
     private final ScheduleSharePublisher scheduleSharePublisher;
     private final ChatMessagePublisher chatMessagePublisher;
-    private final ChatUnreadCountManager chatUnreadCountManager;
-    private final ChatRoomMemberRepository chatRoomMemberRepository;
 
     public void handleUpdated(Long scheduleId) {
         Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow();
 
-        List<ChatMessage> sharedMessages =
-                chatMessageRepository.findAllByScheduleIdAndDeletedFalse(scheduleId)
-                        .stream()
-                        .filter(message -> !message.isScheduleShareCanceled())
-                        .toList();
+        List<ChatMessage> updatedMessages = chatMessageRepository.findAllByScheduleIdAndDeletedFalse(scheduleId)
+                .stream()
+                .filter(message -> !message.isScheduleShareCanceled())
+                .filter(message -> scheduleSnapshotManager.updateSnapshot(message, schedule))
+                .toList();
 
-        List<ChatMessage> updatedMessages =
-                sharedMessages.stream()
-                        .filter(message ->
-                                scheduleSnapshotManager.updateSnapshot(message, schedule))
-                        .toList();
-
-        SystemMessageType systemMessageType = SystemMessageType.SCHEDULE_UPDATED;
 
         List<PublishChatMessage> publishChatMessages = collectRooms(updatedMessages).values()
                 .stream()
-                .map(room ->
-                        chatMessageManager.createSystemPublishMessage(room, systemMessageType)
-                )
+                .map(chatMessageManager::createScheduleUpdatedSystemMessage)
                 .toList();
 
         scheduleSharePublisher.publishScheduleUpdated(updatedMessages);
@@ -72,13 +56,9 @@ public class ScheduleShareUpdateManager {
 
         chatMessages.forEach(ChatMessage::cancelScheduleShare);
 
-        SystemMessageType systemMessageType = SystemMessageType.SCHEDULE_SHARE_CANCELED;
-
         List<PublishChatMessage> publishChatMessages = collectRooms(chatMessages).values()
                 .stream()
-                .map(room ->
-                        chatMessageManager.createSystemPublishMessage(room, systemMessageType)
-                )
+                .map(chatMessageManager::createScheduleShareCanceledSystemMessage)
                 .toList();
 
         scheduleSharePublisher.publishScheduleShareCanceled(chatMessages);
