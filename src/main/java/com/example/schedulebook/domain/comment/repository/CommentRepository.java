@@ -8,9 +8,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
-    @Query("SELECT c from Comment c JOIN FETCH c.writer WHERE c.schedule.id = :scheduleId ORDER BY c.createdAt ASC")
-    List<Comment> findAllWithWriter(@Param("scheduleId") Long scheduleId);
-
     @Query("SELECT c from Comment c JOIN FETCH c.writer WHERE c.schedule.id = :scheduleId " +
             "AND c.parent IS NULL ORDER BY c.createdAt ASC")
     List<Comment> findParentComments(@Param("scheduleId") Long scheduleId);

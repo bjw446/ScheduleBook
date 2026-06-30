@@ -11,10 +11,10 @@ import lombok.NoArgsConstructor;
 @Getter
 @Entity
 @Table(
-        name = "schedule_comments",
+        name = "comments",
         indexes = {
-                @Index(name = "idx_schedule_comment_schedule", columnList = "schedule_id"),
-                @Index(name = "idx_schedule_comment_parent", columnList = "parent_comment_id")
+                @Index(name = "idx_comment_schedule", columnList = "schedule_id"),
+                @Index(name = "idx_comment_parent", columnList = "parent_comment_id")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
