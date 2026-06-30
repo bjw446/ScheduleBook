@@ -63,7 +63,7 @@ public class ChatMessageController {
         );
     }
 
-    @GetMapping("{messageId}/shared-schedule")
+    @GetMapping("/{messageId}/shared-schedule")
     public ResponseEntity<ApiResponse<SchedulePreviewDetailResponse>> getSharedSchedule(@PathVariable Long messageId) {
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
