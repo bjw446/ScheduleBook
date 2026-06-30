@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 
 public record UpdateScheduleCommentRequest(
         @NotBlank
-        @Size(max = 1000)
+        @Size(max = 500)
         String content
 
 ) {

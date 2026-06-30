@@ -46,7 +46,7 @@ public class CommentController {
         );
     }
 
-    @PatchMapping("/schedules/{commentId}")
+    @PatchMapping("/{commentId}")
     public ResponseEntity<ApiResponse<Void>> updateScheduleComment(
             @PathVariable Long commentId,
             @Valid @RequestBody UpdateScheduleCommentRequest request
@@ -61,7 +61,7 @@ public class CommentController {
         );
     }
 
-    @DeleteMapping("/schedules/{commentId}")
+    @DeleteMapping("/{commentId}")
     public ResponseEntity<ApiResponse<Void>> deleteScheduleComment(@PathVariable Long commentId) {
         commentService.deleteComment(SecurityUtils.getCurrentUserId(), commentId);
 

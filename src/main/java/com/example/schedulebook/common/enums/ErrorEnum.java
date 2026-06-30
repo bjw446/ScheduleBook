@@ -103,7 +103,7 @@ public enum ErrorEnum {
     // Comment
     COMMENT_NOT_FOUND(404, "댓글이 존재하지 않습니다."),
     COMMENT_ALREADY_DELETE(409, "이미 삭제된 댓글 입니다."),
-    COMMENT_FORBIDDEN(403, "해당 댓글 대한 접근 권한이 없습니다."),
+    COMMENT_FORBIDDEN(403, "해당 댓글에 대한 접근 권한이 없습니다."),
     INVALID_COMMENT(400, "잘못된 댓글 입니다.");
 
     private final int status;
