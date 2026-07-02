@@ -5,6 +5,7 @@ import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
 import com.example.schedulebook.domain.comment.dto.request.CreateScheduleCommentRequest;
 import com.example.schedulebook.domain.comment.dto.request.UpdateScheduleCommentRequest;
+import com.example.schedulebook.domain.comment.dto.response.ScheduleCommentListResponse;
 import com.example.schedulebook.domain.comment.dto.response.ScheduleCommentResponse;
 import com.example.schedulebook.domain.comment.service.CommentService;
 import jakarta.validation.Valid;
@@ -37,7 +38,7 @@ public class CommentController {
     }
 
     @GetMapping("/schedules/{scheduleId}")
-    public ResponseEntity<ApiResponse<List<ScheduleCommentResponse>>> getAllComment(@PathVariable Long scheduleId) {
+    public ResponseEntity<ApiResponse<ScheduleCommentListResponse>> getAllComment(@PathVariable Long scheduleId) {
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
                         SuccessEnum.READ_SUCCESS,

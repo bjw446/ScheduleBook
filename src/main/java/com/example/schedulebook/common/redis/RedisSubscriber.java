@@ -1,6 +1,8 @@
 package com.example.schedulebook.common.redis;
 
 import com.example.schedulebook.common.websocket.WebSocketSessionRegistry;
+import com.example.schedulebook.domain.comment.event.CommentEvent;
+import com.example.schedulebook.domain.comment.event.CommentSubscriber;
 import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,8 +15,9 @@ import org.springframework.stereotype.Component;
 public class RedisSubscriber {
     private final SimpMessagingTemplate messagingTemplate;
     private final WebSocketSessionRegistry webSocketSessionRegistry;
+    private final CommentSubscriber commentSubscriber;
 
-    public void onMessage(NotificationEventResponse event) {
+    public void onNotification(NotificationEventResponse event) {
         Long receiverId = event.receiverId();
 
         if (receiverId == null) {
@@ -42,5 +45,9 @@ public class RedisSubscriber {
         } catch (Exception e) {
             log.error("WebSocket 메시지 전송 실패, receiverId = {}, event = {}", receiverId, event, e);
         }
+    }
+
+    public void onComment(CommentEvent event) {
+        commentSubscriber.onComment(event);
     }
 }

@@ -11,7 +11,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.util.List;
 
-import static com.example.schedulebook.domain.chat.consts.ChatConst.DELETE_MESSAGE;
+import static com.example.schedulebook.common.consts.CommonConst.DELETED_MESSAGE;
 
 @Component
 @RequiredArgsConstructor
@@ -40,7 +40,7 @@ public class ChatMessagePublisher {
                 new ChatMessageDeletedEvent(
                         roomId,
                         messageId,
-                        DELETE_MESSAGE
+                        DELETED_MESSAGE
                 )
         ));
     }

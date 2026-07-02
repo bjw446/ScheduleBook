@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-public class RedisMessageDelegate {
+public class NotificationRedisMessageDelegate {
     private final RedisSubscriber redisSubscriber;
     private final ObjectMapper objectMapper;
 
@@ -18,7 +18,7 @@ public class RedisMessageDelegate {
                     message, NotificationEventResponse.class
             );
 
-            redisSubscriber.onMessage(response);
+            redisSubscriber.onNotification(response);
         } catch (JsonProcessingException e) {
             log.error("Redis 메시지 역직렬화 실패, 메시지 : {}", message, e);
             // TODO: 실패한 메시지를 Dead Letter Queue나 별도 저장소에 보관하여 추후 분석/재처리

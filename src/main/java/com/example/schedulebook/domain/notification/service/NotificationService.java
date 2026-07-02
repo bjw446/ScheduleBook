@@ -73,6 +73,26 @@ public class NotificationService {
         );
     }
 
+    public void createScheduleCommentNotification(Long receiverId, String writerNickname, Long scheduleId) {
+        createNotification(
+                receiverId,
+                NotificationType.SCHEDULE_COMMENT,
+                NotificationType.SCHEDULE_COMMENT.getTitle(),
+                writerNickname + NotificationType.SCHEDULE_COMMENT.getDefaultMessage(),
+                scheduleId
+        );
+    }
+
+    public void createCommentReplyNotification(Long receiverId, String writerNickname, Long scheduleId) {
+        createNotification(
+                receiverId,
+                NotificationType.COMMENT_REPLY,
+                NotificationType.COMMENT_REPLY.getTitle(),
+                writerNickname + NotificationType.COMMENT_REPLY.getDefaultMessage(),
+                scheduleId
+        );
+    }
+
     @Transactional(readOnly = true)
     public List<NotificationSummaryResponse> findAllMyNotification(Long currentUserId) {
         validateUser(currentUserId);

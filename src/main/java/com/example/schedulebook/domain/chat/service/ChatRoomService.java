@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static com.example.schedulebook.domain.chat.consts.ChatConst.*;
+import static com.example.schedulebook.common.consts.CommonConst.UNKNOWN_NICKNAME;
 
 @Service
 @RequiredArgsConstructor

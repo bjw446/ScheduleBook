@@ -13,7 +13,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import static com.example.schedulebook.domain.chat.consts.ChatConst.DELETE_MESSAGE;
+import static com.example.schedulebook.common.consts.CommonConst.DELETED_MESSAGE;
 
 @Getter
 @Entity
@@ -154,7 +154,7 @@ public class ChatMessage extends ModifyEntity {
         }
 
         this.deleted = true;
-        this.content = DELETE_MESSAGE;
+        this.content = DELETED_MESSAGE;
     }
 
     public void cancelScheduleShare(Long userId) {

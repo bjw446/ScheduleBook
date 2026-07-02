@@ -62,13 +62,16 @@ public class RedisConfig {
     @Bean
     public RedisMessageListenerContainer redisMessageListenerContainer(
             RedisConnectionFactory connectionFactory,
-            MessageListenerAdapter notificationListenerAdapter
+            MessageListenerAdapter notificationListenerAdapter,
+            MessageListenerAdapter commentListenerAdapter
     ) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
 
         container.setConnectionFactory(connectionFactory);
 
         container.addMessageListener(notificationListenerAdapter, new PatternTopic("notification"));
+
+        container.addMessageListener(commentListenerAdapter, new PatternTopic("comment"));
 
         return container;
     }
@@ -79,7 +82,21 @@ public class RedisConfig {
             ObjectMapper objectMapper
     ) {
         MessageListenerAdapter adapter = new MessageListenerAdapter(
-                new RedisMessageDelegate(redisSubscriber, objectMapper), "handleMessage"
+                new NotificationRedisMessageDelegate(redisSubscriber, objectMapper), "handleMessage"
+        );
+
+        adapter.setSerializer(new StringRedisSerializer());
+
+        return adapter;
+    }
+
+    @Bean
+    public MessageListenerAdapter commentListenerAdapter(
+            RedisSubscriber redisSubscriber,
+            ObjectMapper objectMapper
+    ) {
+        MessageListenerAdapter adapter = new MessageListenerAdapter(
+                new CommentRedisMessageDelegate(redisSubscriber, objectMapper), "handleMessage"
         );
 
         adapter.setSerializer(new StringRedisSerializer());

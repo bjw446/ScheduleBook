@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.example.schedulebook.domain.chat.consts.ChatConst.MAX_NAMES;
+import static com.example.schedulebook.common.consts.CommonConst.MAX_NAMES;
 
 @Component
 @RequiredArgsConstructor
