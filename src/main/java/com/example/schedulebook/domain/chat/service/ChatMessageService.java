@@ -36,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static com.example.schedulebook.domain.chat.consts.ChatConst.MAX_PAGE_SIZE;
+import static com.example.schedulebook.common.consts.CommonConst.MAX_PAGE_SIZE;
 
 @Service
 @RequiredArgsConstructor

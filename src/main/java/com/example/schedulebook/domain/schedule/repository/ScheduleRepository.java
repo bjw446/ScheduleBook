@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findAllByUserIdAndScheduleDateBetween(
@@ -30,4 +31,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     @Modifying
     @Query("UPDATE Schedule s SET s.commentCount = s.commentCount - 1 WHERE s.id = :scheduleId AND s.commentCount > 0")
     void decreaseCommentCount(@Param("scheduleId") Long scheduleId);
+
+    @Query("SELECT s FROM Schedule s JOIN FETCH s.user WHERE s.id = :scheduleId")
+    Optional<Schedule> findWithOwner(@Param("scheduleId") Long scheduleId);
 }

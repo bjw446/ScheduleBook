@@ -5,9 +5,11 @@ import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.comment.dto.request.CreateScheduleCommentRequest;
 import com.example.schedulebook.domain.comment.dto.request.UpdateScheduleCommentRequest;
 import com.example.schedulebook.domain.comment.dto.response.CommentEventResponse;
+import com.example.schedulebook.domain.comment.dto.response.ScheduleCommentListResponse;
 import com.example.schedulebook.domain.comment.dto.response.ScheduleCommentResponse;
 import com.example.schedulebook.domain.comment.entity.Comment;
 import com.example.schedulebook.domain.comment.enums.CommentEventType;
+import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
 import com.example.schedulebook.domain.comment.event.CommentEvent;
 import com.example.schedulebook.domain.comment.event.CommentPublisher;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
@@ -18,6 +20,7 @@ import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,7 @@ public class CommentService {
     private final ScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
     private final CommentPublisher commentPublisher;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void createComment(Long currentUserId, Long scheduleId, CreateScheduleCommentRequest request) {
         User user = validateUser(currentUserId);
@@ -60,13 +64,17 @@ public class CommentService {
 
         scheduleRepository.increaseCommentCount(scheduleId);
 
-        CommentEvent event = new CommentEvent(CommentEventType.CREATED, CommentEventResponse.from(savedComment));
+        CommentEvent event = new CommentEvent(CommentEventType.CREATED, CommentEventResponse.from(savedComment, CommentEventType.CREATED));
 
         commentPublisher.publish(event);
+
+        CommentCreatedEvent createdEvent = new CommentCreatedEvent(scheduleId, user.getId(), user.getNickname(), parent == null ? null : parent.getId());
+
+        eventPublisher.publishEvent(createdEvent);
     }
 
     @Transactional(readOnly = true)
-    public List<ScheduleCommentResponse> findAllComment(Long currentUserId, Long scheduleId) {
+    public ScheduleCommentListResponse findAllComment(Long currentUserId, Long scheduleId) {
         validateUser(currentUserId);
 
         Schedule schedule = validateSchedule(scheduleId);
@@ -75,7 +83,9 @@ public class CommentService {
 
         List<Comment> parents = commentRepository.findParentComments(scheduleId);
 
-        return createCommentTree(parents, currentUserId);
+        List<ScheduleCommentResponse> commentResponses = createCommentTree(parents, currentUserId);
+
+        return ScheduleCommentListResponse.from(schedule, commentResponses);
     }
 
     public void updateComment(Long currentUserId, Long commentId, UpdateScheduleCommentRequest request) {
@@ -85,7 +95,7 @@ public class CommentService {
 
         comment.updateComment(request.content());
 
-        CommentEvent event = new CommentEvent(CommentEventType.UPDATED, CommentEventResponse.from(comment));
+        CommentEvent event = new CommentEvent(CommentEventType.UPDATED, CommentEventResponse.from(comment, CommentEventType.UPDATED));
 
         commentPublisher.publish(event);
     }
@@ -99,7 +109,7 @@ public class CommentService {
 
         scheduleRepository.decreaseCommentCount(comment.getSchedule().getId());
 
-        CommentEvent event = new CommentEvent(CommentEventType.DELETED, CommentEventResponse.from(comment));
+        CommentEvent event = new CommentEvent(CommentEventType.DELETED, CommentEventResponse.from(comment, CommentEventType.DELETED));
 
         commentPublisher.publish(event);
     }

@@ -8,6 +8,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import static com.example.schedulebook.common.consts.CommonConst.DELETED_COMMENT;
+
 @Getter
 @Entity
 @Table(
@@ -71,6 +73,6 @@ public class Comment extends DeleteEntity {
 
     public void deleteComment() {
         delete();
-        this.content = "삭제된 댓글입니다.";
+        this.content = DELETED_COMMENT;
     }
 }
