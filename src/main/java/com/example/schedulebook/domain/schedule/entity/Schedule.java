@@ -36,6 +36,9 @@ public class Schedule extends DeleteEntity {
     @Column(nullable = false, length = 1000)
     private String content;
 
+    @Column(nullable = false, name = "comment_count")
+    private int commentCount;
+
     @Column(nullable = false, name = "schedule_date")
     private LocalDate scheduleDate;
 
@@ -70,6 +73,7 @@ public class Schedule extends DeleteEntity {
         schedule.user = user;
         schedule.title = title;
         schedule.content = content;
+        schedule.commentCount = 0;
         schedule.scheduleDate = scheduleDate;
         schedule.reminderSent = false;
         schedule.scheduleVersion = 1L;
@@ -131,5 +135,15 @@ public class Schedule extends DeleteEntity {
         this.endTime = endTime != null ? endTime.withSecond(0).withNano(0) : LocalTime.MAX;
 
         validateTime();
+    }
+
+    public void increaseCommentCount() {
+        commentCount++;
+    }
+
+    public void decreaseCommentCount() {
+        if (commentCount > 0) {
+            commentCount--;
+        }
     }
 }
