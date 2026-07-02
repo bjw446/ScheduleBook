@@ -58,6 +58,8 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
 
+        scheduleRepository.increaseCommentCount(scheduleId);
+
         CommentEvent event = new CommentEvent(CommentEventType.CREATED, CommentEventResponse.from(savedComment));
 
         commentPublisher.publish(event);
@@ -94,6 +96,8 @@ public class CommentService {
         validateCommentWriter(comment, currentUserId);
 
         comment.deleteComment();
+
+        scheduleRepository.decreaseCommentCount(comment.getSchedule().getId());
 
         CommentEvent event = new CommentEvent(CommentEventType.DELETED, CommentEventResponse.from(comment));
 
