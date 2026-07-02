@@ -136,14 +136,4 @@ public class Schedule extends DeleteEntity {
 
         validateTime();
     }
-
-    public void increaseCommentCount() {
-        commentCount++;
-    }
-
-    public void decreaseCommentCount() {
-        if (commentCount > 0) {
-            commentCount--;
-        }
-    }
 }

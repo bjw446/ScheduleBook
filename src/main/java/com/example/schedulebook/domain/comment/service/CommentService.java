@@ -58,7 +58,7 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
 
-        schedule.increaseCommentCount();
+        scheduleRepository.increaseCommentCount(scheduleId);
 
         CommentEvent event = new CommentEvent(CommentEventType.CREATED, CommentEventResponse.from(savedComment));
 
@@ -97,7 +97,7 @@ public class CommentService {
 
         comment.deleteComment();
 
-        comment.getSchedule().decreaseCommentCount();
+        scheduleRepository.decreaseCommentCount(comment.getSchedule().getId());
 
         CommentEvent event = new CommentEvent(CommentEventType.DELETED, CommentEventResponse.from(comment));
 
