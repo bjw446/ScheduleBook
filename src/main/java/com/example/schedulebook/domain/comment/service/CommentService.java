@@ -64,13 +64,16 @@ public class CommentService {
 
         scheduleRepository.increaseCommentCount(scheduleId);
 
-        int commentCount = scheduleRepository.findCommentCount(scheduleId);
+        int commentCount = getCurrentCommentCount(scheduleId);
 
-        CommentEvent event = new CommentEvent(CommentEventType.CREATED, CommentEventResponse.from(savedComment, CommentEventType.CREATED, commentCount));
+        publishCommentEvent(savedComment, CommentEventType.CREATED, commentCount);
 
-        commentPublisher.publish(event);
-
-        CommentCreatedEvent createdEvent = new CommentCreatedEvent(scheduleId, user.getId(), user.getNickname(), parent == null ? null : parent.getId());
+        CommentCreatedEvent createdEvent = new CommentCreatedEvent(
+                scheduleId,
+                user.getId(),
+                user.getNickname(),
+                parent == null ? null : parent.getId()
+        );
 
         eventPublisher.publishEvent(createdEvent);
     }
@@ -97,9 +100,7 @@ public class CommentService {
 
         comment.updateComment(request.content());
 
-        CommentEvent event = new CommentEvent(CommentEventType.UPDATED, CommentEventResponse.from(comment, CommentEventType.UPDATED));
-
-        commentPublisher.publish(event);
+        publishCommentEvent(comment, CommentEventType.UPDATED, comment.getSchedule().getCommentCount());
     }
 
     public void deleteComment(Long currentUserId, Long commentId) {
@@ -111,9 +112,9 @@ public class CommentService {
 
         scheduleRepository.decreaseCommentCount(comment.getSchedule().getId());
 
-        CommentEvent event = new CommentEvent(CommentEventType.DELETED, CommentEventResponse.from(comment, CommentEventType.DELETED));
+        int commentCount = getCurrentCommentCount(comment.getSchedule().getId());
 
-        commentPublisher.publish(event);
+        publishCommentEvent(comment, CommentEventType.DELETED, commentCount);
     }
 
     private boolean isScheduleAccessible(Schedule schedule, Long currentUserId) {
@@ -230,5 +231,22 @@ public class CommentService {
                         )
                 )
                 .toList();
+    }
+
+    private int getCurrentCommentCount(Long scheduleId) {
+        return scheduleRepository.findCommentCount(scheduleId);
+    }
+
+    private void publishCommentEvent(Comment comment, CommentEventType commentEventType, int commentCount) {
+        CommentEvent event = new CommentEvent(
+                commentEventType,
+                CommentEventResponse.from(
+                        comment,
+                        commentEventType,
+                        commentCount
+                )
+        );
+
+        commentPublisher.publish(event);
     }
 }
