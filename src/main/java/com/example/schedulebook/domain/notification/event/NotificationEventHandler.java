@@ -124,9 +124,13 @@ public class NotificationEventHandler {
         receivers.remove(event.writerId());
 
         for (Long receiverId : receivers) {
-            notificationService.createScheduleCommentNotification(receiverId, event.writerNickname(), schedule.getId());
+            try {
+                notificationService.createScheduleCommentNotification(receiverId, event.writerNickname(), schedule.getId());
 
-            publishCreatedEvent(receiverId, NotificationType.SCHEDULE_COMMENT, event.writerNickname());
+                publishCreatedEvent(receiverId, NotificationType.SCHEDULE_COMMENT, event.writerNickname());
+            } catch (Exception e) {
+                log.error("일정 댓글 알림 생성 실패 receiverId : {}, scheduleId : {}", receiverId, schedule.getId(), e);
+            }
         }
     }
 

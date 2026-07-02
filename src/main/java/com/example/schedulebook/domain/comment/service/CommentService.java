@@ -64,7 +64,9 @@ public class CommentService {
 
         scheduleRepository.increaseCommentCount(scheduleId);
 
-        CommentEvent event = new CommentEvent(CommentEventType.CREATED, CommentEventResponse.from(savedComment, CommentEventType.CREATED));
+        int commentCount = scheduleRepository.findCommentCount(scheduleId);
+
+        CommentEvent event = new CommentEvent(CommentEventType.CREATED, CommentEventResponse.from(savedComment, CommentEventType.CREATED, commentCount));
 
         commentPublisher.publish(event);
 

@@ -18,7 +18,7 @@ public record CommentEventResponse(
         LocalDateTime createdAt,
         int commentCount
 ) {
-    public static CommentEventResponse from(Comment comment, CommentEventType commentEventType) {
+    public static CommentEventResponse from(Comment comment, CommentEventType commentEventType, int commentCount) {
         return new CommentEventResponse(
                 commentEventType,
                 comment.getId(),
@@ -30,7 +30,7 @@ public record CommentEventResponse(
                 comment.isEdited(),
                 comment.isDeleted(),
                 comment.getCreatedAt(),
-                comment.getSchedule().getCommentCount()
+                commentCount
         );
     }
 }

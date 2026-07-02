@@ -34,4 +34,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     @Query("SELECT s FROM Schedule s JOIN FETCH s.user WHERE s.id = :scheduleId")
     Optional<Schedule> findWithOwner(@Param("scheduleId") Long scheduleId);
+
+    @Query("SELECT s.commentCount FROM Schedule s WHERE s.id = :scheduleId")
+    int findCommentCount(@Param("scheduleId") Long scheduleId);
 }
