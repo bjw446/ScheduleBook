@@ -99,6 +99,7 @@ public enum ErrorEnum {
 
     // ScheduleParticipant
     INVALID_SCHEDULE_ATTENDANCE_STATUS(400, "잘못된 일정 참석 여부 상태 입니다."),
+    SCHEDULE_PARTICIPANT_NOT_FOUND(404, "존재하지 않는 일정 참석 상태 입니다."),
 
     // Comment
     COMMENT_NOT_FOUND(404, "댓글이 존재하지 않습니다."),

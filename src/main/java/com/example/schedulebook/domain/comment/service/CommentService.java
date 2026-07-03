@@ -15,7 +15,7 @@ import com.example.schedulebook.domain.comment.event.CommentPublisher;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
-import com.example.schedulebook.domain.scheduleshare.repository.ScheduleParticipantRepository;
+import com.example.schedulebook.domain.schedule.repository.ScheduleParticipantRepository;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;

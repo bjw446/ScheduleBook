@@ -1,4 +1,4 @@
-package com.example.schedulebook.domain.scheduleshare.enums;
+package com.example.schedulebook.domain.schedule.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

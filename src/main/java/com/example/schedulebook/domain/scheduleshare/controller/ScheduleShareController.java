@@ -70,6 +70,7 @@ public class ScheduleShareController {
         );
     }
 
+    // 일정 참가 여부
     @PatchMapping("/{scheduleId}/attendance")
     public ResponseEntity<ApiResponse<Void>> updateAttendanceStatus(@PathVariable Long scheduleId, @Valid @RequestBody UpdateAttendanceRequest request) {
         scheduleShareService.updateAttendance(SecurityUtils.getCurrentUserId(), scheduleId, request);

@@ -4,6 +4,7 @@ import com.example.schedulebook.domain.schedule.entity.Schedule;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 public record ScheduleDetailResponse(
         Long scheduleId,
@@ -14,9 +15,17 @@ public record ScheduleDetailResponse(
         LocalTime startTime,
         LocalTime endTime,
         boolean startTimeSpecified,
-        boolean endTimeSpecified
+        boolean endTimeSpecified,
+        boolean participated,
+        int participantCount,
+        List<ScheduleParticipantResponse> participants
 ) {
-    public static ScheduleDetailResponse from(Schedule schedule) {
+    public static ScheduleDetailResponse from(
+            Schedule schedule,
+            boolean participated,
+            int participantCount,
+            List<ScheduleParticipantResponse> participants
+    ) {
         return new ScheduleDetailResponse(
                 schedule.getId(),
                 schedule.getTitle(),
@@ -26,7 +35,10 @@ public record ScheduleDetailResponse(
                 schedule.getStartTime(),
                 schedule.getEndTime(),
                 schedule.isStartTimeSpecified(),
-                schedule.isEndTimeSpecified()
+                schedule.isEndTimeSpecified(),
+                participated,
+                participantCount,
+                participants
         );
     }
 }

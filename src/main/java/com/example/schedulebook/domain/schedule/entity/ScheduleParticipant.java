@@ -1,10 +1,9 @@
-package com.example.schedulebook.domain.scheduleshare.entity;
+package com.example.schedulebook.domain.schedule.entity;
 
 import com.example.schedulebook.common.entity.DeleteEntity;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.domain.schedule.entity.Schedule;
-import com.example.schedulebook.domain.scheduleshare.enums.AttendanceStatus;
+import com.example.schedulebook.domain.schedule.enums.AttendanceStatus;
 import com.example.schedulebook.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
