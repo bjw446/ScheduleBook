@@ -1,6 +1,7 @@
 package com.example.schedulebook.domain.schedule.repository;
 
 import com.example.schedulebook.domain.schedule.entity.ScheduleParticipant;
+import com.example.schedulebook.domain.schedule.projection.ScheduleParticipantProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,7 +17,8 @@ public interface ScheduleParticipantRepository extends JpaRepository<SchedulePar
 
     boolean existsBySchedule_IdAndUser_Id(Long scheduleId, Long userId);
 
-    @Query("SELECT sp FROM ScheduleParticipant sp JOIN FETCH sp.user JOIN FETCH sp.schedule s " +
-            "JOIN FETCH s.user WHERE sp.schedule.id = :scheduleId")
-    List<ScheduleParticipant> findParticipants(@Param("scheduleId") Long scheduleId);
+    @Query("SELECT u.id AS userId, u.nickname AS nickname, CASE WHEN u.id = s.user.id " +
+            "THEN TRUE ELSE FALSE END AS owner, sp.attendanceStatus AS attendanceStatus " +
+            "FROM ScheduleParticipant sp JOIN sp.user u JOIN sp.schedule s WHERE s.id = :scheduleId")
+    List<ScheduleParticipantProjection> findParticipants(@Param("scheduleId") Long scheduleId);
 }

@@ -24,6 +24,7 @@ import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.entity.ScheduleParticipant;
 import com.example.schedulebook.domain.schedule.entity.ScheduleSnapshot;
 import com.example.schedulebook.domain.schedule.enums.AttendanceStatus;
+import com.example.schedulebook.domain.schedule.event.ScheduleParticipantPublisher;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharePublisher;
 import com.example.schedulebook.domain.schedule.repository.ScheduleParticipantRepository;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
@@ -63,6 +64,7 @@ public class ChatMessageService {
     private final ScheduleShareRepository scheduleShareRepository;
     private final ScheduleParticipantRepository scheduleParticipantRepository;
     private final UserRepository userRepository;
+    private final ScheduleParticipantPublisher scheduleParticipantPublisher;
 
     public void sendMessage(Long currentUserId, ChatMessageSendRequest request) {
         ChatRoom chatRoom = validateChatRoom(request.roomId());
@@ -218,6 +220,8 @@ public class ChatMessageService {
         createParticipant(schedule, currentUser);
 
         scheduleSharePublisher.publishAcceptSharedSchedule(chatMessage);
+
+        scheduleParticipantPublisher.publishParticipantsUpdated(schedule.getId());
     }
 
     public void cancelScheduleShare(Long currentUserId, Long messageId) {

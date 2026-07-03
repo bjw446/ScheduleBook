@@ -1,7 +1,7 @@
 package com.example.schedulebook.domain.schedule.dto.response;
 
-import com.example.schedulebook.domain.schedule.entity.ScheduleParticipant;
 import com.example.schedulebook.domain.schedule.enums.AttendanceStatus;
+import com.example.schedulebook.domain.schedule.projection.ScheduleParticipantProjection;
 
 public record ScheduleParticipantResponse(
         Long userId,
@@ -9,12 +9,12 @@ public record ScheduleParticipantResponse(
         boolean owner,
         AttendanceStatus attendanceStatus
 ) {
-    public static ScheduleParticipantResponse from(ScheduleParticipant scheduleParticipant) {
+    public static ScheduleParticipantResponse from(ScheduleParticipantProjection scheduleParticipantProjection) {
         return new ScheduleParticipantResponse(
-                scheduleParticipant.getUser().getId(),
-                scheduleParticipant.getUser().getNickname(),
-                scheduleParticipant.getSchedule().getUser().getId().equals(scheduleParticipant.getUser().getId()),
-                scheduleParticipant.getAttendanceStatus()
+                scheduleParticipantProjection.getUserId(),
+                scheduleParticipantProjection.getNickname(),
+                scheduleParticipantProjection.isOwner(),
+                scheduleParticipantProjection.getAttendanceStatus()
         );
     }
 }

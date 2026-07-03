@@ -4,7 +4,11 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleAttendanceResponse;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantInfo;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantResponse;
+import com.example.schedulebook.domain.schedule.event.ScheduleAttendancePublisher;
+import com.example.schedulebook.domain.schedule.event.ScheduleParticipantPublisher;
 import com.example.schedulebook.domain.schedule.service.ScheduleParticipantReader;
 import com.example.schedulebook.domain.scheduleshare.dto.request.UpdateAttendanceRequest;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
@@ -41,6 +45,8 @@ public class ScheduleShareService {
     private final ApplicationEventPublisher eventPublisher;
     private final ScheduleParticipantRepository scheduleParticipantRepository;
     private final ScheduleParticipantReader scheduleParticipantReader;
+    private final ScheduleAttendancePublisher scheduleAttendancePublisher;
+    private final ScheduleParticipantPublisher scheduleParticipantPublisher;
 
     public ScheduleShareResponse shareSchedule(Long scheduleId, ScheduleShareRequest request, Long currentUserId) {
         validateUser(currentUserId);
@@ -148,8 +154,25 @@ public class ScheduleShareService {
         return OwnedShareDetailResponse.from(scheduleShare, info.participated(), info.participantCount(), info.participants());
     }
 
-    public void updateAttendance(Long currentUserId, Long scheduleId, UpdateAttendanceRequest request) {
+    // 일정 참가자 목록 조회
+    @Transactional(readOnly = true)
+    public List<ScheduleParticipantResponse> findParticipants(Long currentUserId, Long scheduleId) {
         validateUser(currentUserId);
+
+        Schedule schedule = validateSchedule(scheduleId);
+
+        if (!schedule.getUser().getId().equals(currentUserId)) {
+            validateActiveShareRelation(scheduleId, currentUserId);
+        }
+
+        return scheduleParticipantRepository.findParticipants(scheduleId)
+                .stream()
+                .map(ScheduleParticipantResponse::from)
+                .toList();
+    }
+
+    public void updateAttendance(Long currentUserId, Long scheduleId, UpdateAttendanceRequest request) {
+        User user = validateUser(currentUserId);
 
         Schedule schedule = validateSchedule(scheduleId);
 
@@ -162,7 +185,17 @@ public class ScheduleShareService {
                         () -> new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN)
                 );
 
+        if (scheduleParticipant.getAttendanceStatus() == request.attendanceStatus()) {
+            return;
+        }
+
         scheduleParticipant.updateAttendanceStatus(request.attendanceStatus());
+
+        ScheduleAttendanceResponse response = ScheduleAttendanceResponse.of(scheduleId, currentUserId, user.getNickname(), request.attendanceStatus());
+
+        scheduleAttendancePublisher.publishAttendanceUpdated(response);
+
+        scheduleParticipantPublisher.publishParticipantsUpdated(scheduleId);
     }
 
     public void cancelShare(Long shareId, Long currentUserId) {
