@@ -203,7 +203,11 @@ public class ChatMessageService {
 
         Schedule schedule = findSchedule(chatMessage.getScheduleId());
 
-        validateAlreadyShared(schedule.getId(), currentUserId);
+        if (schedule.getUser().getId().equals(currentUserId)) {
+            throw new BaseException(ErrorEnum.CANNOT_SHARE_MYSELF);
+        }
+
+        validateAlreadyParticipated(schedule.getId(), currentUserId);
 
         User currentUser = validateUser(currentUserId);
 
@@ -213,11 +217,7 @@ public class ChatMessageService {
 
         createParticipant(schedule, currentUser);
 
-        updateUnreadCount(chatMessage.getChatRoom(), currentUserId);
-
-        int unreadCount = chatUnreadCountManager.calculateUnreadCount(chatMessage, readStatuses(chatMessage.getChatRoom().getId()));
-
-        scheduleSharePublisher.publishAcceptSharedSchedule(chatMessage, unreadCount);
+        scheduleSharePublisher.publishAcceptSharedSchedule(chatMessage);
     }
 
     public void cancelScheduleShare(Long currentUserId, Long messageId) {
@@ -403,14 +403,22 @@ public class ChatMessageService {
         return user;
     }
 
-    private void validateAlreadyShared(Long scheduleId, Long currentUserId) {
+    private void validateAlreadyParticipated(Long scheduleId, Long currentUserId) {
+        if (scheduleParticipantRepository.existsBySchedule_IdAndUser_Id(scheduleId, currentUserId)) {
+            throw new BaseException(ErrorEnum.SCHEDULE_ALREADY_PARTICIPATED);
+        }
+
         if (isAlreadyScheduleShared(scheduleId, currentUserId)) {
             throw new BaseException(ErrorEnum.SCHEDULE_ALREADY_SHARED);
         }
     }
 
     private boolean isAlreadyScheduleShared(Long scheduleId, Long currentUserId) {
-        return scheduleShareRepository.existsBySchedule_IdAndSharedUser_Id(scheduleId, currentUserId);
+        return scheduleShareRepository.existsBySchedule_IdAndSharedUser_IdAndScheduleShareStatus(
+                scheduleId,
+                currentUserId,
+                ScheduleShareStatus.ACTIVE
+        );
     }
 
     private void updateUnreadCount(ChatRoom chatRoom, Long currentUserId) {

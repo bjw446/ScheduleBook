@@ -40,5 +40,5 @@ public interface ScheduleShareRepository extends JpaRepository <ScheduleShare, L
             @Param("status") ScheduleShareStatus status
     );
 
-    boolean existsBySchedule_IdAndSharedUser_Id(Long scheduleId, Long sharedUserId);
+    boolean existsBySchedule_IdAndSharedUser_IdAndScheduleShareStatus(Long scheduleId, Long sharedUserId, ScheduleShareStatus status);
 }
