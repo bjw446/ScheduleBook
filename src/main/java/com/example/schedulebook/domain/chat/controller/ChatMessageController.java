@@ -45,6 +45,18 @@ public class ChatMessageController {
         );
     }
 
+    @PostMapping("/{messageId}/shared-schedule/accept")
+    public ResponseEntity<ApiResponse<Void>> acceptSharedSchedule(@PathVariable Long messageId) {
+        chatMessageService.acceptSharedSchedule(SecurityUtils.getCurrentUserId(), messageId);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success(
+                        SuccessEnum.CREATE_SUCCESS,
+                        null
+                )
+        );
+    }
+
     @GetMapping("/{roomId}/messages")
     public ResponseEntity<ApiResponse<ChatMessageSliceResponse>> getMessages(
             @PathVariable Long roomId,

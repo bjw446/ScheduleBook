@@ -21,13 +21,21 @@ import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewDeta
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleSnapshotDiffResponse;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleSnapshotHistoryResponse;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.schedule.entity.ScheduleParticipant;
 import com.example.schedulebook.domain.schedule.entity.ScheduleSnapshot;
+import com.example.schedulebook.domain.schedule.enums.AttendanceStatus;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharePublisher;
+import com.example.schedulebook.domain.schedule.repository.ScheduleParticipantRepository;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.schedule.repository.ScheduleSnapshotHistoryRepository;
 import com.example.schedulebook.domain.schedule.service.ScheduleSnapshotComparator;
 import com.example.schedulebook.domain.schedule.service.ScheduleSnapshotHistoryManager;
+import com.example.schedulebook.domain.scheduleshare.entity.ScheduleShare;
+import com.example.schedulebook.domain.scheduleshare.enums.ScheduleShareStatus;
+import com.example.schedulebook.domain.scheduleshare.repository.ScheduleShareRepository;
 import com.example.schedulebook.domain.user.entity.User;
+import com.example.schedulebook.domain.user.enums.UserStatus;
+import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -52,6 +60,9 @@ public class ChatMessageService {
     private final ScheduleSnapshotComparator scheduleSnapshotComparator;
     private final ScheduleSnapshotHistoryManager scheduleSnapshotHistoryManager;
     private final ChatUnreadCountManager chatUnreadCountManager;
+    private final ScheduleShareRepository scheduleShareRepository;
+    private final ScheduleParticipantRepository scheduleParticipantRepository;
+    private final UserRepository userRepository;
 
     public void sendMessage(Long currentUserId, ChatMessageSendRequest request) {
         ChatRoom chatRoom = validateChatRoom(request.roomId());
@@ -179,6 +190,36 @@ public class ChatMessageService {
         scheduleSharePublisher.publishScheduleShared(chatMessage, unreadCount);
     }
 
+    public void acceptSharedSchedule(Long currentUserId, Long messageId) {
+        ChatMessage chatMessage = validateChatMessage(messageId);
+
+        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
+
+        validateReadableMessage(chatRoomMember, chatMessage);
+
+        validateScheduleMessageType(chatMessage);
+
+        validateReadableSharedSchedule(chatMessage);
+
+        Schedule schedule = findSchedule(chatMessage.getScheduleId());
+
+        validateAlreadyShared(schedule.getId(), currentUserId);
+
+        User currentUser = validateUser(currentUserId);
+
+        ScheduleShare scheduleShare = ScheduleShare.create(schedule, currentUser);
+
+        scheduleShareRepository.save(scheduleShare);
+
+        createParticipant(schedule, currentUser);
+
+        updateUnreadCount(chatMessage.getChatRoom(), currentUserId);
+
+        int unreadCount = chatUnreadCountManager.calculateUnreadCount(chatMessage, readStatuses(chatMessage.getChatRoom().getId()));
+
+        scheduleSharePublisher.publishAcceptSharedSchedule(chatMessage, unreadCount);
+    }
+
     public void cancelScheduleShare(Long currentUserId, Long messageId) {
         ChatMessage chatMessage = validateChatMessage(messageId);
 
@@ -204,7 +245,9 @@ public class ChatMessageService {
 
         validateReadableSharedSchedule(chatMessage);
 
-        return SchedulePreviewDetailResponse.from(chatMessage, false, false);
+        boolean shared = isAlreadyScheduleShared(chatMessage.getScheduleId(), currentUserId);
+
+        return SchedulePreviewDetailResponse.from(chatMessage, false, false, shared);
     }
 
     @Transactional(readOnly = true)
@@ -348,6 +391,28 @@ public class ChatMessageService {
         }
     }
 
+    private User validateUser(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
+        );
+
+        if (user.getUserStatus() != UserStatus.ACTIVE) {
+            throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
+        }
+
+        return user;
+    }
+
+    private void validateAlreadyShared(Long scheduleId, Long currentUserId) {
+        if (isAlreadyScheduleShared(scheduleId, currentUserId)) {
+            throw new BaseException(ErrorEnum.SCHEDULE_ALREADY_SHARED);
+        }
+    }
+
+    private boolean isAlreadyScheduleShared(Long scheduleId, Long currentUserId) {
+        return scheduleShareRepository.existsBySchedule_IdAndSharedUser_Id(scheduleId, currentUserId);
+    }
+
     private void updateUnreadCount(ChatRoom chatRoom, Long currentUserId) {
         chatRoomMemberRepository.increaseUnreadCount(chatRoom.getId(), currentUserId);
     }
@@ -362,5 +427,17 @@ public class ChatMessageService {
 
     private List<MemberReadStatusProjection> readStatuses(Long roomId) {
         return chatRoomMemberRepository.findReadStatuses(roomId);
+    }
+
+    private Schedule findSchedule(Long scheduleId) {
+        return scheduleRepository.findById(scheduleId).orElseThrow(
+                () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
+        );
+    }
+
+    private void createParticipant(Schedule schedule, User user) {
+        ScheduleParticipant scheduleParticipant = ScheduleParticipant.of(schedule, user);
+
+        scheduleParticipantRepository.save(scheduleParticipant);
     }
 }

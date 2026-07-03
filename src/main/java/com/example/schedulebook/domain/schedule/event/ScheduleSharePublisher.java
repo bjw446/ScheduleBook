@@ -34,6 +34,12 @@ public class ScheduleSharePublisher {
         publishResponses(responses);
     }
 
+    public void publishAcceptSharedSchedule(ChatMessage chatMessage, int unreadCount) {
+        ChatMessageResponse response = createSchedulePreviewResponse(chatMessage, false, false, true, unreadCount);
+
+        publishResponses(response);
+    }
+
     public void publishScheduleShareCanceled(ChatMessage chatMessage, int unreadCount) {
         ChatMessageResponse response = createSchedulePreviewResponse(
                 chatMessage,

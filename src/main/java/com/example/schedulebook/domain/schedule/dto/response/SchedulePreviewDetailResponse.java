@@ -17,13 +17,15 @@ public record SchedulePreviewDetailResponse(
         boolean deleted,
         boolean canceled,
         boolean edited,
+        boolean shared,
         Long scheduleVersion,
         LocalDateTime scheduleUpdatedAt
 ) {
     public static SchedulePreviewDetailResponse from(
             ChatMessage chatMessage,
             boolean deleted,
-            boolean edited
+            boolean edited,
+            boolean shared
     ) {
         return new SchedulePreviewDetailResponse(
                 chatMessage.getId(),
@@ -36,6 +38,7 @@ public record SchedulePreviewDetailResponse(
                 deleted,
                 chatMessage.isScheduleShareCanceled(),
                 edited,
+                shared,
                 chatMessage.getScheduleSnapshot().getScheduleVersion(),
                 chatMessage.getScheduleSnapshot().getScheduleUpdatedAt()
         );
