@@ -4,11 +4,13 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantInfo;
+import com.example.schedulebook.domain.schedule.service.ScheduleParticipantReader;
 import com.example.schedulebook.domain.scheduleshare.dto.request.UpdateAttendanceRequest;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
-import com.example.schedulebook.domain.scheduleshare.entity.ScheduleParticipant;
+import com.example.schedulebook.domain.schedule.entity.ScheduleParticipant;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharedEvent;
-import com.example.schedulebook.domain.scheduleshare.repository.ScheduleParticipantRepository;
+import com.example.schedulebook.domain.schedule.repository.ScheduleParticipantRepository;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.scheduleshare.dto.request.ScheduleShareRequest;
 import com.example.schedulebook.domain.scheduleshare.dto.response.*;
@@ -38,6 +40,7 @@ public class ScheduleShareService {
     private final FriendRepository friendRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ScheduleParticipantRepository scheduleParticipantRepository;
+    private final ScheduleParticipantReader scheduleParticipantReader;
 
     public ScheduleShareResponse shareSchedule(Long scheduleId, ScheduleShareRequest request, Long currentUserId) {
         validateUser(currentUserId);
@@ -114,7 +117,9 @@ public class ScheduleShareService {
 
         validateScheduleAccessible(scheduleShare.getSchedule(), currentUserId);
 
-        return SharedScheduleDetailResponse.from(scheduleShare);
+        ScheduleParticipantInfo info = scheduleParticipantReader.getParticipantInfo(scheduleShare.getSchedule().getId(), currentUserId);
+
+        return SharedScheduleDetailResponse.from(scheduleShare, info.participated(), info.participantCount(), info.participants());
     }
 
     // 내가 다른 사람에게 공유한 일정 목록 조회
@@ -138,7 +143,9 @@ public class ScheduleShareService {
 
         validateShareOwner(scheduleShare, currentUserId);
 
-        return OwnedShareDetailResponse.from(scheduleShare);
+        ScheduleParticipantInfo info = scheduleParticipantReader.getParticipantInfo(scheduleShare.getSchedule().getId(), currentUserId);
+
+        return OwnedShareDetailResponse.from(scheduleShare, info.participated(), info.participantCount(), info.participants());
     }
 
     public void updateAttendance(Long currentUserId, Long scheduleId, UpdateAttendanceRequest request) {

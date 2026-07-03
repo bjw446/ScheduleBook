@@ -4,12 +4,15 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.schedule.dto.request.CreateScheduleRequest;
 import com.example.schedulebook.domain.schedule.dto.request.UpdateScheduleRequest;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantInfo;
 import com.example.schedulebook.domain.schedule.event.ScheduleDeletedEvent;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleDetailResponse;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleSummaryResponse;
 import com.example.schedulebook.domain.schedule.event.ScheduleUpdatedEvent;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
+import com.example.schedulebook.domain.schedule.entity.ScheduleParticipant;
+import com.example.schedulebook.domain.schedule.repository.ScheduleParticipantRepository;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
@@ -30,6 +33,8 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final ScheduleParticipantRepository scheduleParticipantRepository;
+    private final ScheduleParticipantReader scheduleParticipantReader;
 
     public ScheduleSummaryResponse createSchedule(CreateScheduleRequest request, Long currentUserId) {
         User user = validateUser(currentUserId);
@@ -45,6 +50,10 @@ public class ScheduleService {
 
         Schedule savedSchedule = scheduleRepository.save(schedule);
 
+        ScheduleParticipant ownerParticipant = ScheduleParticipant.of(savedSchedule, user);
+
+        scheduleParticipantRepository.save(ownerParticipant);
+
         user.increaseScheduleCount();
 
         return ScheduleSummaryResponse.from(savedSchedule);
@@ -56,7 +65,9 @@ public class ScheduleService {
 
         Schedule schedule = validateSchedule(scheduleId, currentUserId);
 
-        return ScheduleDetailResponse.from(schedule);
+        ScheduleParticipantInfo info = scheduleParticipantReader.getParticipantInfo(schedule.getId(), currentUserId);
+
+        return ScheduleDetailResponse.from(schedule, info.participated(), info.participantCount(), info.participants());
     }
 
     @Transactional(readOnly = true)
