@@ -1,20 +1,22 @@
 package com.example.schedulebook.domain.schedule.event;
 
+import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ScheduleSharePublisher {
     private final SimpMessagingTemplate simpMessagingTemplate;
+    private final AfterCommitExecutor afterCommitExecutor;
 
     public void publishScheduleShared(ChatMessage chatMessage, int unreadCount) {
         ChatMessageResponse response = createSchedulePreviewResponse(
@@ -65,10 +67,16 @@ public class ScheduleSharePublisher {
     }
 
     private void publishResponses(ChatMessageResponse response) {
-        afterCommit(() -> simpMessagingTemplate.convertAndSend(
-                "/topic/chat/" + response.roomId(),
-                response
-        ));
+        afterCommitExecutor.execute(() -> {
+            try {
+                simpMessagingTemplate.convertAndSend(
+                        "/topic/chat/" + response.roomId(),
+                        response
+                );
+            } catch (Exception e) {
+                log.error("커밋 후 이벤트 발행 실패", e);
+            }
+        });
     }
 
     private void publishResponses(List<ChatMessageResponse> responses) {
@@ -76,12 +84,18 @@ public class ScheduleSharePublisher {
             return;
         }
 
-        afterCommit(() -> responses.forEach(response ->
-                simpMessagingTemplate.convertAndSend(
-                        "/topic/chat/" + response.roomId(),
-                        response
-                )
-        ));
+        afterCommitExecutor.execute(() -> {
+            try {
+                responses.forEach(response ->
+                        simpMessagingTemplate.convertAndSend(
+                                "/topic/chat/" + response.roomId(),
+                                response
+                        )
+                );
+            } catch (Exception e) {
+                log.error("커밋 후 이벤트 발행 실패", e);
+            }
+        });
     }
 
     private ChatMessageResponse createSchedulePreviewResponse(
@@ -117,14 +131,5 @@ public class ScheduleSharePublisher {
                         )
                 )
                 .toList();
-    }
-
-    private void afterCommit(Runnable action) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                action.run();
-            }
-        });
     }
 }

@@ -3,7 +3,7 @@ package com.example.schedulebook.domain.scheduleshare.controller;
 import com.example.schedulebook.common.enums.SuccessEnum;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
-import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantResponse;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantListResponse;
 import com.example.schedulebook.domain.scheduleshare.dto.request.UpdateAttendanceRequest;
 import com.example.schedulebook.domain.scheduleshare.dto.request.ScheduleShareRequest;
 import com.example.schedulebook.domain.scheduleshare.dto.response.*;
@@ -73,7 +73,7 @@ public class ScheduleShareController {
 
     // 일정 참가자 목록 조회
     @GetMapping("/{scheduleId}/participants")
-    public ResponseEntity<ApiResponse<List<ScheduleParticipantResponse>>> getParticipants(@PathVariable Long scheduleId) {
+    public ResponseEntity<ApiResponse<ScheduleParticipantListResponse>> getParticipants(@PathVariable Long scheduleId) {
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
                         SuccessEnum.READ_SUCCESS,

@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.notification.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.domain.notification.dto.response.NotificationDetailResponse;
 import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
 import com.example.schedulebook.domain.notification.dto.response.NotificationSummaryResponse;
@@ -18,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
@@ -32,6 +32,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final NotificationEventPublisher notificationEventPublisher;
+    private final AfterCommitExecutor afterCommitExecutor;
 
     public void createFriendRequestNotification(Long receiverId, String requesterNickname, Long friendId) {
         createNotification(
@@ -223,14 +224,11 @@ public class NotificationService {
             return;
         }
 
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                try {
-                    notificationEventPublisher.publish(responseSupplier.get());
-                } catch (Exception e) {
-                    log.error("커밋 후 알림 이벤트 발행 실패", e);
-                }
+        afterCommitExecutor.execute(() -> {
+            try {
+                notificationEventPublisher.publish(responseSupplier.get());
+            } catch (Exception e) {
+                log.error("커밋 후 알림 이벤트 발행 실패", e);
             }
         });
     }

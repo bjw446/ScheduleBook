@@ -6,7 +6,7 @@ import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleAttendanceResponse;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantInfo;
-import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantResponse;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantListResponse;
 import com.example.schedulebook.domain.schedule.event.ScheduleAttendancePublisher;
 import com.example.schedulebook.domain.schedule.event.ScheduleParticipantPublisher;
 import com.example.schedulebook.domain.schedule.service.ScheduleParticipantReader;
@@ -156,7 +156,7 @@ public class ScheduleShareService {
 
     // 일정 참가자 목록 조회
     @Transactional(readOnly = true)
-    public List<ScheduleParticipantResponse> findParticipants(Long currentUserId, Long scheduleId) {
+    public ScheduleParticipantListResponse findParticipants(Long currentUserId, Long scheduleId) {
         validateUser(currentUserId);
 
         Schedule schedule = validateSchedule(scheduleId);
@@ -165,10 +165,7 @@ public class ScheduleShareService {
             validateActiveShareRelation(scheduleId, currentUserId);
         }
 
-        return scheduleParticipantRepository.findParticipants(scheduleId)
-                .stream()
-                .map(ScheduleParticipantResponse::from)
-                .toList();
+        return scheduleParticipantReader.getParticipantList(scheduleId);
     }
 
     public void updateAttendance(Long currentUserId, Long scheduleId, UpdateAttendanceRequest request) {

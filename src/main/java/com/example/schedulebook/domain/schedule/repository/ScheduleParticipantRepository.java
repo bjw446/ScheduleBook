@@ -19,6 +19,7 @@ public interface ScheduleParticipantRepository extends JpaRepository<SchedulePar
 
     @Query("SELECT u.id AS userId, u.nickname AS nickname, CASE WHEN u.id = s.user.id " +
             "THEN TRUE ELSE FALSE END AS owner, sp.attendanceStatus AS attendanceStatus " +
-            "FROM ScheduleParticipant sp JOIN sp.user u JOIN sp.schedule s WHERE s.id = :scheduleId")
+            "FROM ScheduleParticipant sp JOIN sp.user u JOIN sp.schedule s " +
+            "WHERE s.id = :scheduleId ORDER BY sp.id")
     List<ScheduleParticipantProjection> findParticipants(@Param("scheduleId") Long scheduleId);
 }

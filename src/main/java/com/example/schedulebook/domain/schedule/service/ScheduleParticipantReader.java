@@ -16,7 +16,7 @@ public class ScheduleParticipantReader {
     private final ScheduleParticipantRepository scheduleParticipantRepository;
 
     public ScheduleParticipantInfo getParticipantInfo(Long scheduleId, Long currentUserId) {
-        List<ScheduleParticipantProjection> participants = scheduleParticipantRepository.findParticipants(scheduleId);
+        List<ScheduleParticipantProjection> participants = projectionList(scheduleId);
 
         boolean participated = participants.stream()
                 .anyMatch(p ->
@@ -33,7 +33,7 @@ public class ScheduleParticipantReader {
     }
 
     public ScheduleParticipantListResponse getParticipantList(Long scheduleId) {
-        List<ScheduleParticipantProjection> participants = scheduleParticipantRepository.findParticipants(scheduleId);
+        List<ScheduleParticipantProjection> participants = projectionList(scheduleId);
 
         return ScheduleParticipantListResponse.from(
                 participants.size(),
@@ -41,5 +41,9 @@ public class ScheduleParticipantReader {
                         .map(ScheduleParticipantResponse::from)
                         .toList()
         );
+    }
+
+    private List<ScheduleParticipantProjection> projectionList(Long scheduleId) {
+        return scheduleParticipantRepository.findParticipants(scheduleId);
     }
 }
