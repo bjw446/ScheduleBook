@@ -1,12 +1,12 @@
 package com.example.schedulebook.domain.schedule.event;
 
 import com.example.schedulebook.common.executor.AfterCommitExecutor;
+import com.example.schedulebook.common.websocket.WebSocketPublisher;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -15,8 +15,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ScheduleSharePublisher {
-    private final SimpMessagingTemplate simpMessagingTemplate;
     private final AfterCommitExecutor afterCommitExecutor;
+    private final WebSocketPublisher webSocketPublisher;
 
     public void publishScheduleShared(ChatMessage chatMessage, int unreadCount) {
         ChatMessageResponse response = createSchedulePreviewResponse(
@@ -67,16 +67,10 @@ public class ScheduleSharePublisher {
     }
 
     private void publishResponses(ChatMessageResponse response) {
-        afterCommitExecutor.execute(() -> {
-            try {
-                simpMessagingTemplate.convertAndSend(
-                        "/topic/chat/" + response.roomId(),
-                        response
-                );
-            } catch (Exception e) {
-                log.error("커밋 후 이벤트 발행 실패", e);
-            }
-        });
+        webSocketPublisher.sendAfterCommit(
+                "/topic/chat/" + response.roomId(),
+                response
+        );
     }
 
     private void publishResponses(List<ChatMessageResponse> responses) {
@@ -85,16 +79,11 @@ public class ScheduleSharePublisher {
         }
 
         afterCommitExecutor.execute(() -> {
-            try {
-                responses.forEach(response ->
-                        simpMessagingTemplate.convertAndSend(
-                                "/topic/chat/" + response.roomId(),
-                                response
-                        )
-                );
-            } catch (Exception e) {
-                log.error("커밋 후 이벤트 발행 실패", e);
-            }
+            responses.forEach(response ->
+                webSocketPublisher.sendAfterCommit(
+                        "/topic/chat/" + response.roomId(),
+                        response)
+            );
         });
     }
 
