@@ -80,7 +80,7 @@ public class ScheduleSharePublisher {
 
         afterCommitExecutor.execute(() -> {
             responses.forEach(response ->
-                webSocketPublisher.sendAfterCommit(
+                webSocketPublisher.send(
                         "/topic/chat/" + response.roomId(),
                         response)
             );
