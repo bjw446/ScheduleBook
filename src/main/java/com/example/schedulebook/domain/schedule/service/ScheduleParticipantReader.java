@@ -1,9 +1,9 @@
 package com.example.schedulebook.domain.schedule.service;
 
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantInfo;
+import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantListResponse;
 import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantResponse;
-import com.example.schedulebook.domain.schedule.entity.Schedule;
-import com.example.schedulebook.domain.schedule.entity.ScheduleParticipant;
+import com.example.schedulebook.domain.schedule.projection.ScheduleParticipantProjection;
 import com.example.schedulebook.domain.schedule.repository.ScheduleParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,12 +15,12 @@ import java.util.List;
 public class ScheduleParticipantReader {
     private final ScheduleParticipantRepository scheduleParticipantRepository;
 
-    public ScheduleParticipantInfo getParticipantInfo(Long ScheduleId, Long currentUserId) {
-        List<ScheduleParticipant> participants = scheduleParticipantRepository.findParticipants(ScheduleId);
+    public ScheduleParticipantInfo getParticipantInfo(Long scheduleId, Long currentUserId) {
+        List<ScheduleParticipantProjection> participants = projectionList(scheduleId);
 
         boolean participated = participants.stream()
                 .anyMatch(p ->
-                        p.getUser().getId().equals(currentUserId)
+                        p.getUserId().equals(currentUserId)
                 );
 
         return ScheduleParticipantInfo.from(
@@ -30,5 +30,20 @@ public class ScheduleParticipantReader {
                         .map(ScheduleParticipantResponse::from)
                         .toList()
         );
+    }
+
+    public ScheduleParticipantListResponse getParticipantList(Long scheduleId) {
+        List<ScheduleParticipantProjection> participants = projectionList(scheduleId);
+
+        return ScheduleParticipantListResponse.from(
+                participants.size(),
+                participants.stream()
+                        .map(ScheduleParticipantResponse::from)
+                        .toList()
+        );
+    }
+
+    private List<ScheduleParticipantProjection> projectionList(Long scheduleId) {
+        return scheduleParticipantRepository.findParticipants(scheduleId);
     }
 }

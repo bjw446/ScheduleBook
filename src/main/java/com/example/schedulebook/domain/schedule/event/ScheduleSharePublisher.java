@@ -1,20 +1,22 @@
 package com.example.schedulebook.domain.schedule.event;
 
+import com.example.schedulebook.common.executor.AfterCommitExecutor;
+import com.example.schedulebook.common.websocket.WebSocketPublisher;
 import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.schedule.dto.response.SchedulePreviewResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ScheduleSharePublisher {
-    private final SimpMessagingTemplate simpMessagingTemplate;
+    private final AfterCommitExecutor afterCommitExecutor;
+    private final WebSocketPublisher webSocketPublisher;
 
     public void publishScheduleShared(ChatMessage chatMessage, int unreadCount) {
         ChatMessageResponse response = createSchedulePreviewResponse(
@@ -65,10 +67,10 @@ public class ScheduleSharePublisher {
     }
 
     private void publishResponses(ChatMessageResponse response) {
-        afterCommit(() -> simpMessagingTemplate.convertAndSend(
+        webSocketPublisher.sendAfterCommit(
                 "/topic/chat/" + response.roomId(),
                 response
-        ));
+        );
     }
 
     private void publishResponses(List<ChatMessageResponse> responses) {
@@ -76,12 +78,13 @@ public class ScheduleSharePublisher {
             return;
         }
 
-        afterCommit(() -> responses.forEach(response ->
-                simpMessagingTemplate.convertAndSend(
+        afterCommitExecutor.execute(() -> {
+            responses.forEach(response ->
+                webSocketPublisher.send(
                         "/topic/chat/" + response.roomId(),
-                        response
-                )
-        ));
+                        response)
+            );
+        });
     }
 
     private ChatMessageResponse createSchedulePreviewResponse(
@@ -117,14 +120,5 @@ public class ScheduleSharePublisher {
                         )
                 )
                 .toList();
-    }
-
-    private void afterCommit(Runnable action) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                action.run();
-            }
-        });
     }
 }
