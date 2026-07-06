@@ -16,6 +16,7 @@ import com.example.schedulebook.domain.comment.repository.CommentRepository;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.schedule.repository.ScheduleParticipantRepository;
+import com.example.schedulebook.domain.schedule.service.ScheduleAccessValidator;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
@@ -38,13 +39,12 @@ public class CommentService {
     private final UserRepository userRepository;
     private final CommentPublisher commentPublisher;
     private final ApplicationEventPublisher eventPublisher;
+    private final ScheduleAccessValidator scheduleAccessValidator;
 
     public void createComment(Long currentUserId, Long scheduleId, CreateScheduleCommentRequest request) {
         User user = validateUser(currentUserId);
 
-        Schedule schedule = validateSchedule(scheduleId);
-
-        validateScheduleAccessible(schedule, currentUserId);
+        Schedule schedule = scheduleAccessValidator.validateAccessibleSchedule(scheduleId, currentUserId);
 
         Comment parent = null;
 
@@ -82,9 +82,7 @@ public class CommentService {
     public ScheduleCommentListResponse findAllComment(Long currentUserId, Long scheduleId) {
         validateUser(currentUserId);
 
-        Schedule schedule = validateSchedule(scheduleId);
-
-        validateScheduleAccessible(schedule, currentUserId);
+        Schedule schedule = scheduleAccessValidator.validateAccessibleSchedule(scheduleId, currentUserId);
 
         List<Comment> parents = commentRepository.findParentComments(scheduleId);
 
@@ -115,24 +113,6 @@ public class CommentService {
         int commentCount = getCurrentCommentCount(comment.getSchedule().getId());
 
         publishCommentEvent(comment, CommentEventType.DELETED, commentCount);
-    }
-
-    private boolean isScheduleAccessible(Schedule schedule, Long currentUserId) {
-        return schedule.getUser().getId().equals(currentUserId)
-                || scheduleParticipantRepository.existsBySchedule_IdAndUser_Id(
-                schedule.getId(), currentUserId);
-    }
-
-    private void validateScheduleAccessible(Schedule schedule, Long currentUserId) {
-        if (!isScheduleAccessible(schedule, currentUserId)) {
-            throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
-        }
-    }
-
-    private Schedule validateSchedule(Long scheduleId) {
-        return scheduleRepository.findById(scheduleId).orElseThrow(
-                () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
-        );
     }
 
     private User validateUser(Long userId) {

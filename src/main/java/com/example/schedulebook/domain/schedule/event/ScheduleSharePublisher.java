@@ -63,7 +63,7 @@ public class ScheduleSharePublisher {
     }
 
     public void publishSharedScheduleDeleted(List<ChatMessage> chatMessages) {
-        List<ChatMessageResponse> responses = createResponses(chatMessages, true, true, false);
+        List<ChatMessageResponse> responses = createResponses(chatMessages, true, false, false);
 
         publishResponses(responses);
     }

@@ -9,6 +9,8 @@ import com.example.schedulebook.domain.chat.service.ChatMessageManager;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharePublisher;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
+import com.example.schedulebook.domain.scheduleshare.entity.ScheduleShare;
+import com.example.schedulebook.domain.scheduleshare.repository.ScheduleShareRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,7 @@ public class ScheduleShareUpdateManager {
     private final ChatMessageManager chatMessageManager;
     private final ScheduleSharePublisher scheduleSharePublisher;
     private final ChatMessagePublisher chatMessagePublisher;
+    private final ScheduleShareRepository scheduleShareRepository;
 
     public void handleUpdated(Long scheduleId) {
         Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow();
@@ -49,12 +52,7 @@ public class ScheduleShareUpdateManager {
     }
 
     public void handleCanceled(Long scheduleId) {
-        List<ChatMessage> chatMessages = chatMessageRepository.findAllByScheduleIdAndDeletedFalse(scheduleId)
-                .stream()
-                .filter(cm -> !cm.isScheduleShareCanceled())
-                .toList();
-
-        chatMessages.forEach(ChatMessage::cancelScheduleShare);
+        List<ChatMessage> chatMessages = cancelSharedMessages(scheduleId);
 
         List<PublishChatMessage> publishChatMessages = collectRooms(chatMessages).values()
                 .stream()
@@ -62,6 +60,23 @@ public class ScheduleShareUpdateManager {
                 .toList();
 
         scheduleSharePublisher.publishScheduleShareCanceled(chatMessages);
+
+        chatMessagePublisher.publishMessages(publishChatMessages);
+    }
+
+    public void handleDeleted(Long scheduleId) {
+        List<ScheduleShare> scheduleShares = scheduleShareRepository.findAllBySchedule_Id(scheduleId);
+
+        scheduleShares.forEach(ScheduleShare::deletedSchedule);
+
+        List<ChatMessage> chatMessages = cancelSharedMessages(scheduleId);
+
+        List<PublishChatMessage> publishChatMessages = collectRooms(chatMessages).values()
+                .stream()
+                .map(chatMessageManager::createScheduleDeletedSystemMessage)
+                .toList();
+
+        scheduleSharePublisher.publishSharedScheduleDeleted(chatMessages);
 
         chatMessagePublisher.publishMessages(publishChatMessages);
     }
@@ -78,5 +93,16 @@ public class ScheduleShareUpdateManager {
         }
 
         return rooms;
+    }
+
+    private List<ChatMessage> cancelSharedMessages(Long scheduleId) {
+        List<ChatMessage> chatMessages = chatMessageRepository.findAllByScheduleIdAndDeletedFalse(scheduleId)
+                .stream()
+                .filter(cm -> !cm.isScheduleShareCanceled())
+                .toList();
+
+        chatMessages.forEach(ChatMessage::cancelScheduleShare);
+
+        return chatMessages;
     }
 }
