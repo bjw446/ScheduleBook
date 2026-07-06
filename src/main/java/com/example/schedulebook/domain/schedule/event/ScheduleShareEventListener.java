@@ -17,7 +17,12 @@ public class ScheduleShareEventListener {
     }
 
     @EventListener
-    public void handleScheduleCanceled(ScheduleDeletedEvent event) {
+    public void handleScheduleCanceled(ScheduleCanceledEvent event) {
         scheduleShareUpdateManager.handleCanceled(event.scheduleId());
+    }
+
+    @EventListener
+    public void handleScheduleDeleted(ScheduleDeletedEvent event) {
+        scheduleShareUpdateManager.handleDeleted(event.scheduleId());
     }
 }

@@ -56,18 +56,28 @@ public class ScheduleShare extends DeleteEntity {
             throw new BaseException(ErrorEnum.INVALID_SCHEDULE_SHARE_STATUS);
         }
 
-        scheduleShareStatus = ScheduleShareStatus.DELETED;
+        scheduleShareStatus = ScheduleShareStatus.CANCELED;
 
         delete();
     }
 
     public void reShare() {
-        if (scheduleShareStatus != ScheduleShareStatus.DELETED) {
+        if (scheduleShareStatus != ScheduleShareStatus.CANCELED) {
             throw new BaseException(ErrorEnum.INVALID_SCHEDULE_SHARE_STATUS);
         }
 
         scheduleShareStatus = ScheduleShareStatus.ACTIVE;
 
         restore();
+    }
+
+    public void deletedSchedule() {
+        if (scheduleShareStatus == ScheduleShareStatus.SCHEDULE_DELETED) {
+            throw new BaseException(ErrorEnum.SCHEDULE_SHARE_ALREADY_DELETED);
+        }
+
+        scheduleShareStatus = ScheduleShareStatus.SCHEDULE_DELETED;
+
+        delete();
     }
 }
