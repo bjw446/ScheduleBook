@@ -7,37 +7,36 @@ import com.example.schedulebook.domain.chat.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 import static com.example.schedulebook.common.consts.CommonConst.DELETED_MESSAGE;
+import static com.example.schedulebook.common.consts.WebSocketDestination.*;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class ChatMessagePublisher {
-    private final SimpMessagingTemplate simpMessagingTemplate;
     private final AfterCommitExecutor afterCommitExecutor;
     private final WebSocketPublisher webSocketPublisher;
 
     public void publishMessage(ChatMessage chatMessage, int unreadCount) {
         ChatMessageResponse response = ChatMessageResponse.from(chatMessage, unreadCount);
 
-        webSocketPublisher.sendAfterCommit(  "/topic/chat/" + response.roomId(), response);
+        webSocketPublisher.sendAfterCommit(chat(response.roomId()), response);
     }
 
     public void publishReadMessageAfterCommit(Long roomId, Long currentUserId, Long lastReadMessageId) {
         webSocketPublisher.sendAfterCommit(
-                "/topic/chat/" + roomId + "/read",
+                chatRead(roomId),
                 ReadMessageEvent.from(roomId, currentUserId, lastReadMessageId)
         );
     }
 
     public void publishDeleteMessageAfterCommit(Long roomId, Long messageId) {
         webSocketPublisher.sendAfterCommit(
-                "/topic/chat/" + roomId + "/delete",
+                chatDelete(roomId),
                 new ChatMessageDeletedEvent(
                         roomId,
                         messageId,
@@ -55,7 +54,7 @@ public class ChatMessagePublisher {
         afterCommitExecutor.execute(() -> {
             responses.forEach(response ->
                     webSocketPublisher.send(
-                            "/topic/chat/" + response.roomId(),
+                            chat(response.roomId()),
                             response
                     )
             );

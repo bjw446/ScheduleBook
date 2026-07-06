@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.example.schedulebook.common.consts.WebSocketDestination.chat;
+
 @Component
 @RequiredArgsConstructor
 public class ChatSubscriptionValidator implements SubscriptionValidator{
@@ -17,7 +19,7 @@ public class ChatSubscriptionValidator implements SubscriptionValidator{
 
     @Override
     public boolean supports(String destination) {
-        return destination.startsWith("/topic/chat/");
+        return destination.startsWith(chat());
     }
 
     @Override
