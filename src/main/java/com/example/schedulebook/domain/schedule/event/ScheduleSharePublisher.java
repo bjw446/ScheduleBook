@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+import static com.example.schedulebook.common.consts.WebSocketDestination.chat;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -68,7 +70,7 @@ public class ScheduleSharePublisher {
 
     private void publishResponses(ChatMessageResponse response) {
         webSocketPublisher.sendAfterCommit(
-                "/topic/chat/" + response.roomId(),
+                chat(response.roomId()),
                 response
         );
     }
@@ -81,7 +83,7 @@ public class ScheduleSharePublisher {
         afterCommitExecutor.execute(() -> {
             responses.forEach(response ->
                 webSocketPublisher.send(
-                        "/topic/chat/" + response.roomId(),
+                        chat(response.roomId()),
                         response)
             );
         });

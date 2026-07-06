@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import static com.example.schedulebook.common.consts.WebSocketDestination.scheduleComment;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -13,7 +15,7 @@ public class CommentPublisher {
 
     public void publish(CommentEvent event) {
         webSocketPublisher.sendAfterCommit(
-                "/topic/schedule/" + event.commentEventResponse().scheduleId() + "/comments",
+                scheduleComment(event.commentEventResponse().scheduleId()),
                 event
         );
     }

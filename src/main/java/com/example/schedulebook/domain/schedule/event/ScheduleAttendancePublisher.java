@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import static com.example.schedulebook.common.consts.WebSocketDestination.schedule;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -14,7 +16,7 @@ public class ScheduleAttendancePublisher {
 
     public void publishAttendanceUpdated(ScheduleAttendanceResponse response) {
         webSocketPublisher.sendAfterCommit(
-                "/topic/schedule/" + response.scheduleId(),
+                schedule(response.scheduleId()),
                 response
         );
     }
