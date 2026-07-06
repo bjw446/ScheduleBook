@@ -37,4 +37,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     @Query("SELECT s.commentCount FROM Schedule s WHERE s.id = :scheduleId")
     int findCommentCount(@Param("scheduleId") Long scheduleId);
+
+    boolean existsByIdAndUser_Id(Long scheduleId, Long userId);
 }
