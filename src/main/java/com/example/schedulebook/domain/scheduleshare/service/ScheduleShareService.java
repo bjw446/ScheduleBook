@@ -158,7 +158,7 @@ public class ScheduleShareService {
     public ScheduleParticipantListResponse findParticipants(Long currentUserId, Long scheduleId) {
         validateUser(currentUserId);
 
-        Schedule schedule = scheduleAccessValidator.validateAccessibleSchedule(scheduleId, currentUserId);
+        scheduleAccessValidator.validateAccessibleSchedule(scheduleId, currentUserId);
 
         return scheduleParticipantReader.getParticipantList(scheduleId);
     }
@@ -166,7 +166,7 @@ public class ScheduleShareService {
     public void updateAttendance(Long currentUserId, Long scheduleId, UpdateAttendanceRequest request) {
         User user = validateUser(currentUserId);
 
-        Schedule schedule = scheduleAccessValidator.validateAccessibleSchedule(scheduleId, currentUserId);
+        scheduleAccessValidator.validateAccessibleSchedule(scheduleId, currentUserId);
 
         ScheduleParticipant scheduleParticipant = scheduleParticipantRepository.findBySchedule_IdAndUser_Id(scheduleId, currentUserId)
                 .orElseThrow(
