@@ -3,7 +3,7 @@ package com.example.schedulebook.common.consts;
 public final class WebSocketDestination {
     private WebSocketDestination() {}
 
-    public static String chat(){
+    public static String chatPrefix(){
         return "/topic/chat/";
     }
 
@@ -19,7 +19,7 @@ public final class WebSocketDestination {
         return chat(roomId) + "/delete";
     }
 
-    public static String schedule() {
+    public static String schedulePrefix() {
         return "/topic/schedule/";
     }
 

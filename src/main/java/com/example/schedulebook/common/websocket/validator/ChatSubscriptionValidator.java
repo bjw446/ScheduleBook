@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.example.schedulebook.common.consts.WebSocketDestination.chat;
+import static com.example.schedulebook.common.consts.WebSocketDestination.chatPrefix;
 
 @Component
 @RequiredArgsConstructor
@@ -19,7 +19,7 @@ public class ChatSubscriptionValidator implements SubscriptionValidator{
 
     @Override
     public boolean supports(String destination) {
-        return destination.startsWith(chat());
+        return destination.startsWith(chatPrefix());
     }
 
     @Override
