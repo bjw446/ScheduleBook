@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 @Component
 @RequiredArgsConstructor
 public class ChatSubscriptionValidator implements SubscriptionValidator{
-    private static final Pattern CHAT_PATTERN = Pattern.compile("^/topic/chat/(\\d+).*");
+    private static final Pattern CHAT_PATTERN = Pattern.compile("^/topic/chat/(\\d+)(/.*)?$");
     private final ChatRoomMemberRepository chatRoomMemberRepository;
 
     @Override
