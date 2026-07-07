@@ -3,8 +3,8 @@ package com.example.schedulebook.common.websocket.validator;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
-import com.example.schedulebook.domain.schedule_share.enums.ScheduleShareStatus;
-import com.example.schedulebook.domain.schedule_share.repository.ScheduleShareRepository;
+import com.example.schedulebook.domain.scheduleshare.enums.ScheduleShareStatus;
+import com.example.schedulebook.domain.scheduleshare.repository.ScheduleShareRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

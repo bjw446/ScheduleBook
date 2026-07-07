@@ -2,7 +2,7 @@ package com.example.schedulebook.common.websocket.validator;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.domain.chat_room.repository.ChatRoomMemberRepository;
+import com.example.schedulebook.domain.chatroom.repository.ChatRoomMemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

@@ -12,9 +12,9 @@ import com.example.schedulebook.domain.notification.publisher.NotificationEventP
 import com.example.schedulebook.domain.notification.repository.NotificationRepository;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
-import com.example.schedulebook.domain.schedule_share.event.ScheduleSharedEvent;
+import com.example.schedulebook.domain.scheduleshare.event.ScheduleSharedEvent;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
-import com.example.schedulebook.domain.schedule_participant.repository.ScheduleParticipantRepository;
+import com.example.schedulebook.domain.scheduleparticipant.repository.ScheduleParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
