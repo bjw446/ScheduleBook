@@ -195,7 +195,12 @@ public class ScheduleShareService {
 
         scheduleShare.cancelShare();
 
-        applicationEventPublisher.publishEvent(new ScheduleCanceledEvent(scheduleShare.getSchedule().getId()));
+        applicationEventPublisher.publishEvent(
+                new ScheduleCanceledEvent(
+                        scheduleShare.getSchedule().getId(),
+                        scheduleShare.getSharedUser().getId()
+                )
+        );
     }
 
     private Schedule validateSchedule(Long scheduleId) {
