@@ -11,12 +11,11 @@ import com.example.schedulebook.domain.comment.entity.Comment;
 import com.example.schedulebook.domain.comment.enums.CommentEventType;
 import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
 import com.example.schedulebook.domain.comment.event.CommentEvent;
-import com.example.schedulebook.domain.comment.event.CommentPublisher;
+import com.example.schedulebook.domain.comment.publisher.CommentPublisher;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
-import com.example.schedulebook.domain.schedule.repository.ScheduleParticipantRepository;
-import com.example.schedulebook.domain.schedule.service.ScheduleAccessValidator;
+import com.example.schedulebook.domain.schedule.validator.ScheduleAccessValidator;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
@@ -34,7 +33,6 @@ import java.util.stream.Collectors;
 @Transactional
 public class CommentService {
     private final CommentRepository commentRepository;
-    private final ScheduleParticipantRepository scheduleParticipantRepository;
     private final ScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
     private final CommentPublisher commentPublisher;

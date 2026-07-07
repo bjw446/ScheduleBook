@@ -1,0 +1,28 @@
+package com.example.schedulebook.domain.schedule_participant.publisher;
+
+import com.example.schedulebook.common.websocket.WebSocketPublisher;
+import com.example.schedulebook.domain.schedule_participant.dto.response.ScheduleParticipantListResponse;
+import com.example.schedulebook.domain.schedule_participant.service.ScheduleParticipantReader;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import static com.example.schedulebook.common.consts.WebSocketDestination.scheduleParticipants;
+
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class ScheduleParticipantPublisher {
+    private final ScheduleParticipantReader scheduleParticipantReader;
+    private final WebSocketPublisher webSocketPublisher;
+
+    public void publishParticipantsUpdated(Long scheduleId) {
+        ScheduleParticipantListResponse response = scheduleParticipantReader.getParticipantList(scheduleId);
+
+        webSocketPublisher.sendAfterCommit(
+                scheduleParticipants(scheduleId),
+                response
+        );
+    }
+}

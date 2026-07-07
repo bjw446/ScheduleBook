@@ -1,0 +1,127 @@
+package com.example.schedulebook.domain.schedule_share.service;
+
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.chat_message.dto.request.PublishChatMessage;
+import com.example.schedulebook.domain.chat_message.entity.ChatMessage;
+import com.example.schedulebook.domain.chat_room.entity.ChatRoom;
+import com.example.schedulebook.domain.chat_message.publisher.ChatMessagePublisher;
+import com.example.schedulebook.domain.chat_message.repository.ChatMessageRepository;
+import com.example.schedulebook.domain.chat_message.service.ChatMessageManager;
+import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.schedule_participant.entity.ScheduleParticipant;
+import com.example.schedulebook.domain.schedule_snapshot.service.ScheduleSnapshotManager;
+import com.example.schedulebook.domain.schedule_share.publisher.ScheduleSharePublisher;
+import com.example.schedulebook.domain.schedule_participant.repository.ScheduleParticipantRepository;
+import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
+import com.example.schedulebook.domain.schedule_share.entity.ScheduleShare;
+import com.example.schedulebook.domain.schedule_share.repository.ScheduleShareRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class ScheduleShareUpdateManager {
+    private final ScheduleRepository scheduleRepository;
+    private final ChatMessageRepository chatMessageRepository;
+    private final ScheduleSnapshotManager scheduleSnapshotManager;
+    private final ChatMessageManager chatMessageManager;
+    private final ScheduleSharePublisher scheduleSharePublisher;
+    private final ChatMessagePublisher chatMessagePublisher;
+    private final ScheduleShareRepository scheduleShareRepository;
+    private final ScheduleParticipantRepository scheduleParticipantRepository;
+
+    public void handleUpdated(Long scheduleId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow();
+
+        List<ChatMessage> updatedMessages = chatMessageRepository.findAllByScheduleIdAndDeletedFalse(scheduleId)
+                .stream()
+                .filter(message -> !message.isScheduleShareCanceled())
+                .filter(message -> scheduleSnapshotManager.updateSnapshot(message, schedule))
+                .toList();
+
+
+        List<PublishChatMessage> publishChatMessages = collectRooms(updatedMessages).values()
+                .stream()
+                .map(chatMessageManager::createScheduleUpdatedSystemMessage)
+                .toList();
+
+        scheduleSharePublisher.publishScheduleUpdated(updatedMessages);
+
+        chatMessagePublisher.publishMessages(publishChatMessages);
+    }
+
+    public void handleCanceled(Long scheduleId, Long userId) {
+        ScheduleParticipant participant = scheduleParticipantRepository.findBySchedule_IdAndUser_Id(scheduleId, userId)
+                .orElseThrow(() -> new BaseException(ErrorEnum.SCHEDULE_PARTICIPANT_NOT_FOUND));
+
+        participant.delete();
+
+        List<ChatMessage> chatMessages = cancelSharedMessages(scheduleId);
+
+        List<PublishChatMessage> publishChatMessages = collectRooms(chatMessages).values()
+                .stream()
+                .map(chatMessageManager::createScheduleShareCanceledSystemMessage)
+                .toList();
+
+        scheduleSharePublisher.publishScheduleShareCanceled(chatMessages);
+
+        chatMessagePublisher.publishMessages(publishChatMessages);
+    }
+
+    public void handleDeleted(Long scheduleId) {
+        List<ScheduleShare> scheduleShares = scheduleShareRepository.findAllBySchedule_Id(scheduleId);
+
+        scheduleShares.forEach(ScheduleShare::deletedSchedule);
+
+        List<ScheduleParticipant> participants = scheduleParticipantRepository.findAllBySchedule_Id(scheduleId);
+
+        participants.forEach(scheduleParticipant -> {
+            if (!scheduleParticipant.isDeleted()) {
+                scheduleParticipant.delete();
+            }
+        });
+
+        List<ChatMessage> chatMessages = cancelSharedMessages(scheduleId);
+
+        List<PublishChatMessage> publishChatMessages = collectRooms(chatMessages).values()
+                .stream()
+                .map(chatMessageManager::createScheduleDeletedSystemMessage)
+                .toList();
+
+        scheduleSharePublisher.publishSharedScheduleDeleted(chatMessages);
+
+        chatMessagePublisher.publishMessages(publishChatMessages);
+    }
+
+    private Map<Long, ChatRoom> collectRooms(List<ChatMessage> messages) {
+
+        Map<Long, ChatRoom> rooms = new LinkedHashMap<>();
+
+        for (ChatMessage message : messages) {
+            rooms.putIfAbsent(
+                    message.getChatRoom().getId(),
+                    message.getChatRoom()
+            );
+        }
+
+        return rooms;
+    }
+
+    private List<ChatMessage> cancelSharedMessages(Long scheduleId) {
+        List<ChatMessage> chatMessages = chatMessageRepository.findAllByScheduleIdAndDeletedFalse(scheduleId)
+                .stream()
+                .filter(cm -> !cm.isScheduleShareCanceled())
+                .toList();
+
+        chatMessages.forEach(ChatMessage::cancelScheduleShare);
+
+        return chatMessages;
+    }
+}
