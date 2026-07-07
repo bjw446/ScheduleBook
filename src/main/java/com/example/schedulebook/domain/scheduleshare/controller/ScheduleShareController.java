@@ -3,7 +3,7 @@ package com.example.schedulebook.domain.scheduleshare.controller;
 import com.example.schedulebook.common.enums.SuccessEnum;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
-import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantListResponse;
+import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleParticipantListResponse;
 import com.example.schedulebook.domain.scheduleshare.dto.request.UpdateAttendanceRequest;
 import com.example.schedulebook.domain.scheduleshare.dto.request.ScheduleShareRequest;
 import com.example.schedulebook.domain.scheduleshare.dto.response.*;

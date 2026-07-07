@@ -1,6 +1,6 @@
 package com.example.schedulebook.domain.scheduleshare.dto.response;
 
-import com.example.schedulebook.domain.schedule.dto.response.ScheduleParticipantResponse;
+import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleParticipantResponse;
 import com.example.schedulebook.domain.scheduleshare.entity.ScheduleShare;
 
 import java.time.LocalDate;

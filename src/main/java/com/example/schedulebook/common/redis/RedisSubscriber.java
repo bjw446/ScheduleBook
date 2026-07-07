@@ -2,7 +2,7 @@ package com.example.schedulebook.common.redis;
 
 import com.example.schedulebook.common.websocket.WebSocketSessionRegistry;
 import com.example.schedulebook.domain.comment.event.CommentEvent;
-import com.example.schedulebook.domain.comment.event.CommentSubscriber;
+import com.example.schedulebook.domain.comment.subscriber.CommentSubscriber;
 import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

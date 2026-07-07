@@ -10,7 +10,7 @@ import com.example.schedulebook.domain.notification.dto.response.UnreadNotificat
 import com.example.schedulebook.domain.notification.entity.Notification;
 import com.example.schedulebook.domain.notification.enums.NotificationEventType;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
-import com.example.schedulebook.domain.notification.event.NotificationEventPublisher;
+import com.example.schedulebook.domain.notification.publisher.NotificationEventPublisher;
 import com.example.schedulebook.domain.notification.repository.NotificationRepository;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
