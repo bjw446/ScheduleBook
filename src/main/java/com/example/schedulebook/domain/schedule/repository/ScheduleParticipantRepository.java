@@ -22,4 +22,6 @@ public interface ScheduleParticipantRepository extends JpaRepository<SchedulePar
             "FROM ScheduleParticipant sp JOIN sp.user u JOIN sp.schedule s " +
             "WHERE s.id = :scheduleId ORDER BY sp.id")
     List<ScheduleParticipantProjection> findParticipants(@Param("scheduleId") Long scheduleId);
+
+    List<ScheduleParticipant> findAllBySchedule_Id(Long scheduleId);
 }

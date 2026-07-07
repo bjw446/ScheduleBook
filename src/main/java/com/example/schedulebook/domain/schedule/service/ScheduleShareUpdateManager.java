@@ -1,5 +1,7 @@
 package com.example.schedulebook.domain.schedule.service;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.chat.dto.request.PublishChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatMessage;
 import com.example.schedulebook.domain.chat.entity.ChatRoom;
@@ -7,7 +9,9 @@ import com.example.schedulebook.domain.chat.event.ChatMessagePublisher;
 import com.example.schedulebook.domain.chat.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chat.service.ChatMessageManager;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.schedule.entity.ScheduleParticipant;
 import com.example.schedulebook.domain.schedule.event.ScheduleSharePublisher;
+import com.example.schedulebook.domain.schedule.repository.ScheduleParticipantRepository;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.scheduleshare.entity.ScheduleShare;
 import com.example.schedulebook.domain.scheduleshare.repository.ScheduleShareRepository;
@@ -30,6 +34,7 @@ public class ScheduleShareUpdateManager {
     private final ScheduleSharePublisher scheduleSharePublisher;
     private final ChatMessagePublisher chatMessagePublisher;
     private final ScheduleShareRepository scheduleShareRepository;
+    private final ScheduleParticipantRepository scheduleParticipantRepository;
 
     public void handleUpdated(Long scheduleId) {
         Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow();
@@ -51,7 +56,12 @@ public class ScheduleShareUpdateManager {
         chatMessagePublisher.publishMessages(publishChatMessages);
     }
 
-    public void handleCanceled(Long scheduleId) {
+    public void handleCanceled(Long scheduleId, Long userId) {
+        ScheduleParticipant participant = scheduleParticipantRepository.findBySchedule_IdAndUser_Id(scheduleId, userId)
+                .orElseThrow(() -> new BaseException(ErrorEnum.SCHEDULE_PARTICIPANT_NOT_FOUND));
+
+        participant.delete();
+
         List<ChatMessage> chatMessages = cancelSharedMessages(scheduleId);
 
         List<PublishChatMessage> publishChatMessages = collectRooms(chatMessages).values()
@@ -68,6 +78,14 @@ public class ScheduleShareUpdateManager {
         List<ScheduleShare> scheduleShares = scheduleShareRepository.findAllBySchedule_Id(scheduleId);
 
         scheduleShares.forEach(ScheduleShare::deletedSchedule);
+
+        List<ScheduleParticipant> participants = scheduleParticipantRepository.findAllBySchedule_Id(scheduleId);
+
+        participants.forEach(scheduleParticipant -> {
+            if (!scheduleParticipant.isDeleted()) {
+                scheduleParticipant.delete();
+            }
+        });
 
         List<ChatMessage> chatMessages = cancelSharedMessages(scheduleId);
 
