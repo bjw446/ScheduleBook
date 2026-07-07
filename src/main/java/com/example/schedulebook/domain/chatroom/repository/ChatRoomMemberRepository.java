@@ -28,7 +28,7 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
     void increaseUnreadCount(@Param("roomId") Long roomId, @Param("senderId") Long senderId);
 
     @Query("SELECT crm.chatRoom.id as roomId, crm.chatRoom.name as roomName, " +
-            "CASE WHEN crm.chatRoom.chatRoomType = com.example.schedulebook.domain.chatmessage.enums.ChatRoomType.DIRECT " +
+            "CASE WHEN crm.chatRoom.chatRoomType = com.example.schedulebook.domain.chatroom.enums.ChatRoomType.DIRECT " +
             "THEN (SELECT CASE WHEN opponent.user.deletedAt IS NOT NULL THEN '알 수 없음' " +
             "ELSE opponent.user.nickname END FROM ChatRoomMember opponent " +
             "WHERE opponent.chatRoom.id = crm.chatRoom.id AND opponent.user.id <> :userId) " +
