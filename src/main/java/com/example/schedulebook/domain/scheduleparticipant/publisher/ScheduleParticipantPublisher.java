@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import static com.example.schedulebook.common.consts.WebSocketDestination.scheduleParticipants;
+import static com.example.schedulebook.common.consts.WebSocketDestination.SCHEDULE_PARTICIPANTS;
 
 
 @Component
@@ -21,7 +21,7 @@ public class ScheduleParticipantPublisher {
         ScheduleParticipantListResponse response = scheduleParticipantReader.getParticipantList(scheduleId);
 
         webSocketPublisher.sendAfterCommit(
-                scheduleParticipants(scheduleId),
+                SCHEDULE_PARTICIPANTS(scheduleId),
                 response
         );
     }

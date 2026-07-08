@@ -5,13 +5,14 @@ import com.example.schedulebook.common.websocket.WebSocketPublisher;
 import com.example.schedulebook.domain.chatmessage.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chatmessage.entity.ChatMessage;
 import com.example.schedulebook.domain.schedulesnapshot.dto.response.SchedulePreviewResponse;
+import com.example.schedulebook.domain.schedulesnapshot.enums.SchedulePreviewState;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.example.schedulebook.common.consts.WebSocketDestination.chat;
+import static com.example.schedulebook.common.consts.WebSocketDestination.CHAT;
 
 @Component
 @RequiredArgsConstructor
@@ -23,9 +24,7 @@ public class ScheduleSharePublisher {
     public void publishScheduleShared(ChatMessage chatMessage, int unreadCount) {
         ChatMessageResponse response = createSchedulePreviewResponse(
                 chatMessage,
-                false,
-                false,
-                false,
+                SchedulePreviewState.NORMAL,
                 unreadCount
         );
 
@@ -33,13 +32,13 @@ public class ScheduleSharePublisher {
     }
 
     public void publishScheduleUpdated(List<ChatMessage> chatMessages) {
-        List<ChatMessageResponse> responses = createResponses(chatMessages, false, false, true);
+        List<ChatMessageResponse> responses = createResponses(chatMessages, SchedulePreviewState.EDITED);
 
         publishResponses(responses);
     }
 
     public void publishAcceptSharedSchedule(ChatMessage chatMessage) {
-        ChatMessageResponse response = createSchedulePreviewResponse(chatMessage, false, false, true, 0);
+        ChatMessageResponse response = createSchedulePreviewResponse(chatMessage, SchedulePreviewState.ACCEPTED, 0);
 
         publishResponses(response);
     }
@@ -47,9 +46,7 @@ public class ScheduleSharePublisher {
     public void publishScheduleShareCanceled(ChatMessage chatMessage, int unreadCount) {
         ChatMessageResponse response = createSchedulePreviewResponse(
                 chatMessage,
-                false,
-                true,
-                false,
+                SchedulePreviewState.CANCELED,
                 unreadCount
         );
 
@@ -57,20 +54,20 @@ public class ScheduleSharePublisher {
     }
 
     public void publishScheduleShareCanceled(List<ChatMessage> chatMessages) {
-        List<ChatMessageResponse> responses = createResponses(chatMessages, false, true, false);
+        List<ChatMessageResponse> responses = createResponses(chatMessages, SchedulePreviewState.CANCELED);
 
         publishResponses(responses);
     }
 
     public void publishSharedScheduleDeleted(List<ChatMessage> chatMessages) {
-        List<ChatMessageResponse> responses = createResponses(chatMessages, true, false, false);
+        List<ChatMessageResponse> responses = createResponses(chatMessages, SchedulePreviewState.DELETED);
 
         publishResponses(responses);
     }
 
     private void publishResponses(ChatMessageResponse response) {
         webSocketPublisher.sendAfterCommit(
-                chat(response.roomId()),
+                CHAT(response.roomId()),
                 response
         );
     }
@@ -83,7 +80,7 @@ public class ScheduleSharePublisher {
         afterCommitExecutor.execute(() -> {
             responses.forEach(response ->
                 webSocketPublisher.send(
-                        chat(response.roomId()),
+                        CHAT(response.roomId()),
                         response)
             );
         });
@@ -91,9 +88,7 @@ public class ScheduleSharePublisher {
 
     private ChatMessageResponse createSchedulePreviewResponse(
             ChatMessage chatMessage,
-            boolean deleted,
-            boolean canceled,
-            boolean edited,
+            SchedulePreviewState schedulePreviewState,
             int unreadCount
     ) {
         return ChatMessageResponse.from(
@@ -103,21 +98,17 @@ public class ScheduleSharePublisher {
                         chatMessage.getId(),
                         chatMessage.getScheduleId(),
                         chatMessage.getScheduleSnapshot(),
-                        deleted,
-                        canceled,
-                        edited
+                        schedulePreviewState
                 )
         );
     }
 
-    private List<ChatMessageResponse> createResponses(List<ChatMessage> chatMessages, boolean deleted, boolean canceled, boolean edited) {
+    private List<ChatMessageResponse> createResponses(List<ChatMessage> chatMessages, SchedulePreviewState schedulePreviewState) {
         return chatMessages.stream()
                 .map(message ->
                         createSchedulePreviewResponse(
                                 message,
-                                deleted,
-                                canceled,
-                                edited,
+                                schedulePreviewState,
                                 0
                         )
                 )

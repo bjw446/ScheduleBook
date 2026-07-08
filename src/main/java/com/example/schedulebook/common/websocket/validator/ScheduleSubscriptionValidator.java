@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.example.schedulebook.common.consts.WebSocketDestination.schedulePrefix;
+import static com.example.schedulebook.common.consts.WebSocketDestination.SCHEDULE_PREFIX;
 
 @Component
 @RequiredArgsConstructor
@@ -22,7 +22,7 @@ public class ScheduleSubscriptionValidator implements SubscriptionValidator{
 
     @Override
     public boolean supports(String destination) {
-        return destination.startsWith(schedulePrefix());
+        return destination.startsWith(SCHEDULE_PREFIX());
     }
 
     @Override

@@ -3,35 +3,35 @@ package com.example.schedulebook.common.consts;
 public final class WebSocketDestination {
     private WebSocketDestination() {}
 
-    public static String chatPrefix(){
+    public static String CHAT_PREFIX(){
         return "/topic/chat/";
     }
 
-    public static String chat(Long roomId) {
+    public static String CHAT(Long roomId) {
         return "/topic/chat/" + roomId;
     }
 
-    public static String chatRead(Long roomId) {
-        return chat(roomId) + "/read";
+    public static String CHAT_READ(Long roomId) {
+        return CHAT(roomId) + "/read";
     }
 
-    public static String chatDelete(Long roomId) {
-        return chat(roomId) + "/delete";
+    public static String CHAT_DELETE(Long roomId) {
+        return CHAT(roomId) + "/delete";
     }
 
-    public static String schedulePrefix() {
+    public static String SCHEDULE_PREFIX() {
         return "/topic/schedule/";
     }
 
-    public static String schedule(Long scheduleId) {
+    public static String SCHEDULE(Long scheduleId) {
         return "/topic/schedule/" + scheduleId;
     }
 
-    public static String scheduleParticipants(Long scheduleId) {
-        return schedule(scheduleId) + "/participants";
+    public static String SCHEDULE_PARTICIPANTS(Long scheduleId) {
+        return SCHEDULE(scheduleId) + "/participants";
     }
 
-    public static String scheduleComment(Long scheduleId) {
-        return schedule(scheduleId) + "/comments";
+    public static String SCHEDULE_COMMENT(Long scheduleId) {
+        return SCHEDULE(scheduleId) + "/comments";
     }
 }
