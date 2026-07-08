@@ -39,7 +39,6 @@ import java.util.Set;
 @Transactional
 public class ScheduleShareService {
     private final ScheduleShareRepository scheduleShareRepository;
-    private final ApplicationEventPublisher eventPublisher;
     private final ScheduleParticipantRepository scheduleParticipantRepository;
     private final ScheduleParticipantReader scheduleParticipantReader;
     private final ScheduleAttendancePublisher scheduleAttendancePublisher;
@@ -68,7 +67,7 @@ public class ScheduleShareService {
 
             existing.reShare();
 
-            eventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), existing.getId()));
+            applicationEventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), existing.getId()));
 
             return ScheduleShareResponse.from(existing);
         }
@@ -80,7 +79,7 @@ public class ScheduleShareService {
 
             createParticipants(schedule, List.of(friendUser));
 
-            eventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), savedScheduleShare.getId()));
+            applicationEventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), savedScheduleShare.getId()));
 
             return ScheduleShareResponse.from(savedScheduleShare);
 
@@ -92,7 +91,7 @@ public class ScheduleShareService {
 
             alreadyCreated.reShare();
 
-            eventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), alreadyCreated.getId()));
+            applicationEventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), alreadyCreated.getId()));
 
             return ScheduleShareResponse.from(alreadyCreated);
         }

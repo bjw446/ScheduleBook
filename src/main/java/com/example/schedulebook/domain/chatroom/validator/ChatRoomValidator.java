@@ -50,7 +50,7 @@ public class ChatRoomValidator {
         );
     }
 
-    public void validateInviteMembers(Long currentUserId, List<Long> memberIds) {
+    public List<User> validateInviteMembers(Long currentUserId, List<Long> memberIds) {
         if (memberIds.contains(currentUserId)) {
             throw new BaseException(ErrorEnum.INVALID_CHAT_TARGET);
         }
@@ -72,6 +72,8 @@ public class ChatRoomValidator {
         if (friendCount != memberIds.size()) {
             throw new BaseException(ErrorEnum.FRIEND_NOT_FOUND);
         }
+
+        return users;
     }
 
     public void validateChatRoomType(ChatRoom chatRoom) {

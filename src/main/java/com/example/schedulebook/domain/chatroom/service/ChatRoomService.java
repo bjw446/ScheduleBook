@@ -88,25 +88,25 @@ public class ChatRoomService {
     }
 
     public ChatRoomResponse createGroupRoom(Long currentUserId, GroupChatRoomCreateRequest request) {
-        chatRoomValidator.validateInviteMembers(currentUserId, request.memberIds());
-
         User owner = userValidator.validateActiveUser(currentUserId);
 
-        List<User> members = userRepository.findAllById(request.memberIds());
+        List<User> members = chatRoomValidator.validateInviteMembers(currentUserId, request.memberIds());
 
         ChatRoom chatRoom = ChatRoom.group(request.name());
 
         chatRoomRepository.save(chatRoom);
 
+        List<ChatRoomMember> chatRoomMembers = new ArrayList<>();
+
         ChatRoomMember ownerMember = ChatRoomMember.of(chatRoom, owner, LocalDateTime.now());
 
-        chatRoomMemberRepository.save(ownerMember);
+        chatRoomMembers.add(ownerMember);
 
-        for (User member : members) {
-            ChatRoomMember chatRoomMember = ChatRoomMember.of(chatRoom, member, LocalDateTime.now());
+        members.forEach(member -> chatRoomMembers.add(
+                ChatRoomMember.of(chatRoom, member, LocalDateTime.now())
+        ));
 
-            chatRoomMemberRepository.save(chatRoomMember);
-        }
+        chatRoomMemberRepository.saveAll(chatRoomMembers);
 
         chatRoomLifecycleManager.afterRoomCreated(chatRoom, owner);
 
