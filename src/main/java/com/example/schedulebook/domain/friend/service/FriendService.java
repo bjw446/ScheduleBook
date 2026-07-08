@@ -13,9 +13,9 @@ import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.event.FriendAcceptedEvent;
 import com.example.schedulebook.domain.friend.event.FriendRequestEvent;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
+import com.example.schedulebook.domain.friend.validator.FriendValidator;
 import com.example.schedulebook.domain.user.entity.User;
-import com.example.schedulebook.domain.user.enums.UserStatus;
-import com.example.schedulebook.domain.user.repository.UserRepository;
+import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -31,21 +31,22 @@ import java.util.List;
 @Slf4j
 public class FriendService {
     private final FriendRepository friendRepository;
-    private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final WebSocketSessionRegistry webSocketSessionRegistry;
+    private final UserValidator userValidator;
+    private final FriendValidator friendValidator;
 
     public FriendResponse requestFriend(FriendRequest request, Long currentUserId) {
-        validateMyself(request.receiverId(), currentUserId);
+        friendValidator.validateMyself(request.receiverId(), currentUserId);
 
-        User requester = validateUser(currentUserId);
+        User requester = userValidator.validateActiveUser(currentUserId);
 
-        User receiver = validateUser(request.receiverId());
+        User receiver = userValidator.validateActiveUser(request.receiverId());
 
         Friend existing = friendRepository.findRelation(requester.getId(), receiver.getId()).orElse(null);
 
         if (existing != null) {
-            validateFriendStatus(existing);
+            friendValidator.validateFriendStatus(existing);
 
             existing.reRequest(requester, receiver);
 
@@ -72,13 +73,13 @@ public class FriendService {
 
     @Transactional(readOnly = true)
     public List<FriendSummaryResponse> findAllFriends(Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
         List<Friend> friends = friendRepository.findAcceptedFriends(currentUserId, FriendStatus.ACCEPTED);
 
         return friends.stream()
                 .map(friend -> {
-                    User friendUser = extractFriendUser(friend, currentUserId);
+                    User friendUser = friendValidator.extractFriendUser(friend, currentUserId);
 
                     boolean online = webSocketSessionRegistry.isOnline(friendUser.getId());
 
@@ -93,7 +94,7 @@ public class FriendService {
 
     @Transactional(readOnly = true)
     public List<ReceivedFriendRequestResponse> findReceivedRequests(Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
         List<Friend> friends = friendRepository.findReceivedRequests(currentUserId, FriendStatus.PENDING);
 
@@ -104,7 +105,7 @@ public class FriendService {
 
     @Transactional(readOnly = true)
     public List<SentFriendRequestResponse> findSentRequests(Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
         List<Friend> friends = friendRepository.findSentRequests(currentUserId, FriendStatus.PENDING);
 
@@ -114,13 +115,13 @@ public class FriendService {
     }
 
     public FriendResponse acceptFriend(Long friendId, Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
-        Friend friend = validateFriend(friendId);
+        Friend friend = friendValidator.validateFriend(friendId);
 
-        validateReceiver(friend, currentUserId);
+        friendValidator.validateReceiver(friend, currentUserId);
 
-        validatePending(friend);
+        friendValidator.validatePending(friend);
 
         friend.acceptFriend();
 
@@ -130,96 +131,36 @@ public class FriendService {
     }
 
     public void rejectFriend(Long friendId, Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
-        Friend friend = validateFriend(friendId);
+        Friend friend = friendValidator.validateFriend(friendId);
 
-        validateReceiver(friend, currentUserId);
+        friendValidator.validateReceiver(friend, currentUserId);
 
-        validatePending(friend);
+        friendValidator.validatePending(friend);
 
         friend.rejectFriend();
     }
 
     public void blockFriend(Long friendId, Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
-        Friend friend = validateFriend(friendId);
+        Friend friend = friendValidator.validateFriend(friendId);
 
-        validateFriendOwner(friend, currentUserId);
+        friendValidator.validateFriendOwner(friend, currentUserId);
 
         friend.block();
     }
 
     public void deleteFriend(Long friendId, Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
-        Friend friend = validateFriend(friendId);
+        Friend friend = friendValidator.validateFriend(friendId);
 
-        validateFriendOwner(friend, currentUserId);
+        friendValidator.validateFriendOwner(friend, currentUserId);
 
-        validateDeletable(friend);
+        friendValidator.validateDeletable(friend);
 
         friend.deleteFriend();
-    }
-
-    private User validateUser(Long receiverId) {
-        User user = userRepository.findById(receiverId).orElseThrow(
-                () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
-        );
-
-        if (user.getUserStatus() != UserStatus.ACTIVE) {
-            throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
-        }
-
-        return user;
-    }
-
-    private Friend validateFriend(Long friendId) {
-        return friendRepository.findByIdWithUsers(friendId).orElseThrow(
-                () -> new BaseException(ErrorEnum.FRIEND_NOT_FOUND)
-        );
-    }
-
-    private void validateReceiver(Friend friend, Long currentUserId) {
-        if (!friend.getReceiver().getId().equals(currentUserId)) {
-            throw new BaseException(ErrorEnum.FRIEND_FORBIDDEN);
-        }
-    }
-
-    private void validatePending(Friend friend) {
-        if (friend.getFriendStatus() != FriendStatus.PENDING) {
-            throw new BaseException(ErrorEnum.INVALID_FRIEND_STATUS);
-        }
-    }
-
-    private void validateMyself(Long friendId, Long currentUserId) {
-        if (currentUserId.equals(friendId)) {
-            throw new BaseException(ErrorEnum.CANNOT_ADD_MYSELF);
-        }
-    }
-
-    private void validateFriendOwner(Friend friend, Long currentUserId) {
-        boolean owner = friend.getRequester().getId().equals(currentUserId) || friend.getReceiver().getId().equals(currentUserId);
-
-        if (!owner) {
-            throw new BaseException(ErrorEnum.FRIEND_FORBIDDEN);
-        }
-    }
-
-    private void validateDeletable(Friend friend) {
-        if (friend.getFriendStatus() != FriendStatus.ACCEPTED) {
-            throw new BaseException(ErrorEnum.INVALID_FRIEND_STATUS);
-        }
-    }
-
-    private User extractFriendUser(Friend friend, Long currentUserId) {
-        return friend.getRequester().getId().equals(currentUserId) ? friend.getReceiver() : friend.getRequester();
-    }
-
-    private void validateFriendStatus(Friend friend) {
-        if (friend.getFriendStatus() != FriendStatus.REJECTED && friend.getFriendStatus() != FriendStatus.DELETED) {
-            throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS);
-        }
     }
 }

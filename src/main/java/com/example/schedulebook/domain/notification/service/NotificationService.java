@@ -1,7 +1,5 @@
 package com.example.schedulebook.domain.notification.service;
 
-import com.example.schedulebook.common.enums.ErrorEnum;
-import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.domain.notification.dto.response.NotificationDetailResponse;
 import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
@@ -12,9 +10,9 @@ import com.example.schedulebook.domain.notification.enums.NotificationEventType;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.publisher.NotificationEventPublisher;
 import com.example.schedulebook.domain.notification.repository.NotificationRepository;
+import com.example.schedulebook.domain.notification.validator.NotificationValidator;
 import com.example.schedulebook.domain.user.entity.User;
-import com.example.schedulebook.domain.user.enums.UserStatus;
-import com.example.schedulebook.domain.user.repository.UserRepository;
+import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,9 +28,10 @@ import java.util.function.Supplier;
 @Transactional
 public class NotificationService {
     private final NotificationRepository notificationRepository;
-    private final UserRepository userRepository;
     private final NotificationEventPublisher notificationEventPublisher;
     private final AfterCommitExecutor afterCommitExecutor;
+    private final UserValidator userValidator;
+    private final NotificationValidator notificationValidator;
 
     public void createFriendRequestNotification(Long receiverId, String requesterNickname, Long friendId) {
         createNotification(
@@ -96,7 +95,7 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public List<NotificationSummaryResponse> findAllMyNotification(Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
         List<Notification> notifications = notificationRepository.findAllByReceiverId(currentUserId);
 
@@ -107,18 +106,18 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public NotificationDetailResponse findOneMyNotification(Long notificationId, Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
-        Notification notification = validateNotification(notificationId);
+        Notification notification = notificationValidator.validateNotification(notificationId);
 
-        validateNotificationOwner(notification, currentUserId);
+        notificationValidator.validateNotificationOwner(notification, currentUserId);
 
         return NotificationDetailResponse.from(notification);
     }
 
     @Transactional(readOnly = true)
     public UnreadNotificationCountResponse getUnreadCount(Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
         long count = notificationRepository.countUnreadNotifications(currentUserId);
 
@@ -126,11 +125,11 @@ public class NotificationService {
     }
 
     public void readNotification(Long notificationId, Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
-        Notification notification = validateNotification(notificationId);
+        Notification notification = notificationValidator.validateNotification(notificationId);
 
-        validateNotificationOwner(notification, currentUserId);
+        notificationValidator.validateNotificationOwner(notification, currentUserId);
 
         notification.read();
 
@@ -149,7 +148,7 @@ public class NotificationService {
     }
 
     public void readAllNotifications(Long currentUserId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
         notificationRepository.readAllNotifications(currentUserId);
 
@@ -168,12 +167,12 @@ public class NotificationService {
     }
 
     private Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
-        User receiver = validateUser(receiverId);
+        User receiver = userValidator.validateActiveUser(receiverId);
         return saveNotification(receiver, notificationType, title, content, targetId);
     }
 
     private Notification createNotification(User receiver, NotificationType notificationType, String title, String content, Long targetId) {
-        validateUserStatus(receiver);
+        userValidator.validateUserStatus(receiver);
         return saveNotification(receiver, notificationType, title, content, targetId);
     }
 
@@ -187,34 +186,6 @@ public class NotificationService {
         );
 
         return notificationRepository.save(notification);
-    }
-
-    private User validateUser(Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
-        );
-
-        validateUserStatus(user);
-
-        return user;
-    }
-
-    private void validateUserStatus(User user) {
-        if (user.getUserStatus() != UserStatus.ACTIVE) {
-            throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
-        }
-    }
-
-    private Notification validateNotification(Long notificationId) {
-        return notificationRepository.findByIdWithReceiver(notificationId).orElseThrow(
-                () -> new BaseException(ErrorEnum.NOTIFICATION_NOT_FOUND)
-        );
-    }
-
-    private void validateNotificationOwner(Notification notification, Long currentUserId) {
-        if (!notification.getReceiver().getId().equals(currentUserId)) {
-            throw new BaseException(ErrorEnum.NOTIFICATION_FORBIDDEN);
-        }
     }
 
     private void publishAfterCommit(Supplier<NotificationEventResponse> responseSupplier) {

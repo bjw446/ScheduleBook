@@ -9,6 +9,7 @@ import com.example.schedulebook.domain.presence.dto.response.UserPresenceRespons
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
+import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PresenceService {
     private final WebSocketSessionRegistry webSocketSessionRegistry;
     private final FriendRepository friendRepository;
-    private final UserRepository userRepository;
+    private final UserValidator userValidator;
 
     @Transactional(readOnly = true)
     public UserPresenceResponse findPresence(Long currentUserId, Long targetUserId) {
@@ -30,22 +31,12 @@ public class PresenceService {
             throw new BaseException(ErrorEnum.PRESENCE_ACCESS_DENIED);
         }
 
-        validateTargetUser(targetUserId);
+        userValidator.validateActiveUser(targetUserId);
 
         return new UserPresenceResponse(
                 targetUserId,
                 webSocketSessionRegistry.isOnline(targetUserId),
                 webSocketSessionRegistry.getSessionCount(targetUserId)
         );
-    }
-
-    private void validateTargetUser(Long targetUserId) {
-        User user = userRepository.findById(targetUserId).orElseThrow(
-                () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
-        );
-
-        if (user.getUserStatus() != UserStatus.ACTIVE) {
-            throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
-        }
     }
 }
