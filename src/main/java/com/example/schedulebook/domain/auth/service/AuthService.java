@@ -26,7 +26,12 @@ public class AuthService {
     private final UserValidator userValidator;
 
     public SignupResponse signup(SignupRequest request) {
-        userValidator.validateDuplicateUser(request);
+        userValidator.validateDuplicateUser(
+                request.loginId(),
+                request.email(),
+                request.nickname(),
+                request.phoneNumber()
+        );
 
         User user = User.create(
                 request.loginId(),

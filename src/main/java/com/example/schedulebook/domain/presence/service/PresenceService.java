@@ -18,10 +18,13 @@ public class PresenceService {
 
     @Transactional(readOnly = true)
     public UserPresenceResponse findPresence(Long currentUserId, Long targetUserId) {
-        userValidator.validateActiveUser(targetUserId);
+        if (currentUserId.equals(targetUserId)) {
+            userValidator.validateActiveUser(targetUserId);
 
-        if (!currentUserId.equals(targetUserId)) {
+        } else {
             friendValidator.validateFriendRelation(currentUserId, targetUserId);
+
+            userValidator.validateActiveUser(targetUserId);
         }
 
         return new UserPresenceResponse(

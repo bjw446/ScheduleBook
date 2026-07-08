@@ -84,11 +84,7 @@ public class ChatMessageService {
                 replyMessage
         );
 
-        int unreadCount = saveMessage(chatRoom, chatMessage, currentUserId);
-
-        if (chatRoom.getChatRoomType() == ChatRoomType.DIRECT) {
-            rejoinLeftMembers(chatRoom.getId(), currentUserId, chatMessage.getCreatedAt());
-        }
+        int unreadCount = saveMessage(chatRoom, chatMessage, currentUserId, ChatRoomType.DIRECT);
 
         chatMessagePublisher.publishMessage(chatMessage, unreadCount);
     }
@@ -272,6 +268,20 @@ public class ChatMessageService {
         chatMessageRepository.save(chatMessage);
 
         chatRoom.updateLastMessage(chatMessage);
+
+        updateUnreadCount(chatRoom, senderId);
+
+        return unreadCount(chatRoom, chatMessage);
+    }
+
+    private int saveMessage(ChatRoom chatRoom, ChatMessage chatMessage, Long senderId, ChatRoomType chatRoomType) {
+        chatMessageRepository.save(chatMessage);
+
+        chatRoom.updateLastMessage(chatMessage);
+
+        if (chatRoom.getChatRoomType() == chatRoomType) {
+            rejoinLeftMembers(chatRoom.getId(), senderId, chatMessage.getCreatedAt());
+        }
 
         updateUnreadCount(chatRoom, senderId);
 
