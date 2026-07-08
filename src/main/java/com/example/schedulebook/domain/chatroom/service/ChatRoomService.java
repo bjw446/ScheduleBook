@@ -17,10 +17,10 @@ import com.example.schedulebook.domain.chatroom.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chatroom.entity.DirectChatRoom;
 import com.example.schedulebook.domain.chatroom.enums.ChatRoomType;
 import com.example.schedulebook.domain.chatroom.projection.OpponentInfoProjection;
-import com.example.schedulebook.domain.friend.enums.FriendStatus;
-import com.example.schedulebook.domain.friend.repository.FriendRepository;
+import com.example.schedulebook.domain.chatroom.validator.ChatRoomValidator;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.repository.UserRepository;
+import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -40,18 +40,19 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final UserRepository userRepository;
-    private final FriendRepository friendRepository;
     private final DirectChatRoomRepository directChatRoomRepository;
     private final ChatRoomLifecycleManager chatRoomLifecycleManager;
+    private final UserValidator userValidator;
+    private final ChatRoomValidator chatRoomValidator;
 
     public ChatRoomResponse createDirectRoom(Long currentUserId, Long friendId) {
-        validateMyself(currentUserId, friendId);
+        chatRoomValidator.validateMyself(currentUserId, friendId);
 
-        User currentUser = getUser(currentUserId);
+        User currentUser = userValidator.validateActiveUser(currentUserId);
 
-        User friendUser = getUser(friendId);
+        User friendUser = userValidator.validateActiveUser(friendId);
 
-        validateFriend(currentUserId, friendId);
+        chatRoomValidator.validateFriend(currentUserId, friendId);
 
         try {
             Optional<DirectChatRoom> existingRoom = findDirectRoom(currentUserId, friendId);
@@ -87,9 +88,9 @@ public class ChatRoomService {
     }
 
     public ChatRoomResponse createGroupRoom(Long currentUserId, GroupChatRoomCreateRequest request) {
-        validateInviteMembers(currentUserId, request.memberIds());
+        chatRoomValidator.validateInviteMembers(currentUserId, request.memberIds());
 
-        User owner = getUser(currentUserId);
+        User owner = userValidator.validateActiveUser(currentUserId);
 
         List<User> members = userRepository.findAllById(request.memberIds());
 
@@ -113,13 +114,13 @@ public class ChatRoomService {
     }
 
     public ChatRoomResponse inviteMembers(Long currentUserId, Long roomId, ChatRoomInviteRequest request) {
-        ChatRoom chatRoom = validateChatRoom(roomId);
+        ChatRoom chatRoom = chatRoomValidator.validateChatRoom(roomId);
 
-        validateChatRoomMember(currentUserId, roomId);
+        chatRoomValidator.validateChatRoomMember(currentUserId, roomId);
 
-        validateChatRoomType(chatRoom);
+        chatRoomValidator.validateChatRoomType(chatRoom);
 
-        validateInviteMembers(currentUserId, request.memberIds());
+        chatRoomValidator.validateInviteMembers(currentUserId, request.memberIds());
 
         List<User> users = userRepository.findAllById(request.memberIds());
 
@@ -134,7 +135,7 @@ public class ChatRoomService {
         }
 
         if (!invitedUsers.isEmpty()) {
-            chatRoomLifecycleManager.afterMemberInvited(chatRoom, getUser(currentUserId), invitedUsers);
+            chatRoomLifecycleManager.afterMemberInvited(chatRoom, userValidator.validateActiveUser(currentUserId), invitedUsers);
         }
 
         return ChatRoomResponse.from(chatRoom);
@@ -149,7 +150,7 @@ public class ChatRoomService {
 
     @Transactional(readOnly = true)
     public ChatRoomDetailResponse findChatRoom(Long currentUserId, Long roomId) {
-        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
+        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, roomId);
 
         ChatRoom chatRoom = chatRoomMember.getChatRoom();
 
@@ -165,89 +166,29 @@ public class ChatRoomService {
     }
 
     public ChatRoomResponse updateRoomName(Long currentUserId, Long roomId, ChatRoomUpdateNameRequest request) {
-        ChatRoom chatRoom = validateChatRoom(roomId);
+        ChatRoom chatRoom = chatRoomValidator.validateChatRoom(roomId);
 
-        validateChatRoomMember(currentUserId, roomId);
+        chatRoomValidator.validateChatRoomMember(currentUserId, roomId);
 
-        validateChatRoomType(chatRoom);
+        chatRoomValidator.validateChatRoomType(chatRoom);
 
-        validateUpdateName(chatRoom, request.name().trim());
+        chatRoomValidator.validateUpdateName(chatRoom, request.name().trim());
 
         String oldName = chatRoom.getName();
 
         chatRoom.updateName(request.name().trim());
 
-        chatRoomLifecycleManager.afterRoomNameUpdated(chatRoom, getUser(currentUserId), oldName, request.name().trim());
+        chatRoomLifecycleManager.afterRoomNameUpdated(chatRoom, userValidator.validateActiveUser(currentUserId), oldName, request.name().trim());
 
         return ChatRoomResponse.from(chatRoom);
     }
 
     public void leaveChatRoom(Long currentUserId, Long roomId) {
-        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
+        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, roomId);
 
         ChatRoom chatRoom = chatRoomMember.getChatRoom();
 
         handleLeave(chatRoom, chatRoomMember);
-    }
-
-    private ChatRoomMember validateChatRoomMember(Long currentUserId, Long roomId) {
-        return chatRoomMemberRepository.findActiveByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
-                () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
-        );
-    }
-
-    private void validateFriend(Long currentUserId, Long friendId) {
-        if (!friendRepository.existsAcceptedFriend(currentUserId, friendId, FriendStatus.ACCEPTED)) {
-            throw new BaseException(ErrorEnum.FRIEND_NOT_FOUND);
-        }
-    }
-
-    private void validateMyself(Long currentUserId, Long friendId) {
-        if (currentUserId.equals(friendId)) {
-            throw new BaseException(ErrorEnum.INVALID_CHAT_TARGET);
-        }
-    }
-
-    private ChatRoom validateChatRoom(Long roomId) {
-        return chatRoomRepository.findById(roomId).orElseThrow(
-                () -> new BaseException(ErrorEnum.CHAT_ROOM_NOT_FOUND)
-        );
-    }
-
-    private void validateInviteMembers(Long currentUserId, List<Long> memberIds) {
-        if (memberIds.contains(currentUserId)) {
-            throw new BaseException(ErrorEnum.INVALID_CHAT_TARGET);
-        }
-
-        Set<Long> uniqueIds = new HashSet<>(memberIds);
-
-        if (uniqueIds.size() != memberIds.size()) {
-            throw new BaseException(ErrorEnum.INVALID_INPUT);
-        }
-
-        List<User> users = userRepository.findAllById(memberIds);
-
-        if (users.size() != memberIds.size()) {
-            throw new BaseException(ErrorEnum.USER_NOT_FOUND);
-        }
-
-        long friendCount = friendRepository.countAcceptedFriends(currentUserId, memberIds, FriendStatus.ACCEPTED);
-
-        if (friendCount != memberIds.size()) {
-            throw new BaseException(ErrorEnum.FRIEND_NOT_FOUND);
-        }
-    }
-
-    private void validateChatRoomType(ChatRoom chatRoom) {
-        if (chatRoom.getChatRoomType() != ChatRoomType.GROUP) {
-            throw new BaseException(ErrorEnum.INVALID_CHAT_ROOM_TYPE);
-        }
-    }
-
-    private void validateUpdateName(ChatRoom chatRoom, String newName) {
-        if (chatRoom.getName().trim().equals(newName.trim())) {
-            throw new BaseException(ErrorEnum.INVALID_INPUT);
-        }
     }
 
     private boolean processInvitation(ChatRoom chatRoom, User user, LocalDateTime now) {
@@ -270,12 +211,6 @@ public class ChatRoomService {
         chatRoomMemberRepository.save(chatRoomMember);
 
         return true;
-    }
-
-    private User getUser(Long userId) {
-        return userRepository.findById(userId).orElseThrow(
-                () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
-        );
     }
 
     private Optional<DirectChatRoom> findDirectRoom(Long userId1, Long userId2) {

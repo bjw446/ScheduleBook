@@ -1,7 +1,5 @@
 package com.example.schedulebook.domain.comment.service;
 
-import com.example.schedulebook.common.enums.ErrorEnum;
-import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.comment.dto.request.CreateScheduleCommentRequest;
 import com.example.schedulebook.domain.comment.dto.request.UpdateScheduleCommentRequest;
 import com.example.schedulebook.domain.comment.dto.response.CommentEventResponse;
@@ -13,12 +11,12 @@ import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
 import com.example.schedulebook.domain.comment.event.CommentEvent;
 import com.example.schedulebook.domain.comment.publisher.CommentPublisher;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
+import com.example.schedulebook.domain.comment.validator.CommentValidator;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
-import com.example.schedulebook.domain.schedule.validator.ScheduleAccessValidator;
+import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
 import com.example.schedulebook.domain.user.entity.User;
-import com.example.schedulebook.domain.user.enums.UserStatus;
-import com.example.schedulebook.domain.user.repository.UserRepository;
+import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -34,20 +32,21 @@ import java.util.stream.Collectors;
 public class CommentService {
     private final CommentRepository commentRepository;
     private final ScheduleRepository scheduleRepository;
-    private final UserRepository userRepository;
     private final CommentPublisher commentPublisher;
     private final ApplicationEventPublisher eventPublisher;
-    private final ScheduleAccessValidator scheduleAccessValidator;
+    private final ScheduleValidator scheduleValidator;
+    private final UserValidator userValidator;
+    private final CommentValidator commentValidator;
 
     public void createComment(Long currentUserId, Long scheduleId, CreateScheduleCommentRequest request) {
-        User user = validateUser(currentUserId);
+        User user = userValidator.validateActiveUser(currentUserId);
 
-        Schedule schedule = scheduleAccessValidator.validateAccessibleSchedule(scheduleId, currentUserId);
+        Schedule schedule = scheduleValidator.validateAccessibleSchedule(scheduleId, currentUserId);
 
         Comment parent = null;
 
         if (request.parentCommentId() != null) {
-            parent = validateParentComment(scheduleId, request.parentCommentId());
+            parent = commentValidator.validateParentComment(scheduleId, request.parentCommentId());
         }
 
         Comment comment;
@@ -78,9 +77,9 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public ScheduleCommentListResponse findAllComment(Long currentUserId, Long scheduleId) {
-        validateUser(currentUserId);
+        userValidator.validateActiveUser(currentUserId);
 
-        Schedule schedule = scheduleAccessValidator.validateAccessibleSchedule(scheduleId, currentUserId);
+        Schedule schedule = scheduleValidator.validateAccessibleSchedule(scheduleId, currentUserId);
 
         List<Comment> parents = commentRepository.findParentComments(scheduleId);
 
@@ -90,9 +89,9 @@ public class CommentService {
     }
 
     public void updateComment(Long currentUserId, Long commentId, UpdateScheduleCommentRequest request) {
-        Comment comment = validateComment(commentId);
+        Comment comment = commentValidator.validateComment(commentId);
 
-        validateCommentWriter(comment, currentUserId);
+        commentValidator.validateCommentWriter(comment, currentUserId);
 
         comment.updateComment(request.content());
 
@@ -100,9 +99,9 @@ public class CommentService {
     }
 
     public void deleteComment(Long currentUserId, Long commentId) {
-        Comment comment = validateComment(commentId);
+        Comment comment = commentValidator.validateComment(commentId);
 
-        validateCommentWriter(comment, currentUserId);
+        commentValidator.validateCommentWriter(comment, currentUserId);
 
         comment.deleteComment();
 
@@ -111,50 +110,6 @@ public class CommentService {
         int commentCount = getCurrentCommentCount(comment.getSchedule().getId());
 
         publishCommentEvent(comment, CommentEventType.DELETED, commentCount);
-    }
-
-    private User validateUser(Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
-        );
-
-        if (user.getUserStatus() != UserStatus.ACTIVE) {
-            throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
-        }
-
-        return user;
-    }
-
-    private Comment validateParentComment(Long scheduleId, Long parentId) {
-        Comment parent = validateComment(parentId);
-
-        if (!parent.getSchedule().getId().equals(scheduleId)) {
-            throw new BaseException(ErrorEnum.COMMENT_FORBIDDEN);
-        }
-
-        if (parent.getParent() != null) {
-            throw new BaseException(ErrorEnum.INVALID_COMMENT);
-        }
-
-        return parent;
-    }
-
-    private Comment validateComment(Long commentId) {
-        Comment comment = commentRepository.findById(commentId).orElseThrow(
-                () -> new BaseException(ErrorEnum.COMMENT_NOT_FOUND)
-        );
-
-        if (comment.isDeleted()) {
-            throw new BaseException(ErrorEnum.COMMENT_ALREADY_DELETE);
-        }
-
-        return comment;
-    }
-
-    private void validateCommentWriter(Comment comment, Long currentUserId) {
-        if (!comment.getWriter().getId().equals(currentUserId)) {
-            throw new BaseException(ErrorEnum.COMMENT_FORBIDDEN);
-        }
     }
 
     private List<ScheduleCommentResponse> createCommentTree(List<Comment> parents, Long currentUserId) {

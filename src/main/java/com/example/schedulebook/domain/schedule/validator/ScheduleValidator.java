@@ -9,11 +9,32 @@ import com.example.schedulebook.domain.scheduleshare.repository.ScheduleShareRep
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.DateTimeException;
+import java.time.YearMonth;
+
 @Component
 @RequiredArgsConstructor
-public class ScheduleAccessValidator {
+public class ScheduleValidator {
     private final ScheduleRepository scheduleRepository;
     private final ScheduleShareRepository scheduleShareRepository;
+
+    public Schedule findSchedule(Long scheduleId) {
+        return scheduleRepository.findById(scheduleId).orElseThrow(
+                () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
+        );
+    }
+
+    public Schedule validateSchedule(Long scheduleId, Long currentUserId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow(
+                () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
+        );
+
+        if (!schedule.getUser().getId().equals(currentUserId)) {
+            throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
+        }
+
+        return schedule;
+    }
 
     public Schedule validateAccessibleSchedule(Long scheduleId, Long currentUserId) {
         Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow(
@@ -29,5 +50,20 @@ public class ScheduleAccessValidator {
         );
 
         return schedule;
+    }
+
+    public void validateYearMonth(int year, int month) {
+        try {
+            YearMonth yearMonth = YearMonth.of(year, month);
+
+        } catch (DateTimeException e) {
+            throw new BaseException(ErrorEnum.INVALID_SCHEDULE_MONTH);
+        }
+    }
+
+    public void validateScheduleOwner(Schedule schedule, Long currentUserId) {
+        if (!schedule.getUser().getId().equals(currentUserId)) {
+            throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
+        }
     }
 }

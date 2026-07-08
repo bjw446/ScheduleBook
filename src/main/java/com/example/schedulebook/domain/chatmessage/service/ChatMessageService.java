@@ -9,6 +9,7 @@ import com.example.schedulebook.domain.chatmessage.dto.response.ChatMessageRespo
 import com.example.schedulebook.domain.chatmessage.dto.response.ChatMessageSliceResponse;
 import com.example.schedulebook.domain.chatmessage.publisher.ChatMessagePublisher;
 import com.example.schedulebook.domain.chatmessage.entity.ChatMessage;
+import com.example.schedulebook.domain.chatmessage.validator.ChatMessageValidator;
 import com.example.schedulebook.domain.chatroom.entity.ChatRoom;
 import com.example.schedulebook.domain.chatroom.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chatmessage.enums.ChatMessageType;
@@ -16,7 +17,9 @@ import com.example.schedulebook.domain.chatroom.enums.ChatRoomType;
 import com.example.schedulebook.domain.chatroom.projection.MemberReadStatusProjection;
 import com.example.schedulebook.domain.chatmessage.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chatroom.repository.ChatRoomMemberRepository;
-import com.example.schedulebook.domain.chatroom.repository.ChatRoomRepository;
+import com.example.schedulebook.domain.chatroom.validator.ChatRoomValidator;
+import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
+import com.example.schedulebook.domain.scheduleparticipant.validator.ScheduleParticipantValidator;
 import com.example.schedulebook.domain.schedulesnapshot.dto.response.SchedulePreviewDetailResponse;
 import com.example.schedulebook.domain.schedulesnapshot.dto.response.ScheduleSnapshotDiffResponse;
 import com.example.schedulebook.domain.schedulesnapshot.dto.response.ScheduleSnapshotHistoryResponse;
@@ -26,16 +29,13 @@ import com.example.schedulebook.domain.schedulesnapshot.entity.ScheduleSnapshot;
 import com.example.schedulebook.domain.scheduleparticipant.publisher.ScheduleParticipantPublisher;
 import com.example.schedulebook.domain.scheduleshare.publisher.ScheduleSharePublisher;
 import com.example.schedulebook.domain.scheduleparticipant.repository.ScheduleParticipantRepository;
-import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.schedulesnapshot.repository.ScheduleSnapshotHistoryRepository;
 import com.example.schedulebook.domain.schedulesnapshot.service.ScheduleSnapshotComparator;
 import com.example.schedulebook.domain.schedulesnapshot.service.ScheduleSnapshotHistoryManager;
 import com.example.schedulebook.domain.scheduleshare.entity.ScheduleShare;
-import com.example.schedulebook.domain.scheduleshare.enums.ScheduleShareStatus;
 import com.example.schedulebook.domain.scheduleshare.repository.ScheduleShareRepository;
 import com.example.schedulebook.domain.user.entity.User;
-import com.example.schedulebook.domain.user.enums.UserStatus;
-import com.example.schedulebook.domain.user.repository.UserRepository;
+import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -50,10 +50,8 @@ import static com.example.schedulebook.common.consts.CommonConst.MAX_PAGE_SIZE;
 @RequiredArgsConstructor
 @Transactional
 public class ChatMessageService {
-    private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final ChatMessageRepository chatMessageRepository;
-    private final ScheduleRepository scheduleRepository;
     private final ScheduleSharePublisher scheduleSharePublisher;
     private final ChatMessagePublisher chatMessagePublisher;
     private final ScheduleSnapshotHistoryRepository scheduleSnapshotHistoryRepository;
@@ -62,17 +60,21 @@ public class ChatMessageService {
     private final ChatUnreadCountManager chatUnreadCountManager;
     private final ScheduleShareRepository scheduleShareRepository;
     private final ScheduleParticipantRepository scheduleParticipantRepository;
-    private final UserRepository userRepository;
     private final ScheduleParticipantPublisher scheduleParticipantPublisher;
+    private final UserValidator userValidator;
+    private final ScheduleValidator scheduleValidator;
+    private final ChatRoomValidator chatRoomValidator;
+    private final ChatMessageValidator chatMessageValidator;
+    private final ScheduleParticipantValidator scheduleParticipantValidator;
 
     public void sendMessage(Long currentUserId, ChatMessageSendRequest request) {
-        ChatRoom chatRoom = validateChatRoom(request.roomId());
+        ChatRoom chatRoom = chatRoomValidator.validateChatRoom(request.roomId());
 
-        User sender = validateMember(chatRoom.getId(), currentUserId);
+        User sender = chatRoomValidator.validateMember(chatRoom.getId(), currentUserId);
 
-        String content = validateContent(request.content());
+        String content = chatMessageValidator.validateContent(request.content());
 
-        ChatMessage replyMessage = validateReplyMessage(request.replyMessageId(), chatRoom.getId());
+        ChatMessage replyMessage = chatMessageValidator.validateReplyMessage(request.replyMessageId(), chatRoom.getId());
 
         ChatMessage chatMessage = ChatMessage.of(
                 chatRoom,
@@ -99,9 +101,9 @@ public class ChatMessageService {
 
     @Transactional(readOnly = true)
     public ChatMessageSliceResponse findMessages(Long currentUserId, Long roomId, ChatMessageSearchRequest request) {
-        validateChatRoom(roomId);
+        chatRoomValidator.validateChatRoom(roomId);
 
-        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
+        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, roomId);
 
         int requestedSize = request.size() == null ? 30 : request.size();
 
@@ -144,11 +146,11 @@ public class ChatMessageService {
     }
 
     public void readMessage(Long currentUserId, Long roomId, Long lastReadMessageId) {
-        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, roomId);
+        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, roomId);
 
-        ChatMessage chatMessage = validateChatMessage(lastReadMessageId, roomId);
+        ChatMessage chatMessage = chatMessageValidator.validateChatMessageInRoom(lastReadMessageId, roomId);
 
-        validateReadableMessage(chatRoomMember, chatMessage);
+        chatMessageValidator.validateReadableMessage(chatRoomMember, chatMessage);
 
         chatRoomMember.updateLastRead(lastReadMessageId);
 
@@ -160,11 +162,11 @@ public class ChatMessageService {
     }
 
     public void deleteMessage(Long currentUserId, Long roomId, Long messageId) {
-        validateChatRoomMember(currentUserId, roomId);
+        chatRoomValidator.validateChatRoomMember(currentUserId, roomId);
 
-        ChatMessage chatMessage = validateChatMessage(messageId, roomId);
+        ChatMessage chatMessage = chatMessageValidator.validateChatMessageInRoom(messageId, roomId);
 
-        validateDeleteMessage(chatMessage);
+        chatMessageValidator.validateDeleteMessage(chatMessage);
 
         chatMessage.deleteMessage(currentUserId);
 
@@ -172,11 +174,11 @@ public class ChatMessageService {
     }
 
     public void shareSchedule(Long currentUserId, ChatMessageScheduleShareRequest request) {
-        ChatRoom chatRoom = validateChatRoom(request.roomId());
+        ChatRoom chatRoom = chatRoomValidator.validateChatRoom(request.roomId());
 
-        User user = validateMember(request.roomId(), currentUserId);
+        User user = chatRoomValidator.validateMember(request.roomId(), currentUserId);
 
-        Schedule schedule = validateSchedule(currentUserId, request.scheduleId());
+        Schedule schedule = scheduleValidator.validateSchedule(request.scheduleId(), currentUserId);
 
         ChatMessage chatMessage = ChatMessage.schedule(chatRoom, user, schedule);
 
@@ -192,25 +194,25 @@ public class ChatMessageService {
     }
 
     public void acceptSharedSchedule(Long currentUserId, Long messageId) {
-        ChatMessage chatMessage = validateChatMessage(messageId);
+        ChatMessage chatMessage = chatMessageValidator.validateChatMessage(messageId);
 
-        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
+        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
 
-        validateReadableMessage(chatRoomMember, chatMessage);
+        chatMessageValidator.validateReadableMessage(chatRoomMember, chatMessage);
 
-        validateScheduleMessageType(chatMessage);
+        chatMessageValidator.validateScheduleMessageType(chatMessage);
 
-        validateReadableSharedSchedule(chatMessage);
+        chatMessageValidator.validateReadableSharedSchedule(chatMessage);
 
-        Schedule schedule = findSchedule(chatMessage.getScheduleId());
+        Schedule schedule = scheduleValidator.findSchedule(chatMessage.getScheduleId());
 
         if (schedule.getUser().getId().equals(currentUserId)) {
             throw new BaseException(ErrorEnum.CANNOT_SHARE_MYSELF);
         }
 
-        validateAlreadyParticipated(schedule.getId(), currentUserId);
+        scheduleParticipantValidator.validateAlreadyParticipated(schedule.getId(), currentUserId);
 
-        User currentUser = validateUser(currentUserId);
+        User currentUser = userValidator.validateActiveUser(currentUserId);
 
         ScheduleShare scheduleShare = ScheduleShare.create(schedule, currentUser);
 
@@ -224,9 +226,9 @@ public class ChatMessageService {
     }
 
     public void cancelScheduleShare(Long currentUserId, Long messageId) {
-        ChatMessage chatMessage = validateChatMessage(messageId);
+        ChatMessage chatMessage = chatMessageValidator.validateChatMessage(messageId);
 
-        validateScheduleMessageType(chatMessage);
+        chatMessageValidator.validateScheduleMessageType(chatMessage);
 
         chatMessage.cancelScheduleShare(currentUserId);
 
@@ -238,32 +240,32 @@ public class ChatMessageService {
 
     @Transactional(readOnly = true)
     public SchedulePreviewDetailResponse findSharedSchedule(Long currentUserId, Long messageId) {
-        ChatMessage chatMessage = validateChatMessage(messageId);
+        ChatMessage chatMessage = chatMessageValidator.validateChatMessage(messageId);
 
-        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
+        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
 
-        validateReadableMessage(chatRoomMember, chatMessage);
+        chatMessageValidator.validateReadableMessage(chatRoomMember, chatMessage);
 
-        validateScheduleMessageType(chatMessage);
+        chatMessageValidator.validateScheduleMessageType(chatMessage);
 
-        validateReadableSharedSchedule(chatMessage);
+        chatMessageValidator.validateReadableSharedSchedule(chatMessage);
 
-        boolean shared = isAlreadyScheduleShared(chatMessage.getScheduleId(), currentUserId);
+        boolean shared = scheduleParticipantValidator.isAlreadyScheduleShared(chatMessage.getScheduleId(), currentUserId);
 
         return SchedulePreviewDetailResponse.from(chatMessage, false, false, shared);
     }
 
     @Transactional(readOnly = true)
     public List<ScheduleSnapshotHistoryResponse> findScheduleSnapshotHistory(Long currentUserId, Long messageId) {
-        ChatMessage chatMessage = validateChatMessage(messageId);
+        ChatMessage chatMessage = chatMessageValidator.validateChatMessage(messageId);
 
-        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
+        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
 
-        validateReadableMessage(chatRoomMember, chatMessage);
+        chatMessageValidator.validateReadableMessage(chatRoomMember, chatMessage);
 
-        validateScheduleMessageType(chatMessage);
+        chatMessageValidator.validateScheduleMessageType(chatMessage);
 
-        validateReadableSharedSchedule(chatMessage);
+        chatMessageValidator.validateReadableSharedSchedule(chatMessage);
 
         return scheduleSnapshotHistoryRepository.findAllByChatMessageId(chatMessage.getId())
                 .stream()
@@ -273,155 +275,21 @@ public class ChatMessageService {
 
     @Transactional(readOnly = true)
     public ScheduleSnapshotDiffResponse findScheduleSnapshotDiff(Long currentUserId, Long messageId, Long fromVersion, Long toVersion) {
-        ChatMessage chatMessage = validateChatMessage(messageId);
+        ChatMessage chatMessage = chatMessageValidator.validateChatMessage(messageId);
 
-        ChatRoomMember chatRoomMember = validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
+        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
 
-        validateReadableMessage(chatRoomMember, chatMessage);
+        chatMessageValidator.validateReadableMessage(chatRoomMember, chatMessage);
 
-        validateScheduleMessageType(chatMessage);
+        chatMessageValidator.validateScheduleMessageType(chatMessage);
 
-        validateReadableSharedSchedule(chatMessage);
+        chatMessageValidator.validateReadableSharedSchedule(chatMessage);
 
         ScheduleSnapshot before = scheduleSnapshotHistoryManager.findSnapshot(chatMessage, fromVersion);
 
         ScheduleSnapshot after = scheduleSnapshotHistoryManager.findSnapshot(chatMessage, toVersion);
 
         return scheduleSnapshotComparator.compare(before, after);
-    }
-
-    private Schedule validateSchedule(Long currentUserId, Long scheduleId) {
-        Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow(
-                () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
-        );
-
-        if (!schedule.getUser().getId().equals(currentUserId)) {
-            throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
-        }
-
-        return schedule;
-    }
-
-    private void validateScheduleMessageType(ChatMessage chatMessage) {
-        if (chatMessage.getChatMessageType() != ChatMessageType.SCHEDULE) {
-            throw new BaseException(ErrorEnum.INVALID_MESSAGE_TYPE);
-        }
-    }
-
-    private void validateDeleteMessage(ChatMessage chatMessage) {
-        if (chatMessage.isDeleted()) {
-            throw new BaseException(ErrorEnum.CHAT_MESSAGE_ALREADY_DELETE);
-        }
-
-        if (chatMessage.getCreatedAt().isBefore(LocalDateTime.now().minusMinutes(5))) {
-            throw new BaseException(ErrorEnum.CHAT_MESSAGE_DELETE_NOT_ALLOWED);
-        }
-    }
-
-    private ChatRoom validateChatRoom(Long roomId) {
-        return chatRoomRepository.findById(roomId).orElseThrow(
-                () -> new BaseException(ErrorEnum.CHAT_ROOM_NOT_FOUND)
-        );
-    }
-
-    private ChatRoomMember validateChatRoomMember(Long currentUserId, Long roomId) {
-        return chatRoomMemberRepository.findActiveByChatRoomIdAndUserId(roomId, currentUserId).orElseThrow(
-                () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
-        );
-    }
-
-    private User validateMember(Long roomId, Long currentUserId) {
-        return chatRoomMemberRepository.findUserInRoom(roomId, currentUserId).orElseThrow(
-                () -> new BaseException(ErrorEnum.CHAT_ROOM_FORBIDDEN)
-        );
-    }
-
-    private String validateContent(String content) {
-        if (content != null) {
-            content = content.trim();
-        }
-
-        if (content == null || content.isBlank()) {
-            throw new BaseException(ErrorEnum.CHAT_MESSAGE_EMPTY);
-        }
-
-        if (content.length() > 1000) {
-            throw new BaseException(ErrorEnum.CHAT_MESSAGE_TOO_LONG);
-        }
-
-        return content;
-    }
-
-    private ChatMessage validateReplyMessage(Long replyMessageId, Long roomId) {
-        if (replyMessageId == null) {
-            return null;
-        }
-
-        return chatMessageRepository.findByIdAndChatRoomId(replyMessageId, roomId).orElseThrow(
-                () -> new BaseException(ErrorEnum.INVALID_REPLY_MESSAGE)
-        );
-    }
-
-    private ChatMessage validateChatMessage(Long messageId, Long roomId) {
-        if (messageId == null) {
-            throw new BaseException(ErrorEnum.INVALID_INPUT);
-        }
-
-        return chatMessageRepository.findByIdAndChatRoomId(messageId, roomId).orElseThrow(
-                () -> new BaseException(ErrorEnum.CHAT_MESSAGE_NOT_FOUND)
-        );
-    }
-
-    private ChatMessage validateChatMessage(Long messageId) {
-        if (messageId == null) {
-            throw new BaseException(ErrorEnum.INVALID_INPUT);
-        }
-
-        return chatMessageRepository.findByIdWithChatRoom(messageId).orElseThrow(
-                () -> new BaseException(ErrorEnum.CHAT_MESSAGE_NOT_FOUND)
-        );
-    }
-
-    private void validateReadableMessage(ChatRoomMember chatRoomMember, ChatMessage chatMessage) {
-        if (chatMessage.getCreatedAt().isBefore(chatRoomMember.getJoinedAt())) {
-            throw new BaseException(ErrorEnum.CHAT_MESSAGE_FORBIDDEN);
-        }
-    }
-
-    private void validateReadableSharedSchedule(ChatMessage chatMessage) {
-        if (chatMessage.isScheduleShareCanceled()) {
-            throw new BaseException(ErrorEnum.SCHEDULE_SHARE_CANCELED);
-        }
-    }
-
-    private User validateUser(Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new BaseException(ErrorEnum.USER_NOT_FOUND)
-        );
-
-        if (user.getUserStatus() != UserStatus.ACTIVE) {
-            throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
-        }
-
-        return user;
-    }
-
-    private void validateAlreadyParticipated(Long scheduleId, Long currentUserId) {
-        if (scheduleParticipantRepository.existsBySchedule_IdAndUser_Id(scheduleId, currentUserId)) {
-            throw new BaseException(ErrorEnum.SCHEDULE_ALREADY_PARTICIPATED);
-        }
-
-        if (isAlreadyScheduleShared(scheduleId, currentUserId)) {
-            throw new BaseException(ErrorEnum.SCHEDULE_ALREADY_SHARED);
-        }
-    }
-
-    private boolean isAlreadyScheduleShared(Long scheduleId, Long currentUserId) {
-        return scheduleShareRepository.existsBySchedule_IdAndSharedUser_IdAndScheduleShareStatus(
-                scheduleId,
-                currentUserId,
-                ScheduleShareStatus.ACTIVE
-        );
     }
 
     private void updateUnreadCount(ChatRoom chatRoom, Long currentUserId) {
@@ -438,12 +306,6 @@ public class ChatMessageService {
 
     private List<MemberReadStatusProjection> readStatuses(Long roomId) {
         return chatRoomMemberRepository.findReadStatuses(roomId);
-    }
-
-    private Schedule findSchedule(Long scheduleId) {
-        return scheduleRepository.findById(scheduleId).orElseThrow(
-                () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
-        );
     }
 
     private void createParticipant(Schedule schedule, User user) {
