@@ -84,17 +84,11 @@ public class ChatMessageService {
                 replyMessage
         );
 
-        chatMessageRepository.save(chatMessage);
-
-        chatRoom.updateLastMessage(chatMessage);
+        int unreadCount = saveMessage(chatRoom, chatMessage, currentUserId);
 
         if (chatRoom.getChatRoomType() == ChatRoomType.DIRECT) {
             rejoinLeftMembers(chatRoom.getId(), currentUserId, chatMessage.getCreatedAt());
         }
-
-        updateUnreadCount(chatRoom, currentUserId);
-
-        int unreadCount = chatUnreadCountManager.calculateUnreadCount(chatMessage, readStatuses(chatRoom.getId()));
 
         chatMessagePublisher.publishMessage(chatMessage, unreadCount);
     }
@@ -154,7 +148,7 @@ public class ChatMessageService {
 
         chatRoomMember.updateLastRead(lastReadMessageId);
 
-        long unreadCount = chatUnreadCountManager.recalculateUnreadCount(chatRoomMember);
+        long unreadCount = unreadCount(chatRoomMember);
 
         chatRoomMember.updateUnreadCount((int) unreadCount);
 
@@ -182,33 +176,17 @@ public class ChatMessageService {
 
         ChatMessage chatMessage = ChatMessage.schedule(chatRoom, user, schedule);
 
-        chatMessageRepository.save(chatMessage);
-
-        chatRoom.updateLastMessage(chatMessage);
-
-        updateUnreadCount(chatRoom, currentUserId);
-
-        int unreadCount = chatUnreadCountManager.calculateUnreadCount(chatMessage, readStatuses(chatRoom.getId()));
+        int unreadCount = saveMessage(chatRoom, chatMessage, currentUserId);
 
         scheduleSharePublisher.publishScheduleShared(chatMessage, unreadCount);
     }
 
     public void acceptSharedSchedule(Long currentUserId, Long messageId) {
-        ChatMessage chatMessage = chatMessageValidator.validateChatMessage(messageId);
-
-        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
-
-        chatMessageValidator.validateReadableMessage(chatRoomMember, chatMessage);
-
-        chatMessageValidator.validateScheduleMessageType(chatMessage);
-
-        chatMessageValidator.validateReadableSharedSchedule(chatMessage);
+        ChatMessage chatMessage = chatMessageValidator.validateReadableScheduleMessage(currentUserId, messageId);
 
         Schedule schedule = scheduleValidator.findSchedule(chatMessage.getScheduleId());
 
-        if (schedule.getUser().getId().equals(currentUserId)) {
-            throw new BaseException(ErrorEnum.CANNOT_SHARE_MYSELF);
-        }
+        userValidator.validateShareMyself(currentUserId, schedule.getUser().getId());
 
         scheduleParticipantValidator.validateAlreadyParticipated(schedule.getId(), currentUserId);
 
@@ -232,7 +210,7 @@ public class ChatMessageService {
 
         chatMessage.cancelScheduleShare(currentUserId);
 
-        int unreadCount = chatUnreadCountManager.calculateUnreadCount(chatMessage, readStatuses(chatMessage.getChatRoom().getId()));
+        int unreadCount = unreadCount(chatMessage.getChatRoom(), chatMessage);
 
         scheduleSharePublisher.publishScheduleShareCanceled(chatMessage, unreadCount);
     }
@@ -240,15 +218,7 @@ public class ChatMessageService {
 
     @Transactional(readOnly = true)
     public SchedulePreviewDetailResponse findSharedSchedule(Long currentUserId, Long messageId) {
-        ChatMessage chatMessage = chatMessageValidator.validateChatMessage(messageId);
-
-        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
-
-        chatMessageValidator.validateReadableMessage(chatRoomMember, chatMessage);
-
-        chatMessageValidator.validateScheduleMessageType(chatMessage);
-
-        chatMessageValidator.validateReadableSharedSchedule(chatMessage);
+        ChatMessage chatMessage = chatMessageValidator.validateReadableScheduleMessage(currentUserId, messageId);
 
         boolean shared = scheduleParticipantValidator.isAlreadyScheduleShared(chatMessage.getScheduleId(), currentUserId);
 
@@ -257,15 +227,7 @@ public class ChatMessageService {
 
     @Transactional(readOnly = true)
     public List<ScheduleSnapshotHistoryResponse> findScheduleSnapshotHistory(Long currentUserId, Long messageId) {
-        ChatMessage chatMessage = chatMessageValidator.validateChatMessage(messageId);
-
-        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
-
-        chatMessageValidator.validateReadableMessage(chatRoomMember, chatMessage);
-
-        chatMessageValidator.validateScheduleMessageType(chatMessage);
-
-        chatMessageValidator.validateReadableSharedSchedule(chatMessage);
+        ChatMessage chatMessage = chatMessageValidator.validateReadableScheduleMessage(currentUserId, messageId);
 
         return scheduleSnapshotHistoryRepository.findAllByChatMessageId(chatMessage.getId())
                 .stream()
@@ -275,15 +237,7 @@ public class ChatMessageService {
 
     @Transactional(readOnly = true)
     public ScheduleSnapshotDiffResponse findScheduleSnapshotDiff(Long currentUserId, Long messageId, Long fromVersion, Long toVersion) {
-        ChatMessage chatMessage = chatMessageValidator.validateChatMessage(messageId);
-
-        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
-
-        chatMessageValidator.validateReadableMessage(chatRoomMember, chatMessage);
-
-        chatMessageValidator.validateScheduleMessageType(chatMessage);
-
-        chatMessageValidator.validateReadableSharedSchedule(chatMessage);
+        ChatMessage chatMessage = chatMessageValidator.validateReadableScheduleMessage(currentUserId, messageId);
 
         ScheduleSnapshot before = scheduleSnapshotHistoryManager.findSnapshot(chatMessage, fromVersion);
 
@@ -312,5 +266,23 @@ public class ChatMessageService {
         ScheduleParticipant scheduleParticipant = ScheduleParticipant.of(schedule, user);
 
         scheduleParticipantRepository.save(scheduleParticipant);
+    }
+
+    private int saveMessage(ChatRoom chatRoom, ChatMessage chatMessage, Long senderId) {
+        chatMessageRepository.save(chatMessage);
+
+        chatRoom.updateLastMessage(chatMessage);
+
+        updateUnreadCount(chatRoom, senderId);
+
+        return unreadCount(chatRoom, chatMessage);
+    }
+
+    private int unreadCount(ChatRoom chatRoom, ChatMessage chatMessage) {
+        return chatUnreadCountManager.calculateUnreadCount(chatMessage, readStatuses(chatRoom.getId()));
+    }
+
+    private long unreadCount(ChatRoomMember chatRoomMember) {
+        return chatUnreadCountManager.recalculateUnreadCount(chatRoomMember);
     }
 }

@@ -29,9 +29,7 @@ public class ScheduleValidator {
                 () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
         );
 
-        if (!schedule.getUser().getId().equals(currentUserId)) {
-            throw new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN);
-        }
+       validateScheduleOwner(schedule, currentUserId);
 
         return schedule;
     }

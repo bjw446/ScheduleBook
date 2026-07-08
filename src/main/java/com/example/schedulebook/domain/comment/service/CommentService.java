@@ -43,19 +43,9 @@ public class CommentService {
 
         Schedule schedule = scheduleValidator.validateAccessibleSchedule(scheduleId, currentUserId);
 
-        Comment parent = null;
+        Comment parent = findParentComment(scheduleId, request.parentCommentId());
 
-        if (request.parentCommentId() != null) {
-            parent = commentValidator.validateParentComment(scheduleId, request.parentCommentId());
-        }
-
-        Comment comment;
-
-        if (parent == null) {
-            comment = Comment.create(schedule, user, request.content());
-        } else {
-            comment = Comment.reply(schedule, user, parent, request.content());
-        }
+        Comment comment = buildComment(schedule, user, request.content(), parent);
 
         Comment savedComment = commentRepository.save(comment);
 
@@ -181,5 +171,21 @@ public class CommentService {
         );
 
         commentPublisher.publish(event);
+    }
+
+    private Comment findParentComment(Long scheduleId, Long parentId) {
+        if (parentId == null) {
+            return null;
+        }
+
+        return commentValidator.validateParentComment(scheduleId, parentId);
+    }
+
+    private Comment buildComment(Schedule schedule, User writer, String content, Comment parent) {
+        if (parent == null) {
+            return Comment.create(schedule, writer, content);
+        }
+
+        return Comment.reply(schedule, writer, parent, content);
     }
 }

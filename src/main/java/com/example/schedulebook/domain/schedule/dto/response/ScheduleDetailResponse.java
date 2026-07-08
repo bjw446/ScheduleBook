@@ -1,6 +1,7 @@
 package com.example.schedulebook.domain.schedule.dto.response;
 
 import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleParticipantInfo;
 import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleParticipantResponse;
 
 import java.time.LocalDate;
@@ -23,9 +24,7 @@ public record ScheduleDetailResponse(
 ) {
     public static ScheduleDetailResponse from(
             Schedule schedule,
-            boolean participated,
-            int participantCount,
-            List<ScheduleParticipantResponse> participants
+            ScheduleParticipantInfo info
     ) {
         return new ScheduleDetailResponse(
                 schedule.getId(),
@@ -37,9 +36,9 @@ public record ScheduleDetailResponse(
                 schedule.getEndTime(),
                 schedule.isStartTimeSpecified(),
                 schedule.isEndTimeSpecified(),
-                participated,
-                participantCount,
-                participants
+                info.participated(),
+                info.participantCount(),
+                info.participants()
         );
     }
 }

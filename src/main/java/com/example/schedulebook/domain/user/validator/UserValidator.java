@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.user.validator;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
 import com.example.schedulebook.domain.user.dto.request.UpdateUserPasswordRequest;
 import com.example.schedulebook.domain.user.dto.request.UpdateUserRequest;
 import com.example.schedulebook.domain.user.entity.User;
@@ -60,6 +61,34 @@ public class UserValidator {
     public void validateUserStatus(User user) {
         if (user.getUserStatus() != UserStatus.ACTIVE) {
             throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
+        }
+    }
+
+    public void validateDuplicateUser(SignupRequest request) {
+        if (userRepository.existsByLoginId(request.loginId())) {
+            throw new BaseException(ErrorEnum.LOGIN_ID_ALREADY_EXISTS);
+        }
+
+        if (userRepository.existsByEmail(request.email())) {
+            throw new BaseException(ErrorEnum.EMAIL_ALREADY_EXISTS);
+        }
+
+        if (userRepository.existsByNickname(request.nickname())) {
+            throw new BaseException(ErrorEnum.NICKNAME_ALREADY_EXISTS);
+        }
+
+        if (userRepository.existsByPhoneNumber(request.phoneNumber())) {
+            throw new BaseException(ErrorEnum.PHONE_NUMBER_ALREADY_EXISTS);
+        }
+    }
+
+    public void validateLoginUserStatus(User user) {
+        if (user.getUserStatus() == UserStatus.WITHDRAW) {
+            throw new BaseException(ErrorEnum.LOGIN_FAILED);
+        }
+
+        if (user.getUserStatus() == UserStatus.DENIED) {
+            throw new BaseException(ErrorEnum.LOGIN_FAILED);
         }
     }
 }

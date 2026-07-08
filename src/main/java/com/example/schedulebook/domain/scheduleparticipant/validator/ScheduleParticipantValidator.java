@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.scheduleparticipant.validator;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.scheduleparticipant.entity.ScheduleParticipant;
 import com.example.schedulebook.domain.scheduleparticipant.repository.ScheduleParticipantRepository;
 import com.example.schedulebook.domain.scheduleshare.enums.ScheduleShareStatus;
 import com.example.schedulebook.domain.scheduleshare.repository.ScheduleShareRepository;
@@ -29,6 +30,12 @@ public class ScheduleParticipantValidator {
                 scheduleId,
                 currentUserId,
                 ScheduleShareStatus.ACTIVE
+        );
+    }
+
+    public ScheduleParticipant validateParticipant(Long scheduleId, Long currentUserId) {
+        return scheduleParticipantRepository.findBySchedule_IdAndUser_Id(scheduleId, currentUserId).orElseThrow(
+                        () -> new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN)
         );
     }
 }

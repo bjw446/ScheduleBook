@@ -65,7 +65,7 @@ public class ScheduleService {
 
         ScheduleParticipantInfo info = scheduleParticipantReader.getParticipantInfo(schedule.getId(), currentUserId);
 
-        return ScheduleDetailResponse.from(schedule, info.participated(), info.participantCount(), info.participants());
+        return ScheduleDetailResponse.from(schedule, info);
     }
 
     @Transactional(readOnly = true)
@@ -74,11 +74,11 @@ public class ScheduleService {
 
         scheduleValidator.validateYearMonth(year, month);
 
-        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate startDate = LocalDate.of(year, month, 1);
 
-        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
 
-        List<Schedule> schedules = scheduleRepository.findAllByUserIdAndScheduleDateBetween(currentUserId, start, end);
+        List<Schedule> schedules = scheduleRepository.findAllByUserIdAndScheduleDateBetween(currentUserId, startDate, endDate);
 
         return schedules.stream()
                 .map(ScheduleSummaryResponse::from)

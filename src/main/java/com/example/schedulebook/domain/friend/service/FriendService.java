@@ -50,9 +50,7 @@ public class FriendService {
 
             existing.reRequest(requester, receiver);
 
-            eventPublisher.publishEvent(new FriendRequestEvent(receiver.getId(), requester.getNickname(), existing.getId()));
-
-            return FriendResponse.from(existing);
+            return completeFriendRequest(existing, requester, receiver);
         }
 
         try {
@@ -60,9 +58,7 @@ public class FriendService {
 
             Friend savedFriend = friendRepository.save(friend);
 
-            eventPublisher.publishEvent(new FriendRequestEvent(receiver.getId(), requester.getNickname(), savedFriend.getId()));
-
-            return FriendResponse.from(savedFriend);
+            return completeFriendRequest(savedFriend, requester, receiver);
 
         } catch (DataIntegrityViolationException e) {
             log.warn("친구 요청 생성 중 중복 에러 발생 (requesterId={}, receiverId={}): {}",
@@ -162,5 +158,11 @@ public class FriendService {
         friendValidator.validateDeletable(friend);
 
         friend.deleteFriend();
+    }
+
+    private FriendResponse completeFriendRequest(Friend friend, User requester, User receiver) {
+        eventPublisher.publishEvent(new FriendRequestEvent(receiver.getId(), requester.getNickname(), friend.getId()));
+
+        return FriendResponse.from(friend);
     }
 }

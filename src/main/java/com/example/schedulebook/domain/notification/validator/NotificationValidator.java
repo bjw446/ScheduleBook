@@ -22,4 +22,12 @@ public class NotificationValidator {
             throw new BaseException(ErrorEnum.NOTIFICATION_FORBIDDEN);
         }
     }
+
+    public Notification validateOwnedNotification(Long notificationId, Long currentUserId) {
+        Notification notification = validateNotification(notificationId);
+
+        validateNotificationOwner(notification, currentUserId);
+
+        return notification;
+    }
 }
