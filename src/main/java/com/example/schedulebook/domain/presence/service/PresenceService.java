@@ -22,7 +22,7 @@ public class PresenceService {
             userValidator.validateActiveUser(targetUserId);
 
         } else {
-            friendValidator.validateFriendRelation(currentUserId, targetUserId);
+            friendValidator.validatePresenceAccess(currentUserId, targetUserId);
 
             userValidator.validateActiveUser(targetUserId);
         }

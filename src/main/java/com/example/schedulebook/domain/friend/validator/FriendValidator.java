@@ -69,4 +69,14 @@ public class FriendValidator {
             throw new BaseException(ErrorEnum.FRIEND_NOT_FOUND);
         }
     }
+
+    public void validatePresenceAccess(Long currentUserId, Long targetUserId) {
+        if (!currentUserId.equals(targetUserId) && !friendRepository.existsAcceptedFriend(
+                currentUserId,
+                targetUserId,
+                FriendStatus.ACCEPTED
+        )) {
+            throw new BaseException(ErrorEnum.PRESENCE_ACCESS_DENIED);
+        }
+    }
 }
