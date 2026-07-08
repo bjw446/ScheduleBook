@@ -62,4 +62,28 @@ public class UserValidator {
             throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
         }
     }
+
+    public void validateDuplicateUser(String loginId, String email, String nickname, String phoneNumber) {
+        if (userRepository.existsByLoginId(loginId)) {
+            throw new BaseException(ErrorEnum.LOGIN_ID_ALREADY_EXISTS);
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            throw new BaseException(ErrorEnum.EMAIL_ALREADY_EXISTS);
+        }
+
+        if (userRepository.existsByNickname(nickname)) {
+            throw new BaseException(ErrorEnum.NICKNAME_ALREADY_EXISTS);
+        }
+
+        if (userRepository.existsByPhoneNumber(phoneNumber)) {
+            throw new BaseException(ErrorEnum.PHONE_NUMBER_ALREADY_EXISTS);
+        }
+    }
+
+    public void validateLoginUserStatus(User user) {
+        if (user.getUserStatus() != UserStatus.ACTIVE) {
+            throw new BaseException(ErrorEnum.LOGIN_FAILED);
+        }
+    }
 }

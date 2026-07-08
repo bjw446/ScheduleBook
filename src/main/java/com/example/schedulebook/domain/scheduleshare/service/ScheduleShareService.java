@@ -1,7 +1,5 @@
 package com.example.schedulebook.domain.scheduleshare.service;
 
-import com.example.schedulebook.common.enums.ErrorEnum;
-import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.friend.validator.FriendValidator;
 import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
 import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleAttendanceResponse;
@@ -10,6 +8,7 @@ import com.example.schedulebook.domain.scheduleparticipant.dto.response.Schedule
 import com.example.schedulebook.domain.scheduleparticipant.service.ScheduleParticipantReader;
 import com.example.schedulebook.domain.scheduleparticipant.publisher.ScheduleAttendancePublisher;
 import com.example.schedulebook.domain.scheduleparticipant.publisher.ScheduleParticipantPublisher;
+import com.example.schedulebook.domain.scheduleparticipant.validator.ScheduleParticipantValidator;
 import com.example.schedulebook.domain.scheduleshare.dto.request.UpdateAttendanceRequest;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.scheduleparticipant.entity.ScheduleParticipant;
@@ -48,6 +47,7 @@ public class ScheduleShareService {
     private final ScheduleValidator scheduleValidator;
     private final ScheduleShareValidator scheduleShareValidator;
     private final FriendValidator friendValidator;
+    private final ScheduleParticipantValidator scheduleParticipantValidator;
 
     public ScheduleShareResponse shareSchedule(Long scheduleId, ScheduleShareRequest request, Long currentUserId) {
         userValidator.validateActiveUser(currentUserId);
@@ -67,9 +67,7 @@ public class ScheduleShareService {
 
             existing.reShare();
 
-            applicationEventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), existing.getId()));
-
-            return ScheduleShareResponse.from(existing);
+            return completeShare(schedule, friendUser, existing);
         }
 
         try {
@@ -79,9 +77,7 @@ public class ScheduleShareService {
 
             createParticipants(schedule, List.of(friendUser));
 
-            applicationEventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), savedScheduleShare.getId()));
-
-            return ScheduleShareResponse.from(savedScheduleShare);
+            return completeShare(schedule, friendUser, savedScheduleShare);
 
         } catch (DataIntegrityViolationException e) {
             ScheduleShare alreadyCreated = scheduleShareRepository.findRelation(scheduleId, friendUser.getId())
@@ -91,9 +87,7 @@ public class ScheduleShareService {
 
             alreadyCreated.reShare();
 
-            applicationEventPublisher.publishEvent(new ScheduleSharedEvent(friendUser.getId(), schedule.getUser().getNickname(), alreadyCreated.getId()));
-
-            return ScheduleShareResponse.from(alreadyCreated);
+            return completeShare(schedule, friendUser, alreadyCreated);
         }
     }
 
@@ -166,10 +160,7 @@ public class ScheduleShareService {
 
         scheduleValidator.validateAccessibleSchedule(scheduleId, currentUserId);
 
-        ScheduleParticipant scheduleParticipant = scheduleParticipantRepository.findBySchedule_IdAndUser_Id(scheduleId, currentUserId)
-                .orElseThrow(
-                        () -> new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN)
-                );
+        ScheduleParticipant scheduleParticipant = scheduleParticipantValidator.validateParticipant(scheduleId, currentUserId);
 
         if (scheduleParticipant.getAttendanceStatus() == request.attendanceStatus()) {
             return;
@@ -210,5 +201,17 @@ public class ScheduleShareService {
                 .toList();
 
         scheduleParticipantRepository.saveAll(participants);
+    }
+
+    private ScheduleShareResponse completeShare(Schedule schedule, User friendUser, ScheduleShare scheduleShare) {
+        applicationEventPublisher.publishEvent(
+                new ScheduleSharedEvent(
+                        friendUser.getId(),
+                        schedule.getUser().getNickname(),
+                        scheduleShare.getId()
+                )
+        );
+
+        return ScheduleShareResponse.from(scheduleShare);
     }
 }

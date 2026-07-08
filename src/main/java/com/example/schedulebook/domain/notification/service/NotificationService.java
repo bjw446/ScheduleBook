@@ -108,9 +108,7 @@ public class NotificationService {
     public NotificationDetailResponse findOneMyNotification(Long notificationId, Long currentUserId) {
         userValidator.validateActiveUser(currentUserId);
 
-        Notification notification = notificationValidator.validateNotification(notificationId);
-
-        notificationValidator.validateNotificationOwner(notification, currentUserId);
+        Notification notification = notificationValidator.validateOwnedNotification(notificationId, currentUserId);
 
         return NotificationDetailResponse.from(notification);
     }
@@ -127,9 +125,7 @@ public class NotificationService {
     public void readNotification(Long notificationId, Long currentUserId) {
         userValidator.validateActiveUser(currentUserId);
 
-        Notification notification = notificationValidator.validateNotification(notificationId);
-
-        notificationValidator.validateNotificationOwner(notification, currentUserId);
+        Notification notification = notificationValidator.validateOwnedNotification(notificationId, currentUserId);
 
         notification.read();
 

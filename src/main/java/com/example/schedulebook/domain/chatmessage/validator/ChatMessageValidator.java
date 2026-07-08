@@ -6,6 +6,7 @@ import com.example.schedulebook.domain.chatmessage.entity.ChatMessage;
 import com.example.schedulebook.domain.chatmessage.enums.ChatMessageType;
 import com.example.schedulebook.domain.chatmessage.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chatroom.entity.ChatRoomMember;
+import com.example.schedulebook.domain.chatroom.validator.ChatRoomValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ChatMessageValidator {
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatRoomValidator chatRoomValidator;
 
     public void validateScheduleMessageType(ChatMessage chatMessage) {
         if (chatMessage.getChatMessageType() != ChatMessageType.SCHEDULE) {
@@ -88,5 +90,19 @@ public class ChatMessageValidator {
         if (chatMessage.isScheduleShareCanceled()) {
             throw new BaseException(ErrorEnum.SCHEDULE_SHARE_CANCELED);
         }
+    }
+
+    public ChatMessage validateReadableScheduleMessage(Long currentUserId, Long messageId) {
+        ChatMessage chatMessage = validateChatMessage(messageId);
+
+        ChatRoomMember chatRoomMember = chatRoomValidator.validateChatRoomMember(currentUserId, chatMessage.getChatRoom().getId());
+
+        validateReadableMessage(chatRoomMember, chatMessage);
+
+        validateScheduleMessageType(chatMessage);
+
+        validateReadableSharedSchedule(chatMessage);
+
+        return chatMessage;
     }
 }

@@ -19,7 +19,6 @@ import com.example.schedulebook.domain.chatroom.enums.ChatRoomType;
 import com.example.schedulebook.domain.chatroom.projection.OpponentInfoProjection;
 import com.example.schedulebook.domain.chatroom.validator.ChatRoomValidator;
 import com.example.schedulebook.domain.user.entity.User;
-import com.example.schedulebook.domain.user.repository.UserRepository;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +38,6 @@ import static com.example.schedulebook.common.consts.CommonConst.UNKNOWN_NICKNAM
 public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
-    private final UserRepository userRepository;
     private final DirectChatRoomRepository directChatRoomRepository;
     private final ChatRoomLifecycleManager chatRoomLifecycleManager;
     private final UserValidator userValidator;
@@ -69,9 +67,7 @@ public class ChatRoomService {
 
             ChatRoomMember member2 = ChatRoomMember.of(chatRoom, friendUser, LocalDateTime.now());
 
-            chatRoomMemberRepository.save(member1);
-
-            chatRoomMemberRepository.save(member2);
+            chatRoomMemberRepository.saveAll(List.of(member1, member2));
 
             directChatRoomRepository.save(DirectChatRoom.of(currentUserId, friendId, chatRoom));
 
@@ -120,9 +116,7 @@ public class ChatRoomService {
 
         chatRoomValidator.validateChatRoomType(chatRoom);
 
-        chatRoomValidator.validateInviteMembers(currentUserId, request.memberIds());
-
-        List<User> users = userRepository.findAllById(request.memberIds());
+        List<User> users = chatRoomValidator.validateInviteMembers(currentUserId, request.memberIds());
 
         List<User> invitedUsers = new ArrayList<>();
 
@@ -194,21 +188,21 @@ public class ChatRoomService {
     private boolean processInvitation(ChatRoom chatRoom, User user, LocalDateTime now) {
         Optional<ChatRoomMember> memberOpt = chatRoomMemberRepository.findByChatRoomIdAndUserId(chatRoom.getId(), user.getId());
 
-        if (memberOpt.isPresent()) {
-            ChatRoomMember chatRoomMember = memberOpt.get();
+        if (memberOpt.isEmpty()) {
+            ChatRoomMember chatRoomMember = ChatRoomMember.of(chatRoom, user, now);
 
-            if (chatRoomMember.getDeletedAt() == null) {
-                return false;
-            }
-
-            chatRoomMember.rejoin(now);
+            chatRoomMemberRepository.save(chatRoomMember);
 
             return true;
         }
 
-        ChatRoomMember chatRoomMember = ChatRoomMember.of(chatRoom, user, now);
+        ChatRoomMember chatRoomMember = memberOpt.get();
 
-        chatRoomMemberRepository.save(chatRoomMember);
+        if (chatRoomMember.getDeletedAt() == null) {
+            return false;
+        }
+
+        chatRoomMember.rejoin(now);
 
         return true;
     }
