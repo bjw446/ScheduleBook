@@ -66,4 +66,31 @@ public class JwtProvider {
             throw new BaseException(ErrorEnum.TOKEN_INVALID);
         }
     }
+
+    public long getRemainingTime(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            return claims.getExpiration().getTime() - System.currentTimeMillis();
+
+        } catch (JwtException e) {
+            throw new BaseException(ErrorEnum.TOKEN_INVALID);
+        }
+    }
+
+    public String generateRefreshToken(Long userId) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + jwtProperties.refreshTokenExpiration());
+
+        return Jwts.builder()
+                .subject(String.valueOf(userId))
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(signingKey)
+                .compact();
+    }
 }

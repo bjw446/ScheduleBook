@@ -1,6 +1,6 @@
 package com.example.schedulebook.common.redis;
 
-import com.example.schedulebook.common.consts.RedisTopic;
+import com.example.schedulebook.common.consts.RedisConst;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.TimeoutOptions;
@@ -71,9 +71,9 @@ public class RedisConfig {
 
         container.setConnectionFactory(connectionFactory);
 
-        container.addMessageListener(notificationListenerAdapter, new PatternTopic(RedisTopic.NOTIFICATION));
+        container.addMessageListener(notificationListenerAdapter, new PatternTopic(RedisConst.NOTIFICATION));
 
-        container.addMessageListener(commentListenerAdapter, new PatternTopic(RedisTopic.COMMENT));
+        container.addMessageListener(commentListenerAdapter, new PatternTopic(RedisConst.COMMENT));
 
         return container;
     }
