@@ -35,7 +35,7 @@ public enum ErrorEnum {
     TOKEN_EXPIRED(401, "만료된 토큰입니다."),
     TOKEN_INVALID(401, "유효하지 않은 토큰입니다."),
     TOKEN_MISSING(401, "토큰이 존재하지 않습니다."),
-    LOGOUT_TOKEN(400, "이미 로그아웃 된 토큰 입니다."),
+    LOGOUT_TOKEN(401, "이미 로그아웃 된 토큰 입니다."),
 
     // Redis
     REDIS_LOCK_CONFLICT(409, "현재 요청이 처리 중입니다. 잠시 후 다시 시도해주세요."),
