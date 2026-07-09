@@ -54,8 +54,6 @@ public class AppConfig implements AsyncConfigurer {
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
 
-        executor.initialize();
-
         return executor;
     }
 }
