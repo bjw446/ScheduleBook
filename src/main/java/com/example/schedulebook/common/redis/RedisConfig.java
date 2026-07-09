@@ -111,4 +111,9 @@ public class RedisConfig {
     public RedisScript<Long> refreshRotateScript() {
         return RedisScript.of(RedisConst.REFRESH_ROTATE_SCRIPT, Long.class);
     }
+
+    @Bean
+    public RedisScript<Long> rateLimitScript() {
+        return RedisScript.of(RedisConst.RATE_LIMIT_SCRIPT, Long.class);
+    }
 }

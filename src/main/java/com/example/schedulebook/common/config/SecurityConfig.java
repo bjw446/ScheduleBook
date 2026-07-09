@@ -1,5 +1,7 @@
 package com.example.schedulebook.common.config;
 
+import com.example.schedulebook.common.filter.CachedBodyFilter;
+import com.example.schedulebook.common.filter.RateLimitFilter;
 import com.example.schedulebook.common.security.CustomAccessDeniedHandler;
 import com.example.schedulebook.common.security.CustomAuthenticationEntryPoint;
 import com.example.schedulebook.common.security.JwtAuthenticationFilter;
@@ -23,7 +25,7 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CachedBodyFilter cachedBodyFilter, RateLimitFilter rateLimitFilter) throws Exception {
 
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -42,7 +44,9 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(cachedBodyFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(rateLimitFilter, CachedBodyFilter.class)
+                .addFilterAfter(jwtAuthenticationFilter, RateLimitFilter.class)
                 .build();
     }
 

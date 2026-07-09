@@ -43,7 +43,9 @@ public enum ErrorEnum {
     REDIS_LOCK_INTERRUPTED(409, "요청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요."),
 
     // Rate Limit
-    LOGIN_RATE_LIMITED(429, "로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요."),
+    LOGIN_ID_RATE_LIMITED(429, "로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요."),
+    LOGIN_IP_RATE_LIMITED(429, "로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요."),
+    RATE_LIMITED_EXCEEDED(429, "너무 많은 요청입니다. 잠시 후 다시 시도해 주세요."),
 
     // Notification
     NOTIFICATION_NOT_FOUND(404, "알림이 존재하지 않습니다"),
