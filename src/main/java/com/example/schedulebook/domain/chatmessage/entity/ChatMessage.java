@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.chatmessage.entity;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.entity.ModifyEntity;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
@@ -14,7 +15,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import static com.example.schedulebook.common.consts.CommonConst.DELETED_MESSAGE;
 
 @Getter
 @Entity
@@ -155,7 +155,7 @@ public class ChatMessage extends ModifyEntity {
         }
 
         this.deleted = true;
-        this.content = DELETED_MESSAGE;
+        this.content = CommonConst.DELETED_MESSAGE;
     }
 
     public void cancelScheduleShare(Long userId) {

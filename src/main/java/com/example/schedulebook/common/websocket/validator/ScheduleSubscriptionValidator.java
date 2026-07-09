@@ -1,5 +1,6 @@
 package com.example.schedulebook.common.websocket.validator;
 
+import com.example.schedulebook.common.consts.WebSocketDestination;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
@@ -11,8 +12,6 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.example.schedulebook.common.consts.WebSocketDestination.SCHEDULE_PREFIX;
-
 @Component
 @RequiredArgsConstructor
 public class ScheduleSubscriptionValidator implements SubscriptionValidator{
@@ -22,7 +21,7 @@ public class ScheduleSubscriptionValidator implements SubscriptionValidator{
 
     @Override
     public boolean supports(String destination) {
-        return destination.startsWith(SCHEDULE_PREFIX());
+        return destination.startsWith(WebSocketDestination.SCHEDULE_PREFIX());
     }
 
     @Override

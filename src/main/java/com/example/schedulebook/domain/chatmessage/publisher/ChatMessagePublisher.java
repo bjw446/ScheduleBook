@@ -1,5 +1,7 @@
 package com.example.schedulebook.domain.chatmessage.publisher;
 
+import com.example.schedulebook.common.consts.CommonConst;
+import com.example.schedulebook.common.consts.WebSocketDestination;
 import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.common.websocket.WebSocketPublisher;
 import com.example.schedulebook.domain.chatmessage.dto.request.PublishChatMessage;
@@ -13,8 +15,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.example.schedulebook.common.consts.CommonConst.DELETED_MESSAGE;
-import static com.example.schedulebook.common.consts.WebSocketDestination.*;
 
 @Component
 @RequiredArgsConstructor
@@ -26,23 +26,23 @@ public class ChatMessagePublisher {
     public void publishMessage(ChatMessage chatMessage, int unreadCount) {
         ChatMessageResponse response = ChatMessageResponse.from(chatMessage, unreadCount);
 
-        webSocketPublisher.sendAfterCommit(CHAT(response.roomId()), response);
+        webSocketPublisher.sendAfterCommit(WebSocketDestination.CHAT(response.roomId()), response);
     }
 
     public void publishReadMessageAfterCommit(Long roomId, Long currentUserId, Long lastReadMessageId) {
         webSocketPublisher.sendAfterCommit(
-                CHAT_READ(roomId),
+                WebSocketDestination.CHAT_READ(roomId),
                 ReadMessageEvent.from(roomId, currentUserId, lastReadMessageId)
         );
     }
 
     public void publishDeleteMessageAfterCommit(Long roomId, Long messageId) {
         webSocketPublisher.sendAfterCommit(
-                CHAT_DELETE(roomId),
+                WebSocketDestination.CHAT_DELETE(roomId),
                 new ChatMessageDeletedEvent(
                         roomId,
                         messageId,
-                        DELETED_MESSAGE
+                        CommonConst.DELETED_MESSAGE
                 )
         );
     }
@@ -56,7 +56,7 @@ public class ChatMessagePublisher {
         afterCommitExecutor.execute(() -> {
             responses.forEach(response ->
                     webSocketPublisher.send(
-                            CHAT(response.roomId()),
+                            WebSocketDestination.CHAT(response.roomId()),
                             response
                     )
             );

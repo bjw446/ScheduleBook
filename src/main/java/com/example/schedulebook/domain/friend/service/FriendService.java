@@ -11,7 +11,7 @@ import com.example.schedulebook.domain.friend.dto.response.SentFriendRequestResp
 import com.example.schedulebook.domain.friend.entity.Friend;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import com.example.schedulebook.domain.friend.event.FriendAcceptedEvent;
-import com.example.schedulebook.domain.friend.event.FriendRequestEvent;
+import com.example.schedulebook.domain.friend.event.FriendRequestedEvent;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
 import com.example.schedulebook.domain.friend.validator.FriendValidator;
 import com.example.schedulebook.domain.user.entity.User;
@@ -163,7 +163,7 @@ public class FriendService {
     }
 
     private FriendResponse completeFriendRequest(Friend friend, User requester, User receiver) {
-        eventPublisher.publishEvent(new FriendRequestEvent(receiver.getId(), requester.getNickname(), friend.getId()));
+        eventPublisher.publishEvent(new FriendRequestedEvent(receiver.getId(), requester.getNickname(), friend.getId()));
 
         return FriendResponse.from(friend);
     }

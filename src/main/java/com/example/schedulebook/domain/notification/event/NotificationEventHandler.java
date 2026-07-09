@@ -4,7 +4,7 @@ import com.example.schedulebook.domain.comment.entity.Comment;
 import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
 import com.example.schedulebook.domain.friend.event.FriendAcceptedEvent;
-import com.example.schedulebook.domain.friend.event.FriendRequestEvent;
+import com.example.schedulebook.domain.friend.event.FriendRequestedEvent;
 import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
 import com.example.schedulebook.domain.notification.enums.NotificationEventType;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
@@ -38,7 +38,7 @@ public class NotificationEventHandler {
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleFriendRequest(FriendRequestEvent event) {
+    public void handleFriendRequest(FriendRequestedEvent event) {
         try {
             notificationService.createFriendRequestNotification(event.receiverId(), event.requesterNickname(), event.friendId());
 

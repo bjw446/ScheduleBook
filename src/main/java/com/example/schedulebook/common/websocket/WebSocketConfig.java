@@ -1,6 +1,7 @@
 package com.example.schedulebook.common.websocket;
 
 import com.example.schedulebook.common.security.JwtChannelInterceptor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -11,15 +12,12 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 @Configuration
 @EnableWebSocketMessageBroker
+@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    private final JwtChannelInterceptor stompHandler;
+    private final JwtChannelInterceptor jwtChannelInterceptor;
 
     @Value("${app.websocket.allowed-origins:*}")
     private String[] allowedOrigins;
-
-    public WebSocketConfig(JwtChannelInterceptor stompHandler) {
-        this.stompHandler = stompHandler;
-    }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -37,6 +35,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(stompHandler);
+        registration.interceptors(jwtChannelInterceptor);
     }
 }

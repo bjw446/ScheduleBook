@@ -1,5 +1,6 @@
 package com.example.schedulebook.common.redis;
 
+import com.example.schedulebook.common.consts.RedisTopic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.TimeoutOptions;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -36,7 +38,7 @@ public class RedisConfig {
                 .build();
 
         LettuceConnectionFactory factory = new LettuceConnectionFactory(
-                new org.springframework.data.redis.connection.RedisStandaloneConfiguration(redisHost, redisPort), clientConfiguration
+                new RedisStandaloneConfiguration(redisHost, redisPort), clientConfiguration
         );
 
         return factory;
@@ -69,9 +71,9 @@ public class RedisConfig {
 
         container.setConnectionFactory(connectionFactory);
 
-        container.addMessageListener(notificationListenerAdapter, new PatternTopic("notification"));
+        container.addMessageListener(notificationListenerAdapter, new PatternTopic(RedisTopic.NOTIFICATION));
 
-        container.addMessageListener(commentListenerAdapter, new PatternTopic("comment"));
+        container.addMessageListener(commentListenerAdapter, new PatternTopic(RedisTopic.COMMENT));
 
         return container;
     }

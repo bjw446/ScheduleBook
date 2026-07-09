@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.comment.entity;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.entity.DeleteEntity;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.user.entity.User;
@@ -8,7 +9,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import static com.example.schedulebook.common.consts.CommonConst.DELETED_COMMENT;
 
 @Getter
 @Entity
@@ -73,6 +73,6 @@ public class Comment extends DeleteEntity {
 
     public void deleteComment() {
         delete();
-        this.content = DELETED_COMMENT;
+        this.content = CommonConst.DELETED_COMMENT;
     }
 }

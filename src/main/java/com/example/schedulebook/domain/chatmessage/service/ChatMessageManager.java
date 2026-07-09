@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.chatmessage.service;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.domain.chatmessage.dto.request.PublishChatMessage;
 import com.example.schedulebook.domain.chatmessage.entity.ChatMessage;
 import com.example.schedulebook.domain.chatroom.entity.ChatRoom;
@@ -15,7 +16,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.example.schedulebook.common.consts.CommonConst.MAX_NAMES;
 
 @Component
 @RequiredArgsConstructor
@@ -108,7 +108,7 @@ public class ChatMessageManager {
     }
 
     private String createInvitedNames(List<User> users) {
-        if (users.size() <= MAX_NAMES) {
+        if (users.size() <= CommonConst.MAX_NAMES) {
             return users.stream()
                     .map(user -> user.getNickname() + "님")
                     .collect(Collectors.joining(", "));
@@ -116,10 +116,10 @@ public class ChatMessageManager {
 
         String firstUsers = users
                 .stream()
-                .limit(MAX_NAMES)
+                .limit(CommonConst.MAX_NAMES)
                 .map(user -> user.getNickname() + "님")
                 .collect(Collectors.joining(", "));
 
-        return firstUsers + " 외 " + (users.size() - MAX_NAMES) + "명";
+        return firstUsers + " 외 " + (users.size() - CommonConst.MAX_NAMES) + "명";
     }
 }

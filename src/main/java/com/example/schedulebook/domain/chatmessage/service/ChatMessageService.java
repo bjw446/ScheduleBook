@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.chatmessage.service;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.chatmessage.dto.request.ChatMessageScheduleShareRequest;
@@ -44,7 +45,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static com.example.schedulebook.common.consts.CommonConst.MAX_PAGE_SIZE;
 
 @Service
 @RequiredArgsConstructor
@@ -97,7 +97,7 @@ public class ChatMessageService {
 
         int requestedSize = request.size() == null ? 30 : request.size();
 
-        int pageSize = requestedSize <= 0 ? 30 : Math.min(requestedSize, MAX_PAGE_SIZE);
+        int pageSize = requestedSize <= 0 ? 30 : Math.min(requestedSize, CommonConst.MAX_PAGE_SIZE);
 
         List<ChatMessage> messages = chatMessageRepository.findMessages(
                 roomId,

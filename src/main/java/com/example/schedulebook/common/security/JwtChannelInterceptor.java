@@ -30,29 +30,33 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
 
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-            log.debug("STOMP CONNECT 수신: headerKeys={}", accessor.toNativeHeaderMap().keySet());
-
-            String authHeader = accessor.getFirstNativeHeader("Authorization");
-
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                throw new BaseException(ErrorEnum.TOKEN_MISSING);
-            }
-
-            String token = authHeader.substring(7);
-
-            jwtProvider.validateToken(token);
-
-            Long userId = jwtProvider.extractUserId(token);
-
-            UserPrincipal userPrincipal = new UserPrincipal(userId);
-
-            accessor.setUser(new UsernamePasswordAuthenticationToken(
-                    userPrincipal, null, List.of()
-            ));
+            authenticate(accessor);
         }
 
-        log.info("STOMP COMMAND = {}", accessor.getCommand());
+        log.debug("STOMP COMMAND = {}", accessor.getCommand());
 
         return message;
+    }
+
+    private void authenticate(StompHeaderAccessor accessor) {
+        log.debug("STOMP CONNECT 수신: headerKeys={}", accessor.toNativeHeaderMap().keySet());
+
+        String authHeader = accessor.getFirstNativeHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new BaseException(ErrorEnum.TOKEN_MISSING);
+        }
+
+        String token = authHeader.substring(7);
+
+        jwtProvider.validateToken(token);
+
+        Long userId = jwtProvider.extractUserId(token);
+
+        UserPrincipal userPrincipal = new UserPrincipal(userId);
+
+        accessor.setUser(new UsernamePasswordAuthenticationToken(
+                userPrincipal, null, List.of()
+        ));
     }
 }
