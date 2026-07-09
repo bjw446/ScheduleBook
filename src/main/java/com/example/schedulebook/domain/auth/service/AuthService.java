@@ -2,6 +2,8 @@ package com.example.schedulebook.domain.auth.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.common.redis.RedisTokenService;
+import com.example.schedulebook.common.security.JwtProperties;
 import com.example.schedulebook.common.security.JwtProvider;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
@@ -24,6 +26,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final UserValidator userValidator;
+    private final RedisTokenService redisTokenService;
+    private final JwtProperties jwtProperties;
 
     public SignupResponse signup(SignupRequest request) {
         userValidator.validateDuplicateUser(
@@ -61,7 +65,25 @@ public class AuthService {
 
         String accessToken = jwtProvider.generateAccessToken(user.getId());
 
-        return LoginResponse.from(user, accessToken);
+        String refreshToken = jwtProvider.generateRefreshToken(user.getId());
+
+        redisTokenService.saveRefreshToken(user.getId(), refreshToken, jwtProperties.refreshTokenExpiration());
+
+        return LoginResponse.from(user, accessToken, refreshToken);
+    }
+
+    public void logout(String accessToken) {
+        jwtProvider.validateToken(accessToken);
+
+        Long userId = jwtProvider.extractUserId(accessToken);
+
+        redisTokenService.deleteRefreshToken(userId);
+
+        long expiration = jwtProvider.getRemainingTime(accessToken);
+
+        if (!redisTokenService.isBlacklisted(accessToken)) {
+            redisTokenService.saveBlacklistToken(accessToken, expiration);
+        }
     }
 
     private void processLogin(User user) {

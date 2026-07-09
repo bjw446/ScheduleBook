@@ -1,6 +1,6 @@
 package com.example.schedulebook.domain.notification.publisher;
 
-import com.example.schedulebook.common.consts.RedisTopic;
+import com.example.schedulebook.common.consts.RedisConst;
 import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,9 +16,9 @@ public class NotificationEventPublisher {
 
     public void publish(NotificationEventResponse response) {
         try {
-            redisTemplate.convertAndSend(RedisTopic.NOTIFICATION, response);
+            redisTemplate.convertAndSend(RedisConst.NOTIFICATION, response);
         } catch (Exception e) {
-            log.error("Redis Pub/Sub 발행 실패 topic = {}, message = {}", RedisTopic.NOTIFICATION, response, e);
+            log.error("Redis Pub/Sub 발행 실패 topic = {}, message = {}", RedisConst.NOTIFICATION, response, e);
 
             throw e;
         }
