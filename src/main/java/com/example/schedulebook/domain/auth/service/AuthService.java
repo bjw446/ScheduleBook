@@ -6,6 +6,7 @@ import com.example.schedulebook.common.redis.RedisTokenService;
 import com.example.schedulebook.common.security.JwtProperties;
 import com.example.schedulebook.common.security.JwtProvider;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
+import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
 import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
 import com.example.schedulebook.domain.auth.dto.response.LoginResponse;
 import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
@@ -84,6 +85,33 @@ public class AuthService {
         if (!redisTokenService.isBlacklisted(accessToken)) {
             redisTokenService.saveBlacklistToken(accessToken, expiration);
         }
+    }
+
+    public LoginResponse refresh(RefreshRequest request) {
+        String refreshToken = request.refreshToken();
+
+        jwtProvider.validateToken(refreshToken);
+
+        Long userId = jwtProvider.extractUserId(refreshToken);
+
+        String newRefreshToken = jwtProvider.generateRefreshToken(userId);
+
+        boolean success = redisTokenService.rotateRefreshToken(
+                userId,
+                refreshToken,
+                newRefreshToken,
+                jwtProperties.refreshTokenExpiration()
+        );
+
+        if (!success) {
+            throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID);
+        }
+
+        User user = userValidator.validateActiveUser(userId);
+
+        String newAccessToken = jwtProvider.generateAccessToken(userId);
+
+        return LoginResponse.from(user, newAccessToken, newRefreshToken);
     }
 
     private void processLogin(User user) {

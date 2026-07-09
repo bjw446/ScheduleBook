@@ -12,6 +12,7 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
@@ -104,5 +105,10 @@ public class RedisConfig {
         adapter.setSerializer(new StringRedisSerializer());
 
         return adapter;
+    }
+
+    @Bean
+    public RedisScript<Long> refreshRotateScript() {
+        return RedisScript.of(RedisConst.REFRESH_ROTATE_SCRIPT, Long.class);
     }
 }

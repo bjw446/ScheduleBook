@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.auth.controller;
 import com.example.schedulebook.common.enums.SuccessEnum;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
+import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
 import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
 import com.example.schedulebook.domain.auth.dto.response.LoginResponse;
 import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
@@ -43,6 +44,16 @@ public class AuthController {
                 ApiResponse.success(
                         SuccessEnum.LOGOUT_SUCCESS,
                         null
+                )
+        );
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<LoginResponse>> refresh(@RequestBody @Valid RefreshRequest request) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.TOKEN_REFRESHED,
+                        authService.refresh(request)
                 )
         );
     }
