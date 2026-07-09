@@ -1,12 +1,11 @@
 package com.example.schedulebook.domain.comment.publisher;
 
+import com.example.schedulebook.common.consts.WebSocketDestination;
 import com.example.schedulebook.common.websocket.WebSocketPublisher;
 import com.example.schedulebook.domain.comment.event.CommentEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import static com.example.schedulebook.common.consts.WebSocketDestination.SCHEDULE_COMMENT;
 
 @Component
 @RequiredArgsConstructor
@@ -16,7 +15,7 @@ public class CommentPublisher {
 
     public void publish(CommentEvent event) {
         webSocketPublisher.sendAfterCommit(
-                SCHEDULE_COMMENT(event.commentEventResponse().scheduleId()),
+                WebSocketDestination.SCHEDULE_COMMENT(event.commentEventResponse().scheduleId()),
                 event
         );
     }

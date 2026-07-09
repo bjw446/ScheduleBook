@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.chatroom.service;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.chatroom.dto.request.ChatRoomInviteRequest;
@@ -29,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static com.example.schedulebook.common.consts.CommonConst.UNKNOWN_NICKNAME;
 
 @Service
 @RequiredArgsConstructor
@@ -223,7 +223,7 @@ public class ChatRoomService {
             );
 
             if (opponent == null || opponent.getUserDeletedAt() != null) {
-                return UNKNOWN_NICKNAME;
+                return CommonConst.UNKNOWN_NICKNAME;
             }
 
             return opponent.getNickname();

@@ -1,5 +1,6 @@
 package com.example.schedulebook.common.websocket.validator;
 
+import com.example.schedulebook.common.consts.WebSocketDestination;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.chatroom.repository.ChatRoomMemberRepository;
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.example.schedulebook.common.consts.WebSocketDestination.CHAT_PREFIX;
 
 @Component
 @RequiredArgsConstructor
@@ -19,7 +19,7 @@ public class ChatSubscriptionValidator implements SubscriptionValidator{
 
     @Override
     public boolean supports(String destination) {
-        return destination.startsWith(CHAT_PREFIX());
+        return destination.startsWith(WebSocketDestination.CHAT_PREFIX());
     }
 
     @Override

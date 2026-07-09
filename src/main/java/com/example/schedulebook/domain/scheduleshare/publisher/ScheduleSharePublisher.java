@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.scheduleshare.publisher;
 
+import com.example.schedulebook.common.consts.WebSocketDestination;
 import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.common.websocket.WebSocketPublisher;
 import com.example.schedulebook.domain.chatmessage.dto.response.ChatMessageResponse;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.example.schedulebook.common.consts.WebSocketDestination.CHAT;
 
 @Component
 @RequiredArgsConstructor
@@ -67,7 +67,7 @@ public class ScheduleSharePublisher {
 
     private void publishResponses(ChatMessageResponse response) {
         webSocketPublisher.sendAfterCommit(
-                CHAT(response.roomId()),
+                WebSocketDestination.CHAT(response.roomId()),
                 response
         );
     }
@@ -80,7 +80,7 @@ public class ScheduleSharePublisher {
         afterCommitExecutor.execute(() -> {
             responses.forEach(response ->
                 webSocketPublisher.send(
-                        CHAT(response.roomId()),
+                        WebSocketDestination.CHAT(response.roomId()),
                         response)
             );
         });

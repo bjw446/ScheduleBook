@@ -1,12 +1,12 @@
 package com.example.schedulebook.domain.scheduleparticipant.publisher;
 
+import com.example.schedulebook.common.consts.WebSocketDestination;
 import com.example.schedulebook.common.websocket.WebSocketPublisher;
 import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleAttendanceResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import static com.example.schedulebook.common.consts.WebSocketDestination.SCHEDULE;
 
 @Component
 @RequiredArgsConstructor
@@ -16,7 +16,7 @@ public class ScheduleAttendancePublisher {
 
     public void publishAttendanceUpdated(ScheduleAttendanceResponse response) {
         webSocketPublisher.sendAfterCommit(
-                SCHEDULE(response.scheduleId()),
+                WebSocketDestination.SCHEDULE(response.scheduleId()),
                 response
         );
     }
