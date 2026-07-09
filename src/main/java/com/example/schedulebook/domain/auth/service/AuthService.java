@@ -94,15 +94,20 @@ public class AuthService {
 
         Long userId = jwtProvider.extractUserId(refreshToken);
 
-        String savedRefreshToken = redisTokenService.findRefreshToken(userId);
+        String newRefreshToken = jwtProvider.generateRefreshToken(userId);
 
-        if (savedRefreshToken == null || !savedRefreshToken.equals(refreshToken)) {
+        boolean success = redisTokenService.rotateRefreshToken(
+                userId,
+                refreshToken,
+                newRefreshToken,
+                jwtProperties.refreshTokenExpiration()
+        );
+
+        if (!success) {
             throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID);
         }
 
         User user = userValidator.validateActiveUser(userId);
-
-        String newRefreshToken = rotateRefreshToken(userId);
 
         String newAccessToken = jwtProvider.generateAccessToken(userId);
 
@@ -118,15 +123,5 @@ public class AuthService {
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new BaseException(ErrorEnum.LOGIN_CONFLICT);
         }
-    }
-
-    private String rotateRefreshToken(Long userId) {
-        redisTokenService.deleteRefreshToken(userId);
-
-        String newRefreshToken = jwtProvider.generateRefreshToken(userId);
-
-        redisTokenService.saveRefreshToken(userId, newRefreshToken, jwtProperties.refreshTokenExpiration());
-
-        return newRefreshToken;
     }
 }
