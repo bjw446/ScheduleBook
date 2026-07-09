@@ -6,6 +6,7 @@ import com.example.schedulebook.common.redis.RedisTokenService;
 import com.example.schedulebook.common.security.JwtProperties;
 import com.example.schedulebook.common.security.JwtProvider;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
+import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
 import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
 import com.example.schedulebook.domain.auth.dto.response.LoginResponse;
 import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
@@ -86,6 +87,28 @@ public class AuthService {
         }
     }
 
+    public LoginResponse refresh(RefreshRequest request) {
+        String refreshToken = request.refreshToken();
+
+        jwtProvider.validateToken(refreshToken);
+
+        Long userId = jwtProvider.extractUserId(refreshToken);
+
+        String savedRefreshToken = redisTokenService.findRefreshToken(userId);
+
+        if (savedRefreshToken == null || !savedRefreshToken.equals(refreshToken)) {
+            throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID);
+        }
+
+        User user = userValidator.validateActiveUser(userId);
+
+        String newRefreshToken = rotateRefreshToken(userId);
+
+        String newAccessToken = jwtProvider.generateAccessToken(userId);
+
+        return LoginResponse.from(user, newAccessToken, newRefreshToken);
+    }
+
     private void processLogin(User user) {
         try {
             user.login();
@@ -95,5 +118,15 @@ public class AuthService {
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new BaseException(ErrorEnum.LOGIN_CONFLICT);
         }
+    }
+
+    private String rotateRefreshToken(Long userId) {
+        redisTokenService.deleteRefreshToken(userId);
+
+        String newRefreshToken = jwtProvider.generateRefreshToken(userId);
+
+        redisTokenService.saveRefreshToken(userId, newRefreshToken, jwtProperties.refreshTokenExpiration());
+
+        return newRefreshToken;
     }
 }
