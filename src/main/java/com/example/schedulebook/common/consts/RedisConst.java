@@ -26,4 +26,30 @@ public final class RedisConst {
 
         return 1
         """;
+    public static final String RATE_LIMIT_SCRIPT = """
+            local key = KEYS[1]
+            
+            local now = tonumber(ARGV[1])
+            local window = tonumber(ARGV[2])
+            local limit = tonumber(ARGV[3])
+            local member = ARGV[4]
+            
+            redis.call('ZREMRANGEBYSCORE', key, 0, now - window)
+            
+            local count = redis.call('ZCARD', key)
+            
+            if count >= limit then return 0
+            
+            end
+            
+            redis.call('ZADD', key, now, member)
+            
+            redis.call('PEXPIRE', key, window)
+            
+            return 1
+            """;
+    public static final String LOGIN_IP_PREFIX = "rate:login:ip:";
+    public static final String LOGIN_ID_PREFIX = "rate:login:id:";
+    public static final int MAX_BODY_SIZE = 1024 * 8;
+    public static final int BUFFER_SIZE = 4096;
 }

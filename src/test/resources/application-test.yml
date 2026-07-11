@@ -9,6 +9,11 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
 jwt:
   secret: abcdefghijklmnopqrstuvwxyz123456abcdefghijklmnopqrstuvwxyz123456abcdefghijklmnopqrstuvwxyz123456
   access-token-expiration: 1800000
