@@ -50,4 +50,6 @@ public final class RedisConst {
             """;
     public static final String LOGIN_IP_PREFIX = "rate:login:ip:";
     public static final String LOGIN_ID_PREFIX = "rate:login:id:";
+    public static final int MAX_BODY_SIZE = 1024 * 8;
+    public static final int BUFFER_SIZE = 4096;
 }

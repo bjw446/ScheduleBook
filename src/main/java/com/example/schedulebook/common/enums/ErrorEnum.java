@@ -17,6 +17,7 @@ public enum ErrorEnum {
     REDIS_UNAVAILABLE(503, "Redis 서버에 연결할 수 없습니다."),
     INVALID_ARGUMENT(400, "요청값이 올바르지 않습니다"),
     DATA_CONFLICT(409, "요청이 현재 데이터 상태와 충돌합니다."),
+    REQUEST_BODY_TOO_LARGE(413, "요청 본문이 너무 큽니다."),
 
     // USER
     LOGIN_FAILED(401, "사용자 정보가 일치하지 않습니다."),

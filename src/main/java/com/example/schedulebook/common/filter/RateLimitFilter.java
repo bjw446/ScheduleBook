@@ -4,6 +4,7 @@ import com.example.schedulebook.common.consts.RedisConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.redis.RedisRateLimitService;
+import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.CachedBodyHttpServletRequest;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,30 +42,36 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        LoginRequest loginRequest = objectMapper.readValue(cachedBodyHttpServletRequest.getBody(), LoginRequest.class);
+        LoginRequest loginRequest;
+
+        try {
+            loginRequest = objectMapper.readValue(cachedBodyHttpServletRequest.getBody(), LoginRequest.class);
+
+        } catch (IOException e) {
+            throw new BaseException(ErrorEnum.INVALID_INPUT);
+
+        }
 
         String loginId = loginRequest.loginId();
 
         String ip = getClientIp(request);
 
-        validateRateLimit(RedisConst.LOGIN_IP_PREFIX + ip, ErrorEnum.LOGIN_IP_RATE_LIMITED);
+        if (validateRateLimit(RedisConst.LOGIN_IP_PREFIX + ip, response, ErrorEnum.LOGIN_IP_RATE_LIMITED)) {
+            return;
+        }
 
-        validateRateLimit(RedisConst.LOGIN_ID_PREFIX + loginId, ErrorEnum.LOGIN_ID_RATE_LIMITED);
+        if (validateRateLimit(RedisConst.LOGIN_ID_PREFIX + loginId, response, ErrorEnum.LOGIN_ID_RATE_LIMITED)) {
+            return;
+        }
 
         filterChain.doFilter(cachedBodyHttpServletRequest, response);
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0];
-        }
-
         return request.getRemoteAddr();
     }
 
-    private void validateRateLimit(String key, ErrorEnum errorEnum) {
+    private boolean validateRateLimit(String key, HttpServletResponse response, ErrorEnum errorEnum) throws IOException {
         boolean allowed = redisRateLimitService.allowRequest(
                 key,
                 60_000,
@@ -73,7 +80,23 @@ public class RateLimitFilter extends OncePerRequestFilter {
         );
 
         if (!allowed) {
-            throw new BaseException(errorEnum);
+            sendRateLimitResponse(response, errorEnum);
+            return false;
         }
+
+        return true;
+    }
+
+    private void sendRateLimitResponse(HttpServletResponse response, ErrorEnum errorEnum) throws IOException {
+        response.setStatus(errorEnum.getStatus());
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        objectMapper.writeValue(
+                response.getWriter(),
+                ApiResponse.fail(errorEnum)
+        );
+
+        response.getWriter().flush();
     }
 }
