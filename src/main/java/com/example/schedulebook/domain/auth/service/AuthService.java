@@ -29,6 +29,8 @@ public class AuthService {
     private final UserValidator userValidator;
     private final RedisTokenService redisTokenService;
     private final JwtProperties jwtProperties;
+    private final LoginFailureService loginFailureService;
+    private final LoginSuccessService loginSuccessService;
 
     public SignupResponse signup(SignupRequest request) {
         userValidator.validateDuplicateUser(
@@ -52,6 +54,8 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
+        loginFailureService.validateNotLocked(request.loginId());
+
         User user = userRepository.findByLoginId(request.loginId()).orElseThrow(
                 () -> new BaseException(ErrorEnum.LOGIN_FAILED)
         );
@@ -59,7 +63,7 @@ public class AuthService {
         userValidator.validateLoginUserStatus(user);
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new BaseException(ErrorEnum.LOGIN_FAILED);
+            loginFailureService.handleFailure(request.loginId());
         }
 
         processLogin(user);
@@ -116,9 +120,7 @@ public class AuthService {
 
     private void processLogin(User user) {
         try {
-            user.login();
-
-            userRepository.saveAndFlush(user);
+            loginSuccessService.loginSuccess(user);
 
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new BaseException(ErrorEnum.LOGIN_CONFLICT);

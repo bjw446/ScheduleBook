@@ -107,7 +107,6 @@ public class User extends DeleteEntity {
         this.rewardLoginStreak();
 
         this.lastLoginDate = today;
-
     }
 
     public void increaseScheduleCount() {
