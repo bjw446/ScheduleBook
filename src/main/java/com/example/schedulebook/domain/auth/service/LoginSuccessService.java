@@ -15,7 +15,7 @@ public class LoginSuccessService {
     public void loginSuccess(User user) {
         user.login();
 
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
 
         redisLoginLockService.clear(user.getLoginId());
     }
