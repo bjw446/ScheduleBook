@@ -82,6 +82,10 @@ public class UserValidator {
     }
 
     public void validateLoginUserStatus(User user) {
+        if (user.isLocked()) {
+            throw new BaseException(ErrorEnum.ACCOUNT_LOCKED);
+        }
+
         if (user.getUserStatus() != UserStatus.ACTIVE) {
             throw new BaseException(ErrorEnum.LOGIN_FAILED);
         }

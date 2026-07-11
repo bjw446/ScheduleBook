@@ -56,9 +56,17 @@ public class AuthService {
                 () -> new BaseException(ErrorEnum.LOGIN_FAILED)
         );
 
+        if (user.unlockIfExpired()) {
+            userRepository.saveAndFlush(user);
+        }
+
         userValidator.validateLoginUserStatus(user);
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            user.loginFail();
+
+            userRepository.saveAndFlush(user);
+
             throw new BaseException(ErrorEnum.LOGIN_FAILED);
         }
 
@@ -116,7 +124,7 @@ public class AuthService {
 
     private void processLogin(User user) {
         try {
-            user.login();
+            user.loginSuccess();
 
             userRepository.saveAndFlush(user);
 

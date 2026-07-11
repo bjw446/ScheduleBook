@@ -31,6 +31,7 @@ public enum ErrorEnum {
     USER_NOT_FOUND(404, "존재하지 않는 사용자 입니다."),
     PASSWORD_NOT_MATCH(401, "비밀번호가 일치하지 않습니다."),
     PASSWORD_SAME_AS_OLD(400, "기존 비밀번호와 동일하게 변경할 수 없습니다."),
+    ACCOUNT_LOCKED(423, "계정이 잠겨 있습니다, 잠시 후 다시 시도해주세요."),
 
     // Token
     TOKEN_EXPIRED(401, "만료된 토큰입니다."),
