@@ -1,5 +1,7 @@
 package com.example.schedulebook.common.consts;
 
+import java.time.Duration;
+
 public final class RedisConst {
     private RedisConst() {}
 
@@ -52,4 +54,7 @@ public final class RedisConst {
     public static final String LOGIN_ID_PREFIX = "rate:login:id:";
     public static final int MAX_BODY_SIZE = 1024 * 8;
     public static final int BUFFER_SIZE = 4096;
+    public static final String LOGIN_FAIL_PREFIX = "login:fail:";
+    public static final String LOGIN_LOCK_PREFIX = "login:lock:";
+    public static final Duration LOGIN_LOCK_DURATION = Duration.ofMinutes(30);
 }

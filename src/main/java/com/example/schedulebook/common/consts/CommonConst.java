@@ -8,4 +8,5 @@ public final class CommonConst {
     public static final int MAX_PAGE_SIZE = 100;
     public static final int MAX_NAMES = 50;
     public static final String DELETED_COMMENT = "삭제된 댓글입니다.";
+    public static final int MAX_LOGIN_FAIL = 5;
 }

@@ -11,7 +11,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Getter
 @Entity
@@ -63,12 +62,6 @@ public class User extends DeleteEntity {
 
     @Column(name = "last_login_date")
     private LocalDate lastLoginDate;
-
-    @Column(name = "login_fail_count")
-    private int loginFailCount;
-
-    @Column(name = "locked_until")
-    private LocalDateTime lockedUntil;
 
     @Version
     private Long version;
@@ -183,40 +176,6 @@ public class User extends DeleteEntity {
 
     public int getRequiredExp() {
         return level * 100;
-    }
-
-    public void loginSuccess() {
-        this.loginFailCount = 0;
-        this.lockedUntil = null;
-
-        login();
-    }
-
-    public void loginFail() {
-        if (isLocked()) {
-            return;
-        }
-
-        this.loginFailCount++;
-
-        if (this.loginFailCount >= 5) {
-            this.lockedUntil = LocalDateTime.now().plusMinutes(30);
-        }
-    }
-
-    public boolean isLocked() {
-        return lockedUntil != null && lockedUntil.isAfter(LocalDateTime.now());
-    }
-
-    public boolean unlockIfExpired() {
-        if (lockedUntil != null && lockedUntil.isBefore(LocalDateTime.now())) {
-            this.loginFailCount = 0;
-            this.lockedUntil = null;
-
-            return true;
-        }
-
-        return false;
     }
 }
 
