@@ -56,11 +56,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String ip = getClientIp(request);
 
-        if (validateRateLimit(RedisConst.LOGIN_IP_PREFIX + ip, response, ErrorEnum.LOGIN_IP_RATE_LIMITED)) {
+        if (!validateRateLimit(RedisConst.LOGIN_IP_PREFIX + ip, response, ErrorEnum.LOGIN_IP_RATE_LIMITED)) {
             return;
         }
 
-        if (validateRateLimit(RedisConst.LOGIN_ID_PREFIX + loginId, response, ErrorEnum.LOGIN_ID_RATE_LIMITED)) {
+        if (!validateRateLimit(RedisConst.LOGIN_ID_PREFIX + loginId, response, ErrorEnum.LOGIN_ID_RATE_LIMITED)) {
             return;
         }
 
