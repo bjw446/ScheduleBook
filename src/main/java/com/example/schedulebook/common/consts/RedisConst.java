@@ -21,7 +21,7 @@ public final class RedisConst {
         if (not saved) then return 0
         end
 
-        if (saved ~= oldToken) then return 0
+        if (saved ~= oldToken) then return 2
         end
 
         redis.call('SET', key, newToken, 'PX', expiration)

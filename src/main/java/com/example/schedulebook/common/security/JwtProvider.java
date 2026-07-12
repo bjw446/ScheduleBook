@@ -94,7 +94,7 @@ public class JwtProvider {
 
             return claims.get("sessionId", String.class);
 
-        } catch (NumberFormatException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             throw new BaseException(ErrorEnum.TOKEN_INVALID);
         }
     }

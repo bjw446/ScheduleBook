@@ -2,16 +2,17 @@ package com.example.schedulebook.common.redis;
 
 import com.example.schedulebook.common.consts.RedisConst;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class RedisSessionService {
     private final StringRedisTemplate stringRedisTemplate;
-    private final RedisRefreshTokenService redisRefreshTokenService;
 
     public void addSession(Long userId, String sessionId) {
         stringRedisTemplate.opsForSet().add(
@@ -48,9 +49,15 @@ public class RedisSessionService {
             return;
         }
 
-        for (String sessionId : sessions) {
-            redisRefreshTokenService.deleteRefreshToken(sessionId);
-        }
+        stringRedisTemplate.executePipelined((RedisCallback<?>) connection -> {
+            for (String sessionId : sessions) {
+                connection.keyCommands().del(
+                        (RedisConst.REFRESH_PREFIX + sessionId).getBytes(StandardCharsets.UTF_8)
+                );
+            }
+
+            return null;
+        });
 
         stringRedisTemplate.delete(RedisConst.USER_SESSION_PREFIX + userId);
     }
