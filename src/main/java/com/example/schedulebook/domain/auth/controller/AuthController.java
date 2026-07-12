@@ -8,6 +8,7 @@ import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
 import com.example.schedulebook.domain.auth.dto.response.LoginResponse;
 import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
 import com.example.schedulebook.domain.auth.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,9 +29,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
         return ResponseEntity.status(HttpStatus.OK).body(
-                ApiResponse.success(SuccessEnum.LOGIN_SUCCESS, authService.login(request))
+                ApiResponse.success(SuccessEnum.LOGIN_SUCCESS, authService.login(request, servletRequest))
         );
     }
 
@@ -49,11 +50,11 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<LoginResponse>> refresh(@RequestBody @Valid RefreshRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse>> refresh(@RequestBody @Valid RefreshRequest request, HttpServletRequest servletRequest) {
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
                         SuccessEnum.TOKEN_REFRESHED,
-                        authService.refresh(request)
+                        authService.refresh(request, servletRequest)
                 )
         );
     }
