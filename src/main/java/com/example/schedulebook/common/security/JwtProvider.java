@@ -48,6 +48,9 @@ public class JwtProvider {
 
         } catch (NumberFormatException e) {
             throw new BaseException(ErrorEnum.TOKEN_INVALID);
+
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new BaseException(ErrorEnum.TOKEN_INVALID);
         }
     }
 

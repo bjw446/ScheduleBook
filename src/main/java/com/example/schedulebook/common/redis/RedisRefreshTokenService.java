@@ -18,7 +18,7 @@ public class RedisRefreshTokenService {
 
     public void saveRefreshToken(String sessionId, String refreshToken, long expiration) {
         stringRedisTemplate.opsForValue().set(
-                RedisConst.REFRESH_PREFIX + sessionId,
+                buildRefreshTokenKey(sessionId),
                 refreshToken,
                 Duration.ofMillis(expiration)
         );
@@ -52,5 +52,9 @@ public class RedisRefreshTokenService {
 
     public boolean hasRefreshToken(String sessionId) {
         return Boolean.TRUE.equals(stringRedisTemplate.hasKey(RedisConst.REFRESH_PREFIX + sessionId));
+    }
+
+    public String buildRefreshTokenKey(String sessionId) {
+        return RedisConst.REFRESH_PREFIX + sessionId;
     }
 }

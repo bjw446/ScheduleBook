@@ -13,6 +13,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class RedisSessionService {
     private final StringRedisTemplate stringRedisTemplate;
+    private final RedisRefreshTokenService redisRefreshTokenService;
 
     public void addSession(Long userId, String sessionId) {
         stringRedisTemplate.opsForSet().add(
@@ -52,7 +53,7 @@ public class RedisSessionService {
         stringRedisTemplate.executePipelined((RedisCallback<?>) connection -> {
             for (String sessionId : sessions) {
                 connection.keyCommands().del(
-                        (RedisConst.REFRESH_PREFIX + sessionId).getBytes(StandardCharsets.UTF_8)
+                        (redisRefreshTokenService.buildRefreshTokenKey(sessionId)).getBytes(StandardCharsets.UTF_8)
                 );
             }
 
