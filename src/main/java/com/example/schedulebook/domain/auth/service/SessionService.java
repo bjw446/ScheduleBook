@@ -32,7 +32,7 @@ public class SessionService {
 
         redisRefreshTokenService.saveRefreshToken(sessionId, refreshToken, jwtProperties.refreshTokenExpiration());
 
-        redisSessionService.addSession(userId, sessionId);
+        redisSessionService.addSession(userId, sessionId, jwtProperties.refreshTokenExpiration());
 
         return new LoginToken(userId, sessionId, accessToken, refreshToken);
     }

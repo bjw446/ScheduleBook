@@ -6,6 +6,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 
@@ -16,10 +17,15 @@ public class RedisSessionService {
     private final RedisScript<Long> removeSessionScript;
     private final RedisScript<Long> deleteAllSessionsScript;
 
-    public void addSession(Long userId, String sessionId) {
+    public void addSession(Long userId, String sessionId, long expiration) {
         stringRedisTemplate.opsForSet().add(
                 RedisConst.USER_SESSION_PREFIX + userId,
                 sessionId
+        );
+
+        stringRedisTemplate.expire(
+                RedisConst.USER_SESSION_PREFIX + userId,
+                Duration.ofMillis(expiration)
         );
     }
 
