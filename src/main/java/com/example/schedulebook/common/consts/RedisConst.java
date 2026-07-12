@@ -57,4 +57,5 @@ public final class RedisConst {
     public static final String LOGIN_FAIL_PREFIX = "login:fail:";
     public static final String LOGIN_LOCK_PREFIX = "login:lock:";
     public static final Duration LOGIN_LOCK_DURATION = Duration.ofMinutes(30);
+    public static final String USER_SESSION_PREFIX = "user:session:";
 }

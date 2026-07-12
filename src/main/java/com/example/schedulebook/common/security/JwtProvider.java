@@ -27,12 +27,13 @@ public class JwtProvider {
         this.signingKey = Keys.hmacShaKeyFor(jwtProperties.secret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(Long userId) {
+    public String generateAccessToken(Long userId, String sessionId) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtProperties.accessTokenExpiration());
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("sessionId", sessionId)
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(signingKey)
@@ -41,11 +42,7 @@ public class JwtProvider {
 
     public Long extractUserId(String token) {
         try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(signingKey)
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+            Claims claims = parseClaims(token);
 
             return Long.parseLong(claims.getSubject());
 
@@ -69,11 +66,7 @@ public class JwtProvider {
 
     public long getRemainingTime(String token) {
         try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(signingKey)
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+            Claims claims = parseClaims(token);
 
             return claims.getExpiration().getTime() - System.currentTimeMillis();
 
@@ -82,15 +75,35 @@ public class JwtProvider {
         }
     }
 
-    public String generateRefreshToken(Long userId) {
+    public String generateRefreshToken(Long userId, String sessionId) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtProperties.refreshTokenExpiration());
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("sessionId", sessionId)
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(signingKey)
                 .compact();
+    }
+
+    public String extractSessionId(String token) {
+        try {
+            Claims claims = parseClaims(token);
+
+            return claims.get("sessionId", String.class);
+
+        } catch (NumberFormatException e) {
+            throw new BaseException(ErrorEnum.TOKEN_INVALID);
+        }
+    }
+
+    private Claims parseClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

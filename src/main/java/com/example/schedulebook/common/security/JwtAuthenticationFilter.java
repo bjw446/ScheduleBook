@@ -2,7 +2,7 @@ package com.example.schedulebook.common.security;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.common.redis.RedisTokenService;
+import com.example.schedulebook.common.redis.RedisBlacklistService;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -27,7 +27,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtProvider jwtProvider;
     private final ObjectMapper objectMapper;
-    private final RedisTokenService redisTokenService;
+    private final RedisBlacklistService redisBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -37,7 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null) {
             try {
-                if (redisTokenService.isBlacklisted(token)) {
+                if (redisBlacklistService.isBlacklisted(token)) {
                     throw new BaseException(ErrorEnum.LOGOUT_TOKEN);
                 }
 

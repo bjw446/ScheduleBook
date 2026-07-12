@@ -12,38 +12,26 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class RedisTokenService {
+public class RedisRefreshTokenService {
     private final RedisScript<Long> refreshRotateScript;
     private final StringRedisTemplate stringRedisTemplate;
 
-    public void saveRefreshToken(Long userId, String refreshToken, long expiration) {
+    public void saveRefreshToken(String sessionId, String refreshToken, long expiration) {
         stringRedisTemplate.opsForValue().set(
-                RedisConst.REFRESH_PREFIX + userId,
+                RedisConst.REFRESH_PREFIX + sessionId,
                 refreshToken,
                 Duration.ofMillis(expiration)
         );
     }
 
-    public void saveBlacklistToken(String accessToken, long expiration) {
-        if (expiration <= 0) {
-            return;
-        }
-
-        stringRedisTemplate.opsForValue().set(
-                RedisConst.BLACKLIST_PREFIX + accessToken,
-                "logout",
-                Duration.ofMillis(expiration)
-        );
+    public void deleteRefreshToken(String sessionId) {
+        stringRedisTemplate.delete(RedisConst.REFRESH_PREFIX + sessionId);
     }
 
-    public void deleteRefreshToken(Long userId) {
-        stringRedisTemplate.delete(RedisConst.REFRESH_PREFIX + userId);
-    }
-
-    public RefreshRotateResult rotateRefreshToken(Long userId, String oldToken, String newToken, long expiration) {
+    public RefreshRotateResult rotateRefreshToken(String sessionId, String oldToken, String newToken, long expiration) {
         Long result = stringRedisTemplate.execute(
                 refreshRotateScript,
-                List.of(RedisConst.REFRESH_PREFIX + userId),
+                List.of(RedisConst.REFRESH_PREFIX + sessionId),
                 oldToken,
                 newToken,
                 String.valueOf(expiration)
@@ -62,11 +50,7 @@ public class RedisTokenService {
         };
     }
 
-    public boolean hasRefreshToken(Long userId) {
-        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(RedisConst.REFRESH_PREFIX + userId));
-    }
-
-    public boolean isBlacklisted(String accessToken) {
-        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(RedisConst.BLACKLIST_PREFIX + accessToken));
+    public boolean hasRefreshToken(String sessionId) {
+        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(RedisConst.REFRESH_PREFIX + sessionId));
     }
 }
