@@ -22,8 +22,10 @@ public class LoginAudit extends CreateEntity {
     @Enumerated(EnumType.STRING)
     private LoginResult loginResult;
 
+    @Column(name = "ip_address")
     private String ipAddress;
 
+    @Column(length = 512, name = "user_agent")
     private String userAgent;
 
     public static LoginAudit create(String loginId, LoginResult loginResult, String ipAddress, String userAgent) {

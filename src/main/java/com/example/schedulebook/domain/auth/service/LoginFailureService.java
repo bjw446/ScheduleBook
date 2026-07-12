@@ -25,7 +25,7 @@ public class LoginFailureService {
             loginAuditService.save(loginId, LoginResult.FAIL, ip, userAgent);
 
         } catch (Exception e) {
-            log.error("로그인 감시 실패 : {}", e.getMessage(), e);
+            log.error("로그인 감시 저장 실패 : {}", e.getMessage(), e);
         }
     }
 
