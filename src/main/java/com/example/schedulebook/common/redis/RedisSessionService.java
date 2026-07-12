@@ -2,18 +2,19 @@ package com.example.schedulebook.common.redis;
 
 import com.example.schedulebook.common.consts.RedisConst;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class RedisSessionService {
     private final StringRedisTemplate stringRedisTemplate;
-    private final RedisRefreshTokenService redisRefreshTokenService;
+    private final RedisScript<Long> removeSessionScript;
+    private final RedisScript<Long> deleteAllSessionsScript;
 
     public void addSession(Long userId, String sessionId) {
         stringRedisTemplate.opsForSet().add(
@@ -23,18 +24,11 @@ public class RedisSessionService {
     }
 
     public void removeSession(Long userId, String sessionId) {
-        stringRedisTemplate.opsForSet().remove(
-                RedisConst.USER_SESSION_PREFIX + userId,
+        stringRedisTemplate.execute(
+                removeSessionScript,
+                Collections.singletonList(RedisConst.USER_SESSION_PREFIX + userId),
                 sessionId
         );
-
-        Long size = stringRedisTemplate.opsForSet().size(
-                RedisConst.USER_SESSION_PREFIX + userId
-        );
-
-        if (size != null && size == 0) {
-            stringRedisTemplate.delete(RedisConst.USER_SESSION_PREFIX + userId);
-        }
     }
 
     public Set<String> getSessions(Long userId) {
@@ -44,22 +38,10 @@ public class RedisSessionService {
     }
 
     public void deleteAllSessions(Long userId) {
-        Set<String> sessions = getSessions(userId);
-
-        if (sessions == null || sessions.isEmpty()) {
-            return;
-        }
-
-        stringRedisTemplate.executePipelined((RedisCallback<?>) connection -> {
-            for (String sessionId : sessions) {
-                connection.keyCommands().del(
-                        (redisRefreshTokenService.buildRefreshTokenKey(sessionId)).getBytes(StandardCharsets.UTF_8)
-                );
-            }
-
-            return null;
-        });
-
-        stringRedisTemplate.delete(RedisConst.USER_SESSION_PREFIX + userId);
+        stringRedisTemplate.execute(
+                deleteAllSessionsScript,
+                Collections.singletonList(RedisConst.USER_SESSION_PREFIX + userId),
+                RedisConst.REFRESH_PREFIX
+        );
     }
 }

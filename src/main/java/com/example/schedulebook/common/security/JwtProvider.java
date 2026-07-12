@@ -95,7 +95,13 @@ public class JwtProvider {
         try {
             Claims claims = parseClaims(token);
 
-            return claims.get("sessionId", String.class);
+            String sessionId = claims.get("sessionId", String.class);
+
+            if (sessionId == null || sessionId.isBlank()) {
+                throw new BaseException(ErrorEnum.TOKEN_INVALID);
+            }
+
+            return sessionId;
 
         } catch (JwtException | IllegalArgumentException e) {
             throw new BaseException(ErrorEnum.TOKEN_INVALID);

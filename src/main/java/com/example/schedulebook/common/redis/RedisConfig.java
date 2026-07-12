@@ -116,4 +116,14 @@ public class RedisConfig {
     public RedisScript<Long> rateLimitScript() {
         return RedisScript.of(RedisConst.RATE_LIMIT_SCRIPT, Long.class);
     }
+
+    @Bean
+    public RedisScript<Long> removeSessionScript() {
+        return RedisScript.of(RedisConst.REMOVE_SESSION_SCRIPT, Long.class);
+    }
+
+    @Bean
+    public RedisScript<Long> deleteAllSessionsScript() {
+        return RedisScript.of(RedisConst.DELETE_ALL_SESSIONS_SCRIPT, Long.class);
+    }
 }

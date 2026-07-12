@@ -25,13 +25,13 @@ public class RedisRefreshTokenService {
     }
 
     public void deleteRefreshToken(String sessionId) {
-        stringRedisTemplate.delete(RedisConst.REFRESH_PREFIX + sessionId);
+        stringRedisTemplate.delete(buildRefreshTokenKey(sessionId));
     }
 
     public RefreshRotateResult rotateRefreshToken(String sessionId, String oldToken, String newToken, long expiration) {
         Long result = stringRedisTemplate.execute(
                 refreshRotateScript,
-                List.of(RedisConst.REFRESH_PREFIX + sessionId),
+                List.of(buildRefreshTokenKey(sessionId)),
                 oldToken,
                 newToken,
                 String.valueOf(expiration)
@@ -51,7 +51,7 @@ public class RedisRefreshTokenService {
     }
 
     public boolean hasRefreshToken(String sessionId) {
-        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(RedisConst.REFRESH_PREFIX + sessionId));
+        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(buildRefreshTokenKey(sessionId)));
     }
 
     public String buildRefreshTokenKey(String sessionId) {

@@ -58,4 +58,31 @@ public final class RedisConst {
     public static final String LOGIN_LOCK_PREFIX = "login:lock:";
     public static final Duration LOGIN_LOCK_DURATION = Duration.ofMinutes(30);
     public static final String USER_SESSION_PREFIX = "user:session:";
+
+    public static final String REMOVE_SESSION_SCRIPT = """
+            redis.call('SREM', KEYS[1], ARGV[1])
+            
+            local size = redis.call('SCARD', KEYS[1])
+            
+            if size == 0 then redis.call('DEL', KEYS[1])
+            
+            end
+            
+            return size
+            """;
+    public static final String DELETE_ALL_SESSIONS_SCRIPT = """
+            local sessions = redis.call('SMEMBERS', KEYS[1])
+            
+            for i, sessionId in ipairs(sessions) do
+            
+            local refreshKey = ARGV[1] .. sessionId
+            
+            redis.call('DEL', refreshKey)
+            
+            end
+            
+            redis.call('DEL', KEYS[1])
+            
+            return #sessions;
+            """;
 }
