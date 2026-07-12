@@ -19,7 +19,12 @@ public class LoginFailureService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleFailure(String loginId, String ip, String userAgent) {
-        redisLoginLockService.recordFailure(loginId);
+        try {
+            redisLoginLockService.recordFailure(loginId);
+
+        } catch (Exception e) {
+            log.error("레디스 에러 발생 - 로그인 실패 기록 저장 오류 : {}", e.getMessage(), e);
+        }
 
         try {
             loginAuditService.save(loginId, LoginResult.FAIL, ip, userAgent);
