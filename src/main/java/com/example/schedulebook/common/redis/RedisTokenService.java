@@ -1,6 +1,7 @@
 package com.example.schedulebook.common.redis;
 
 import com.example.schedulebook.common.consts.RedisConst;
+import com.example.schedulebook.domain.auth.enums.RefreshRotateResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -12,7 +13,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class RedisTokenService {
-    private final RedisScript<Long> refreshTokenScript;
+    private final RedisScript<Long> refreshRotateScript;
     private final StringRedisTemplate stringRedisTemplate;
 
     public void saveRefreshToken(Long userId, String refreshToken, long expiration) {
@@ -39,16 +40,26 @@ public class RedisTokenService {
         stringRedisTemplate.delete(RedisConst.REFRESH_PREFIX + userId);
     }
 
-    public boolean rotateRefreshToken(Long userId, String oldToken, String newToken, long expiration) {
+    public RefreshRotateResult rotateRefreshToken(Long userId, String oldToken, String newToken, long expiration) {
         Long result = stringRedisTemplate.execute(
-                refreshTokenScript,
+                refreshRotateScript,
                 List.of(RedisConst.REFRESH_PREFIX + userId),
                 oldToken,
                 newToken,
                 String.valueOf(expiration)
         );
 
-        return result != null && result == 1L;
+        if (result == null) {
+            return RefreshRotateResult.NOT_FOUND;
+        }
+
+        return switch (result.intValue()) {
+            case 1 -> RefreshRotateResult.SUCCESS;
+
+            case 2 -> RefreshRotateResult.TOKEN_MISMATCH;
+
+            default -> RefreshRotateResult.NOT_FOUND;
+        };
     }
 
     public boolean hasRefreshToken(Long userId) {

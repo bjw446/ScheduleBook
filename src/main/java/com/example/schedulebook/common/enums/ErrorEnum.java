@@ -39,6 +39,7 @@ public enum ErrorEnum {
     TOKEN_MISSING(401, "토큰이 존재하지 않습니다."),
     LOGOUT_TOKEN(401, "이미 로그아웃 된 토큰 입니다."),
     REFRESH_TOKEN_INVALID(401, "유효하지 않은 REFRESH 토큰입니다."),
+    REFRESH_TOKEN_REPLAY(401, "삭제된 REFRESH 토큰 재사용이 감지되었습니다."),
 
     // Redis
     REDIS_LOCK_CONFLICT(409, "현재 요청이 처리 중입니다. 잠시 후 다시 시도해주세요."),
