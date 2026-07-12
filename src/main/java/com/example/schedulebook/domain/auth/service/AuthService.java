@@ -2,15 +2,13 @@ package com.example.schedulebook.domain.auth.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.common.redis.RedisTokenService;
-import com.example.schedulebook.common.security.JwtProperties;
 import com.example.schedulebook.common.security.JwtProvider;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
 import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
 import com.example.schedulebook.domain.auth.dto.response.LoginResponse;
+import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
-import com.example.schedulebook.domain.auth.enums.RefreshRotateResult;
 import com.example.schedulebook.domain.auth.event.RefreshReplayDetectedEvent;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.repository.UserRepository;
@@ -29,12 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtProvider jwtProvider;
     private final UserValidator userValidator;
-    private final RedisTokenService redisTokenService;
-    private final JwtProperties jwtProperties;
     private final LoginFailureService loginFailureService;
     private final LoginSuccessService loginSuccessService;
+    private final SessionService sessionService;
+    private final JwtProvider jwtProvider;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public SignupResponse signup(SignupRequest request) {
@@ -79,68 +76,39 @@ public class AuthService {
 
         processLogin(user, ip, userAgent);
 
-        String accessToken = jwtProvider.generateAccessToken(user.getId());
+        LoginToken token = sessionService.createSession(user.getId());
 
-        String refreshToken = jwtProvider.generateRefreshToken(user.getId());
-
-        redisTokenService.saveRefreshToken(user.getId(), refreshToken, jwtProperties.refreshTokenExpiration());
-
-        return LoginResponse.from(user, accessToken, refreshToken);
+        return LoginResponse.from(user, token.accessToken(), token.refreshToken());
     }
 
     public void logout(String accessToken) {
-        jwtProvider.validateToken(accessToken);
-
-        Long userId = jwtProvider.extractUserId(accessToken);
-
-        redisTokenService.deleteRefreshToken(userId);
-
-        long expiration = jwtProvider.getRemainingTime(accessToken);
-
-        if (!redisTokenService.isBlacklisted(accessToken)) {
-            redisTokenService.saveBlacklistToken(accessToken, expiration);
-        }
+        sessionService.logout(accessToken);
     }
 
     public LoginResponse refresh(RefreshRequest request, HttpServletRequest servletRequest) {
-        String refreshToken = request.refreshToken();
-
-        jwtProvider.validateToken(refreshToken);
-
-        Long userId = jwtProvider.extractUserId(refreshToken);
-
-        User user = userValidator.validateActiveUser(userId);
-
         String ip = servletRequest.getRemoteAddr();
 
         String userAgent = servletRequest.getHeader("User-Agent");
 
-        String newRefreshToken = jwtProvider.generateRefreshToken(userId);
+        try {
+            LoginToken token = sessionService.refresh(request.refreshToken());
 
-        RefreshRotateResult result = redisTokenService.rotateRefreshToken(
-                userId,
-                refreshToken,
-                newRefreshToken,
-                jwtProperties.refreshTokenExpiration()
-        );
+            User user = userValidator.validateActiveUser(token.userId());
 
-        switch (result) {
-            case SUCCESS -> {}
+            return LoginResponse.from(user, token.accessToken(), token.refreshToken());
 
-            case NOT_FOUND -> throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID);
+        } catch (BaseException e) {
 
-            case TOKEN_MISMATCH -> {
-                redisTokenService.deleteRefreshToken(userId);
+            if (e.getErrorEnum() == ErrorEnum.REFRESH_TOKEN_REPLAY) {
+                Long userId = jwtProvider.extractUserId(request.refreshToken());
+
+                User user = userValidator.validateActiveUser(userId);
 
                 applicationEventPublisher.publishEvent(new RefreshReplayDetectedEvent(userId, user.getLoginId(), ip, userAgent));
-
-                throw new BaseException(ErrorEnum.REFRESH_TOKEN_REPLAY);
             }
+
+            throw e;
         }
-
-        String newAccessToken = jwtProvider.generateAccessToken(userId);
-
-        return LoginResponse.from(user, newAccessToken, newRefreshToken);
     }
 
     private void processLogin(User user, String ip, String userAgent) {
