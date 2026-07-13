@@ -126,4 +126,9 @@ public class RedisConfig {
     public RedisScript<Long> deleteAllSessionsScript() {
         return RedisScript.of(RedisConst.DELETE_ALL_SESSIONS_SCRIPT, Long.class);
     }
+
+    @Bean
+    public RedisScript<Long> updateLastAccessScript() {
+        return RedisScript.of(RedisConst.UPDATE_LAST_ACCESS_SCRIPT, Long.class);
+    }
 }
