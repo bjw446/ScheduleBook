@@ -82,7 +82,7 @@ public class SessionService {
             redisSessionService.extendSessionTTL(token.userId(), token.sessionId(), jwtProperties.refreshTokenExpiration());
 
         } catch (Exception e) {
-            log.warn("세션 최근 접근 시간 갱신 실패 : sessionId = {}", token.sessionId(), e);
+            log.warn("세션 정보 갱신 실패 : sessionId = {}", token.sessionId(), e);
         }
 
         return newToken;
@@ -114,6 +114,14 @@ public class SessionService {
         Long userId = jwtProvider.extractUserId(refreshToken);
 
         String sessionId = jwtProvider.extractSessionId(refreshToken);
+
+        if (!redisSessionService.existsSession(sessionId)) {
+            throw new BaseException(ErrorEnum.SESSION_NOT_FOUND);
+        }
+
+        if (!redisRefreshTokenService.hasRefreshToken(sessionId)) {
+            throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID);
+        }
 
         return new LoginToken(userId, sessionId, null, refreshToken);
     }

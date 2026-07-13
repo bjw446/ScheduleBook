@@ -63,7 +63,15 @@ public class RedisSessionService {
     public void saveSessionInfo(SessionInfo sessionInfo, long expiration) {
         String key = buildSessionInfoKey(sessionInfo.sessionId());
 
-        long now = System.currentTimeMillis();
+        long loginAtMillis = sessionInfo.loginAt()
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli();
+
+        long lastAccessAtMillis = sessionInfo.lastAccessAt()
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli();
 
         HashOperations<String, String, String> hashOperations = hashOperations();
 
@@ -71,8 +79,8 @@ public class RedisSessionService {
                 "userId", sessionInfo.userId().toString(),
                 "ip", sessionInfo.ip(),
                 "userAgent", sessionInfo.userAgent(),
-                "loginAt", String.valueOf(now),
-                "lastAccessAt", String.valueOf(now)
+                "loginAt", String.valueOf(loginAtMillis),
+                "lastAccessAt", String.valueOf(lastAccessAtMillis)
         );
 
         hashOperations.putAll(key, values);
