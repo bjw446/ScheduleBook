@@ -3,6 +3,7 @@ package com.example.schedulebook.common.security;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.redis.RedisBlacklistService;
+import com.example.schedulebook.common.redis.RedisSessionService;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -28,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtProvider jwtProvider;
     private final ObjectMapper objectMapper;
     private final RedisBlacklistService redisBlacklistService;
+    private final RedisSessionService redisSessionService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -44,6 +46,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 jwtProvider.validateToken(token);
 
                 Long userId = jwtProvider.extractUserId(token);
+
+                String sessionId = jwtProvider.extractSessionId(token);
+
+                try {
+                    redisSessionService.updateLastAccess(sessionId);
+
+                } catch (Exception e) {
+                    log.warn("세션 정보 업데이트 실패 : {}", e.getMessage(), e);
+                }
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         userId, null, List.of()

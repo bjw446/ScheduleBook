@@ -7,6 +7,7 @@ import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
 import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
 import com.example.schedulebook.domain.auth.dto.response.LoginResponse;
+import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
 import com.example.schedulebook.domain.auth.event.RefreshReplayDetectedEvent;
@@ -20,6 +21,8 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -76,7 +79,7 @@ public class AuthService {
 
         processLogin(user, ip, userAgent);
 
-        LoginToken token = sessionService.createSession(user.getId());
+        LoginToken token = sessionService.createSession(user.getId(), ip, userAgent);
 
         return LoginResponse.from(user, token.accessToken(), token.refreshToken());
     }
@@ -109,6 +112,18 @@ public class AuthService {
 
             throw e;
         }
+    }
+
+    public List<SessionInfoResponse> findMySessions(Long currentUserId) {
+        userValidator.validateActiveUser(currentUserId);
+
+        return sessionService.findSessions(currentUserId);
+    }
+
+    public void logoutSession(Long currentUserId, String sessionId) {
+        userValidator.validateActiveUser(currentUserId);
+
+        sessionService.logoutSession(currentUserId, sessionId);
     }
 
     private void processLogin(User user, String ip, String userAgent) {

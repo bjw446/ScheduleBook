@@ -2,10 +2,12 @@ package com.example.schedulebook.domain.auth.controller;
 
 import com.example.schedulebook.common.enums.SuccessEnum;
 import com.example.schedulebook.common.response.ApiResponse;
+import com.example.schedulebook.common.security.SecurityUtils;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
 import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
 import com.example.schedulebook.domain.auth.dto.response.LoginResponse;
+import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
 import com.example.schedulebook.domain.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -55,6 +59,28 @@ public class AuthController {
                 ApiResponse.success(
                         SuccessEnum.TOKEN_REFRESHED,
                         authService.refresh(request, servletRequest)
+                )
+        );
+    }
+
+    @GetMapping("/sessions")
+    public ResponseEntity<ApiResponse<List<SessionInfoResponse>>> getMySessions() {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.READ_SUCCESS,
+                        authService.findMySessions(SecurityUtils.getCurrentUserId())
+                )
+        );
+    }
+
+    @DeleteMapping("/sessions/{sessionId}")
+    public ResponseEntity<ApiResponse<Void>> logoutSession(@PathVariable String sessionId) {
+        authService.logoutSession(SecurityUtils.getCurrentUserId(), sessionId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.LOGOUT_SUCCESS,
+                        null
                 )
         );
     }

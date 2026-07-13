@@ -77,12 +77,41 @@ public final class RedisConst {
             
             local refreshKey = ARGV[1] .. sessionId
             
+            local infoKey = ARGV[2] .. sessionId
+            
             redis.call('DEL', refreshKey)
+            
+            redis.call('DEL', infoKey)
             
             end
             
             redis.call('DEL', KEYS[1])
             
             return #sessions;
+            """;
+    public static final String SESSION_INFO_PREFIX = "session:info:";
+    public static final Duration LAST_ACCESS_UPDATE_INTERVAL = Duration.ofSeconds(30);
+    public static final String UPDATE_LAST_ACCESS_SCRIPT = """
+            local key = KEYS[1]
+            
+            local interval = tonumber(ARGV[1])
+            
+            local now = tonumber(ARGV[2])
+            
+            local last = redis.call('HGET', key, 'lastAccessAt')
+            
+            if (not last) then return 0
+            
+            end
+            
+            last = tonumber(last)
+            
+            if (now - last < interval) then return 1
+            
+            end
+            
+            redis.call('HSET', key, 'lastAccessAt', now)
+            
+            return 2
             """;
 }

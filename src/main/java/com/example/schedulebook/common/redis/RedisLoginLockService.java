@@ -13,7 +13,7 @@ public class RedisLoginLockService {
     private final StringRedisTemplate stringRedisTemplate;
 
     public int increaseFail(String loginId) {
-        String key = RedisConst.LOGIN_FAIL_PREFIX + loginId;
+        String key = buildLoginFailKey(loginId);
 
         Long count = stringRedisTemplate.opsForValue().increment(key);
 
@@ -24,20 +24,20 @@ public class RedisLoginLockService {
 
     public void lock(String loginId) {
         stringRedisTemplate.opsForValue().set(
-                RedisConst.LOGIN_LOCK_PREFIX + loginId,
+                buildLoginLockKey(loginId),
                 "LOCK",
                 RedisConst.LOGIN_LOCK_DURATION
         );
     }
 
     public boolean isLocked(String loginId) {
-        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(RedisConst.LOGIN_LOCK_PREFIX + loginId));
+        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(buildLoginLockKey(loginId)));
     }
 
     public void clear(String loginId) {
-        stringRedisTemplate.delete(RedisConst.LOGIN_FAIL_PREFIX + loginId);
+        stringRedisTemplate.delete(buildLoginFailKey(loginId));
 
-        stringRedisTemplate.delete(RedisConst.LOGIN_LOCK_PREFIX + loginId);
+        stringRedisTemplate.delete(buildLoginLockKey(loginId));
     }
 
     public void recordFailure(String loginId) {
@@ -46,5 +46,13 @@ public class RedisLoginLockService {
         if (failCount >= CommonConst.MAX_LOGIN_FAIL) {
             lock(loginId);
         }
+    }
+
+    private String buildLoginFailKey(String loginId) {
+        return RedisConst.LOGIN_FAIL_PREFIX + loginId;
+    }
+
+    private String buildLoginLockKey(String loginId) {
+        return RedisConst.LOGIN_LOCK_PREFIX + loginId;
     }
 }

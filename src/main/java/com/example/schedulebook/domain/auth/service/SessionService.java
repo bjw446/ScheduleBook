@@ -7,11 +7,16 @@ import com.example.schedulebook.common.redis.RedisRefreshTokenService;
 import com.example.schedulebook.common.redis.RedisSessionService;
 import com.example.schedulebook.common.security.JwtProperties;
 import com.example.schedulebook.common.security.JwtProvider;
+import com.example.schedulebook.domain.auth.dto.response.SessionInfo;
+import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.enums.RefreshRotateResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -23,7 +28,7 @@ public class SessionService {
     private final RedisSessionService redisSessionService;
     private final RedisBlacklistService redisBlacklistService;
 
-    public LoginToken createSession(Long userId) {
+    public LoginToken createSession(Long userId, String ip, String userAgent) {
         String sessionId = UUID.randomUUID().toString();
 
         String accessToken = jwtProvider.generateAccessToken(userId, sessionId);
@@ -34,15 +39,22 @@ public class SessionService {
 
         redisSessionService.addSession(userId, sessionId, jwtProperties.refreshTokenExpiration());
 
+        SessionInfo sessionInfo = SessionInfo.create(
+                userId,
+                sessionId,
+                ip,
+                userAgent
+        );
+
+        redisSessionService.saveSessionInfo(sessionInfo, jwtProperties.refreshTokenExpiration());
+
         return new LoginToken(userId, sessionId, accessToken, refreshToken);
     }
 
     public void logout(String accessToken) {
         LoginToken token = validateAccessToken(accessToken);
 
-        redisRefreshTokenService.deleteRefreshToken(token.sessionId());
-
-        redisSessionService.removeSession(token.userId(), token.sessionId());
+        removeSession(token.userId(), token.sessionId());
 
         long expiration = jwtProvider.getRemainingTime(accessToken);
 
@@ -56,7 +68,31 @@ public class SessionService {
 
         String newRefreshToken = rotateRefreshToken(token);
 
-        return createLoginToken(token.userId(), token.sessionId(), newRefreshToken);
+        LoginToken newToken = createLoginToken(token.userId(), token.sessionId(), newRefreshToken);
+
+        redisSessionService.updateLastAccess(token.sessionId());
+
+        return newToken;
+    }
+
+    public List<SessionInfoResponse> findSessions(Long userId) {
+        Set<String> sessionIds = redisSessionService.getSessions(userId);
+
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return List.of();
+        }
+
+        return sessionIds.stream()
+                .map(redisSessionService::getSessionInfo)
+                .flatMap(Optional::stream)
+                .map(SessionInfoResponse::from)
+                .toList();
+    }
+
+    public void logoutSession(Long userId, String sessionId) {
+        validateSessionOwner(userId, sessionId);
+
+        removeSession(userId, sessionId);
     }
 
     private LoginToken validateRefreshToken(String refreshToken) {
@@ -108,5 +144,23 @@ public class SessionService {
         String accessToken = jwtProvider.generateAccessToken(userId, sessionId);
 
         return new LoginToken(userId, sessionId, accessToken, refreshToken);
+    }
+
+    private void validateSessionOwner(Long userId, String sessionId) {
+        SessionInfo sessionInfo = redisSessionService.getSessionInfo(sessionId).orElseThrow(
+                () -> new BaseException(ErrorEnum.SESSION_NOT_FOUND)
+        );
+
+        if (!sessionInfo.userId().equals(userId)) {
+            throw new BaseException(ErrorEnum.FORBIDDEN);
+        }
+    }
+
+    private void removeSession(Long userId, String sessionId) {
+        redisRefreshTokenService.deleteRefreshToken(sessionId);
+
+        redisSessionService.removeSession(userId, sessionId);
+
+        redisSessionService.deleteSessionInfo(sessionId);
     }
 }
