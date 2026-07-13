@@ -12,6 +12,7 @@ import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.enums.RefreshRotateResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,6 +22,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SessionService {
     private final JwtProvider jwtProvider;
     private final JwtProperties jwtProperties;
@@ -39,11 +41,15 @@ public class SessionService {
 
         redisSessionService.addSession(userId, sessionId, jwtProperties.refreshTokenExpiration());
 
+        String safeIp = ip != null ? ip : "unknown";
+
+        String safeUserAgent = userAgent != null ? userAgent : "unknown";
+
         SessionInfo sessionInfo = SessionInfo.create(
                 userId,
                 sessionId,
-                ip,
-                userAgent
+                safeIp,
+                safeUserAgent
         );
 
         redisSessionService.saveSessionInfo(sessionInfo, jwtProperties.refreshTokenExpiration());
@@ -70,7 +76,14 @@ public class SessionService {
 
         LoginToken newToken = createLoginToken(token.userId(), token.sessionId(), newRefreshToken);
 
-        redisSessionService.updateLastAccess(token.sessionId());
+        try {
+            redisSessionService.updateLastAccess(token.sessionId());
+
+            redisSessionService.extendSessionTTL(token.userId(), token.sessionId(), jwtProperties.refreshTokenExpiration());
+
+        } catch (Exception e) {
+            log.warn("세션 최근 접근 시간 갱신 실패 : sessionId = {}", token.sessionId(), e);
+        }
 
         return newToken;
     }

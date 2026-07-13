@@ -49,6 +49,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 String sessionId = jwtProvider.extractSessionId(token);
 
+                if (!redisSessionService.existsSession(sessionId)) {
+                    throw new BaseException(ErrorEnum.SESSION_NOT_FOUND);
+                }
+
                 try {
                     redisSessionService.updateLastAccess(sessionId);
 

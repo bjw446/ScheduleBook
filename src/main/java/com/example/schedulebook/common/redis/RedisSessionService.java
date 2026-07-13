@@ -117,6 +117,16 @@ public class RedisSessionService {
         );
     }
 
+    public void extendSessionTTL(Long userId, String sessionId, long expiration) {
+        stringRedisTemplate.expire(buildUserSessionKey(userId), Duration.ofMillis(expiration));
+
+        stringRedisTemplate.expire(buildSessionInfoKey(sessionId), Duration.ofMillis(expiration));
+    }
+
+    public boolean existsSession(String sessionId) {
+        return stringRedisTemplate.hasKey(buildSessionInfoKey(sessionId));
+    }
+
     private String buildSessionInfoKey(String sessionId) {
         return RedisConst.SESSION_INFO_PREFIX + sessionId;
     }
