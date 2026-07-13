@@ -77,12 +77,17 @@ public class SessionService {
         LoginToken newToken = createLoginToken(token.userId(), token.sessionId(), newRefreshToken);
 
         try {
-            redisSessionService.updateLastAccess(token.sessionId());
-
             redisSessionService.extendSessionTTL(token.userId(), token.sessionId(), jwtProperties.refreshTokenExpiration());
 
         } catch (Exception e) {
-            log.warn("세션 정보 갱신 실패 : sessionId = {}", token.sessionId(), e);
+            log.warn("세션 TTL 연장 실패 : sessionId = {}", token.sessionId(), e);
+        }
+
+        try {
+            redisSessionService.updateLastAccess(token.sessionId());
+
+        } catch (Exception e) {
+            log.warn("세션 최근 접근 시간 갱신 실패 : sessionId = {}", token.sessionId(), e);
         }
 
         return newToken;
