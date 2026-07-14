@@ -2,6 +2,7 @@ package com.example.schedulebook.common.security;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.user.enums.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -27,13 +28,14 @@ public class JwtProvider {
         this.signingKey = Keys.hmacShaKeyFor(jwtProperties.secret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(Long userId, String sessionId) {
+    public String generateAccessToken(Long userId, String sessionId, UserRole userRole) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtProperties.accessTokenExpiration());
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("sessionId", sessionId)
+                .claim("userRole", userRole.name())
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(signingKey)
@@ -48,6 +50,19 @@ public class JwtProvider {
 
         } catch (NumberFormatException e) {
             throw new BaseException(ErrorEnum.TOKEN_INVALID);
+
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new BaseException(ErrorEnum.TOKEN_INVALID);
+        }
+    }
+
+    public UserRole extractUserRole(String token) {
+        try {
+            Claims claims = parseClaims(token);
+
+            String userRole = claims.get("userRole", String.class);
+
+            return UserRole.valueOf(userRole);
 
         } catch (JwtException | IllegalArgumentException e) {
             throw new BaseException(ErrorEnum.TOKEN_INVALID);

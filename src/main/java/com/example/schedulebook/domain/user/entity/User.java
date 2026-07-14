@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.user.entity;
 import com.example.schedulebook.common.entity.DeleteEntity;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.user.enums.UserRole;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -57,6 +58,10 @@ public class User extends DeleteEntity {
     @Column(nullable = false, length = 20, name = "user_status")
     private UserStatus userStatus;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, name = "user_role")
+    private UserRole userRole;
+
     @Column(nullable = false, name = "login_streak")
     private int loginStreak;
 
@@ -78,6 +83,7 @@ public class User extends DeleteEntity {
         user.loginCount = 0;
         user.scheduleCount = 0;
         user.userStatus = UserStatus.ACTIVE;
+        user.userRole = UserRole.USER;
         user.loginStreak = 0;
 
         return user;
