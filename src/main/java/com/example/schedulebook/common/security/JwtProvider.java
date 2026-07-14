@@ -97,13 +97,14 @@ public class JwtProvider {
         }
     }
 
-    public String generateRefreshToken(Long userId, String sessionId) {
+    public String generateRefreshToken(Long userId, String sessionId, UserRole userRole) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtProperties.refreshTokenExpiration());
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("sessionId", sessionId)
+                .claim("userRole", userRole.name())
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(signingKey)

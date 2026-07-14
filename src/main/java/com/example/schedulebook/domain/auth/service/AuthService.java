@@ -10,6 +10,7 @@ import com.example.schedulebook.domain.auth.dto.response.LoginResponse;
 import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
+import com.example.schedulebook.domain.auth.event.LogoutEvent;
 import com.example.schedulebook.domain.auth.event.RefreshReplayDetectedEvent;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.repository.UserRepository;
@@ -84,8 +85,14 @@ public class AuthService {
         return LoginResponse.from(user, token.accessToken(), token.refreshToken());
     }
 
-    public void logout(String accessToken) {
-        sessionService.logout(accessToken);
+    public void logout(String accessToken, HttpServletRequest servletRequest) {
+        String ip = servletRequest.getRemoteAddr();
+
+        String userAgent = servletRequest.getHeader("User-Agent");
+
+        LoginToken token = sessionService.logout(accessToken);
+
+        applicationEventPublisher.publishEvent(new LogoutEvent(token.userId(), ip, userAgent));
     }
 
     public LoginResponse refresh(RefreshRequest request, HttpServletRequest servletRequest) {

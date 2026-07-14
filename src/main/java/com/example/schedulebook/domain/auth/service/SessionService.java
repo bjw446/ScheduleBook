@@ -11,9 +11,7 @@ import com.example.schedulebook.domain.auth.dto.response.SessionInfo;
 import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.enums.RefreshRotateResult;
-import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserRole;
-import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,14 +30,13 @@ public class SessionService {
     private final RedisRefreshTokenService redisRefreshTokenService;
     private final RedisSessionService redisSessionService;
     private final RedisBlacklistService redisBlacklistService;
-    private final UserValidator userValidator;
 
     public LoginToken createSession(Long userId, String ip, String userAgent, UserRole userRole) {
         String sessionId = UUID.randomUUID().toString();
 
         String accessToken = jwtProvider.generateAccessToken(userId, sessionId, userRole);
 
-        String refreshToken = jwtProvider.generateRefreshToken(userId, sessionId);
+        String refreshToken = jwtProvider.generateRefreshToken(userId, sessionId, userRole);
 
         redisRefreshTokenService.saveRefreshToken(sessionId, refreshToken, jwtProperties.refreshTokenExpiration());
 
@@ -61,7 +58,7 @@ public class SessionService {
         return new LoginToken(userId, sessionId, accessToken, refreshToken);
     }
 
-    public void logout(String accessToken) {
+    public LoginToken logout(String accessToken) {
         LoginToken token = validateAccessToken(accessToken);
 
         removeSession(token.userId(), token.sessionId());
@@ -71,16 +68,18 @@ public class SessionService {
         if (!redisBlacklistService.isBlacklisted(accessToken)) {
             redisBlacklistService.saveBlacklistToken(accessToken, expiration);
         }
+
+        return new LoginToken(token.userId(), token.sessionId(), accessToken, null);
     }
 
     public LoginToken refresh(String refreshToken) {
         LoginToken token = validateRefreshToken(refreshToken);
 
-        User user = userValidator.validateActiveUser(token.userId());
+        UserRole userRole = jwtProvider.extractUserRole(token.refreshToken());
 
         String newRefreshToken = rotateRefreshToken(token);
 
-        LoginToken newToken = createLoginToken(token.userId(), token.sessionId(), newRefreshToken, user.getUserRole());
+        LoginToken newToken = createLoginToken(token.userId(), token.sessionId(), newRefreshToken, userRole);
 
         try {
             redisSessionService.extendSessionTTL(token.userId(), token.sessionId(), jwtProperties.refreshTokenExpiration());
@@ -148,7 +147,9 @@ public class SessionService {
     }
 
     private String rotateRefreshToken(LoginToken token) {
-        String newRefreshToken = jwtProvider.generateRefreshToken(token.userId(), token.sessionId());
+        UserRole userRole = jwtProvider.extractUserRole(token.refreshToken());
+
+        String newRefreshToken = jwtProvider.generateRefreshToken(token.userId(), token.sessionId(), userRole);
 
         RefreshRotateResult result = redisRefreshTokenService.rotateRefreshToken(
                 token.sessionId(),

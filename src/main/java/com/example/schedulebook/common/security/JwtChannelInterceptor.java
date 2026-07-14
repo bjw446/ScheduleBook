@@ -12,6 +12,7 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -58,8 +59,10 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
         UserPrincipal userPrincipal = new UserPrincipal(userId, userRole);
 
+        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + userRole.name());
+
         accessor.setUser(new UsernamePasswordAuthenticationToken(
-                userPrincipal, null, List.of()
+                userPrincipal, null, List.of(authority)
         ));
     }
 }

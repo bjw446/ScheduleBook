@@ -40,10 +40,10 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authorization) {
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authorization, HttpServletRequest servletRequest) {
         String accessToken = authorization.substring(7);
 
-        authService.logout(accessToken);
+        authService.logout(accessToken, servletRequest);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
