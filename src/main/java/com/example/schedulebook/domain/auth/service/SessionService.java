@@ -11,6 +11,9 @@ import com.example.schedulebook.domain.auth.dto.response.SessionInfo;
 import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.enums.RefreshRotateResult;
+import com.example.schedulebook.domain.user.entity.User;
+import com.example.schedulebook.domain.user.enums.UserRole;
+import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,11 +32,12 @@ public class SessionService {
     private final RedisRefreshTokenService redisRefreshTokenService;
     private final RedisSessionService redisSessionService;
     private final RedisBlacklistService redisBlacklistService;
+    private final UserValidator userValidator;
 
-    public LoginToken createSession(Long userId, String ip, String userAgent) {
+    public LoginToken createSession(Long userId, String ip, String userAgent, UserRole userRole) {
         String sessionId = UUID.randomUUID().toString();
 
-        String accessToken = jwtProvider.generateAccessToken(userId, sessionId);
+        String accessToken = jwtProvider.generateAccessToken(userId, sessionId, userRole);
 
         String refreshToken = jwtProvider.generateRefreshToken(userId, sessionId);
 
@@ -72,9 +76,11 @@ public class SessionService {
     public LoginToken refresh(String refreshToken) {
         LoginToken token = validateRefreshToken(refreshToken);
 
+        User user = userValidator.validateActiveUser(token.userId());
+
         String newRefreshToken = rotateRefreshToken(token);
 
-        LoginToken newToken = createLoginToken(token.userId(), token.sessionId(), newRefreshToken);
+        LoginToken newToken = createLoginToken(token.userId(), token.sessionId(), newRefreshToken, user.getUserRole());
 
         try {
             redisSessionService.extendSessionTTL(token.userId(), token.sessionId(), jwtProperties.refreshTokenExpiration());
@@ -166,8 +172,8 @@ public class SessionService {
         return newRefreshToken;
     }
 
-    private LoginToken createLoginToken(Long userId, String sessionId, String refreshToken) {
-        String accessToken = jwtProvider.generateAccessToken(userId, sessionId);
+    private LoginToken createLoginToken(Long userId, String sessionId, String refreshToken, UserRole userRole) {
+        String accessToken = jwtProvider.generateAccessToken(userId, sessionId, userRole);
 
         return new LoginToken(userId, sessionId, accessToken, refreshToken);
     }

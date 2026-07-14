@@ -42,10 +42,6 @@ public class SecurityUtils {
             return ((UserPrincipal) principal).userRole().name();
         }
 
-        if (principal instanceof Long) {
-            return principal.toString();
-        }
-
         throw new BaseException(ErrorEnum.UNAUTHORIZED);
     }
 }

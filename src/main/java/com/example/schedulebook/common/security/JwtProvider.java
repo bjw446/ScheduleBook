@@ -62,6 +62,10 @@ public class JwtProvider {
 
             String userRole = claims.get("userRole", String.class);
 
+            if (userRole == null) {
+                throw new BaseException(ErrorEnum.TOKEN_INVALID);
+            }
+
             return UserRole.valueOf(userRole);
 
         } catch (JwtException | IllegalArgumentException e) {

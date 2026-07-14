@@ -66,8 +66,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     log.warn("세션 정보 업데이트 실패 : {}", e.getMessage(), e);
                 }
 
+                UserPrincipal userPrincipal = new UserPrincipal(userId, userRole);
+
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userId, null, List.of(authority)
+                        userPrincipal, null, List.of(authority)
                 );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);

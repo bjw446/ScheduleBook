@@ -79,7 +79,7 @@ public class AuthService {
 
         processLogin(user, ip, userAgent);
 
-        LoginToken token = sessionService.createSession(user.getId(), ip, userAgent);
+        LoginToken token = sessionService.createSession(user.getId(), ip, userAgent, user.getUserRole());
 
         return LoginResponse.from(user, token.accessToken(), token.refreshToken());
     }
