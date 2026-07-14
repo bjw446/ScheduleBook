@@ -2,6 +2,7 @@ package com.example.schedulebook.common.security;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.user.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
@@ -53,7 +54,9 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
         Long userId = jwtProvider.extractUserId(token);
 
-        UserPrincipal userPrincipal = new UserPrincipal(userId);
+        UserRole userRole = jwtProvider.extractUserRole(token);
+
+        UserPrincipal userPrincipal = new UserPrincipal(userId, userRole);
 
         accessor.setUser(new UsernamePasswordAuthenticationToken(
                 userPrincipal, null, List.of()

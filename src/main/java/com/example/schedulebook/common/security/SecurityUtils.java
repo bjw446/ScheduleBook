@@ -28,4 +28,20 @@ public class SecurityUtils {
 
         throw new BaseException(ErrorEnum.UNAUTHORIZED);
     }
+
+    public static String getCurrentUserRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new BaseException(ErrorEnum.UNAUTHORIZED);
+        }
+
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof UserPrincipal) {
+            return ((UserPrincipal) principal).userRole().name();
+        }
+
+        throw new BaseException(ErrorEnum.UNAUTHORIZED);
+    }
 }

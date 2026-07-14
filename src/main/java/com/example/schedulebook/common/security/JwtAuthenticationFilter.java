@@ -5,6 +5,7 @@ import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.redis.RedisBlacklistService;
 import com.example.schedulebook.common.redis.RedisSessionService;
 import com.example.schedulebook.common.response.ApiResponse;
+import com.example.schedulebook.domain.user.enums.UserRole;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -49,6 +51,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 String sessionId = jwtProvider.extractSessionId(token);
 
+                UserRole userRole = jwtProvider.extractUserRole(token);
+
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + userRole.name());
+
                 if (!redisSessionService.existsSession(sessionId)) {
                     throw new BaseException(ErrorEnum.SESSION_NOT_FOUND);
                 }
@@ -60,8 +66,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     log.warn("세션 정보 업데이트 실패 : {}", e.getMessage(), e);
                 }
 
+                UserPrincipal userPrincipal = new UserPrincipal(userId, userRole);
+
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userId, null, List.of()
+                        userPrincipal, null, List.of(authority)
                 );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
