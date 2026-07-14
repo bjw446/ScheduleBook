@@ -74,4 +74,16 @@ public class AuditLogService {
 
         auditLogRepository.save(auditLog);
     }
+
+    public void saveLogoutSession(LogoutSessionEvent event) {
+        AuditLog auditLog = AuditLog.create(
+                event.userId(),
+                null,
+                AuditEventType.SESSION_LOGOUT,
+                event.ip(),
+                event.userAgent()
+        );
+
+        auditLogRepository.save(auditLog);
+    }
 }

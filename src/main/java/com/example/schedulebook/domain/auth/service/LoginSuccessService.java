@@ -29,7 +29,7 @@ public class LoginSuccessService {
             applicationEventPublisher.publishEvent(new LoginSuccessEvent(user.getId(), user.getLoginId(), ip, userAgent));
 
         } catch (Exception e) {
-            log.error("로그인 감시 저장 실패 : {}", e.getMessage(), e);
+            log.error("로그인 성공 감사 이벤트 발행 에러 : {}", e.getMessage(), e);
         }
 
         redisLoginLockService.clear(user.getLoginId());

@@ -77,7 +77,7 @@ public class SessionService {
 
         UserRole userRole = jwtProvider.extractUserRole(token.refreshToken());
 
-        String newRefreshToken = rotateRefreshToken(token);
+        String newRefreshToken = rotateRefreshToken(token, userRole);
 
         LoginToken newToken = createLoginToken(token.userId(), token.sessionId(), newRefreshToken, userRole);
 
@@ -146,9 +146,7 @@ public class SessionService {
         return new LoginToken(userId, sessionId, accessToken, null);
     }
 
-    private String rotateRefreshToken(LoginToken token) {
-        UserRole userRole = jwtProvider.extractUserRole(token.refreshToken());
-
+    private String rotateRefreshToken(LoginToken token, UserRole userRole) {
         String newRefreshToken = jwtProvider.generateRefreshToken(token.userId(), token.sessionId(), userRole);
 
         RefreshRotateResult result = redisRefreshTokenService.rotateRefreshToken(

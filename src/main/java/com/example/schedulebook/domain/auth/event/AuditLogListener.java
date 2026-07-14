@@ -61,4 +61,14 @@ public class AuditLogListener {
             log.error("회원 탈퇴 로그 저장 에러 발생 : {}", e.getMessage(), e);
         }
     }
+
+    @EventListener
+    public void handle(LogoutSessionEvent event) {
+        try {
+            auditLogService.saveLogoutSession(event);
+
+        } catch (Exception e) {
+            log.error("세션 로그아웃 로그 저장 에러 발생 : {}", e.getMessage(), e);
+        }
+    }
 }

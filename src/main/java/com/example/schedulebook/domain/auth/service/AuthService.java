@@ -12,6 +12,7 @@ import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
 import com.example.schedulebook.domain.auth.event.LogoutEvent;
 import com.example.schedulebook.domain.auth.event.RefreshReplayDetectedEvent;
+import com.example.schedulebook.domain.auth.event.LogoutSessionEvent;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import com.example.schedulebook.domain.user.validator.UserValidator;
@@ -127,10 +128,16 @@ public class AuthService {
         return sessionService.findSessions(currentUserId);
     }
 
-    public void logoutSession(Long currentUserId, String sessionId) {
+    public void logoutSession(Long currentUserId, String sessionId, HttpServletRequest servletRequest) {
+        String ip = servletRequest.getRemoteAddr();
+
+        String userAgent = servletRequest.getHeader("User-Agent");
+
         userValidator.validateActiveUser(currentUserId);
 
         sessionService.logoutSession(currentUserId, sessionId);
+
+        applicationEventPublisher.publishEvent(new LogoutSessionEvent(currentUserId, ip, userAgent));
     }
 
     private void processLogin(User user, String ip, String userAgent) {

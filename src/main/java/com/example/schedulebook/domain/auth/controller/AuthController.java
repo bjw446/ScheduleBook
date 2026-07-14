@@ -1,6 +1,8 @@
 package com.example.schedulebook.domain.auth.controller;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.enums.SuccessEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
@@ -41,6 +43,10 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authorization, HttpServletRequest servletRequest) {
+        if (!authorization.startsWith("Bearer ")) {
+            throw new BaseException(ErrorEnum.TOKEN_MISSING);
+        }
+
         String accessToken = authorization.substring(7);
 
         authService.logout(accessToken, servletRequest);
@@ -74,8 +80,8 @@ public class AuthController {
     }
 
     @DeleteMapping("/sessions/{sessionId}")
-    public ResponseEntity<ApiResponse<Void>> logoutSession(@PathVariable String sessionId) {
-        authService.logoutSession(SecurityUtils.getCurrentUserId(), sessionId);
+    public ResponseEntity<ApiResponse<Void>> logoutSession(@PathVariable String sessionId, HttpServletRequest servletRequest) {
+        authService.logoutSession(SecurityUtils.getCurrentUserId(), sessionId, servletRequest);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
