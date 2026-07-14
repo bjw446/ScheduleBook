@@ -69,9 +69,9 @@ public class AuthService {
 
         userValidator.validateLoginUserStatus(user);
 
-        String ip = servletRequest.getRemoteAddr();
+        String ip = getUserIp(servletRequest);
 
-        String userAgent = servletRequest.getHeader("User-Agent");
+        String userAgent = getUserAgent(servletRequest);
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             loginFailureService.handleFailure(request.loginId(), ip, userAgent);
@@ -87,9 +87,9 @@ public class AuthService {
     }
 
     public void logout(String accessToken, HttpServletRequest servletRequest) {
-        String ip = servletRequest.getRemoteAddr();
+        String ip = getUserIp(servletRequest);
 
-        String userAgent = servletRequest.getHeader("User-Agent");
+        String userAgent = getUserAgent(servletRequest);
 
         LoginToken token = sessionService.logout(accessToken);
 
@@ -97,9 +97,9 @@ public class AuthService {
     }
 
     public LoginResponse refresh(RefreshRequest request, HttpServletRequest servletRequest) {
-        String ip = servletRequest.getRemoteAddr();
+        String ip = getUserIp(servletRequest);
 
-        String userAgent = servletRequest.getHeader("User-Agent");
+        String userAgent = getUserAgent(servletRequest);
 
         try {
             LoginToken token = sessionService.refresh(request.refreshToken());
@@ -129,9 +129,9 @@ public class AuthService {
     }
 
     public void logoutSession(Long currentUserId, String sessionId, HttpServletRequest servletRequest) {
-        String ip = servletRequest.getRemoteAddr();
+        String ip = getUserIp(servletRequest);
 
-        String userAgent = servletRequest.getHeader("User-Agent");
+        String userAgent = getUserAgent(servletRequest);
 
         userValidator.validateActiveUser(currentUserId);
 
@@ -147,5 +147,25 @@ public class AuthService {
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new BaseException(ErrorEnum.LOGIN_CONFLICT);
         }
+    }
+
+    private String getUserAgent(HttpServletRequest servletRequest) {
+        String userAgent = servletRequest.getHeader("User-Agent");
+
+        if (userAgent == null || userAgent.isBlank()) {
+            userAgent = "UNKNOWN";
+        }
+
+        return userAgent;
+    }
+
+    private String getUserIp(HttpServletRequest servletRequest) {
+        String ip = servletRequest.getRemoteAddr();
+
+        if (ip == null || ip.isBlank()) {
+            ip = "UNKNOWN";
+        }
+
+        return ip;
     }
 }

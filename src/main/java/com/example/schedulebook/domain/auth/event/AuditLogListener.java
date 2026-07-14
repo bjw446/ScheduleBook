@@ -4,6 +4,7 @@ import com.example.schedulebook.domain.auth.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 public class AuditLogListener {
     private final AuditLogService auditLogService;
 
+    @Async
     @EventListener
     public void handle(LoginSuccessEvent event) {
         try {
@@ -22,6 +24,7 @@ public class AuditLogListener {
         }
     }
 
+    @Async
     @EventListener
     public void handle(LoginFailedEvent event) {
         try {
@@ -32,6 +35,7 @@ public class AuditLogListener {
         }
     }
 
+    @Async
     @EventListener
     public void handle(LogoutEvent event) {
         try {
@@ -42,6 +46,7 @@ public class AuditLogListener {
         }
     }
 
+    @Async
     @EventListener
     public void handle(RefreshReplayDetectedEvent event) {
         try {
@@ -52,6 +57,7 @@ public class AuditLogListener {
         }
     }
 
+    @Async
     @EventListener
     public void handle(UserWithdrawEvent event) {
         try {
@@ -62,6 +68,7 @@ public class AuditLogListener {
         }
     }
 
+    @Async
     @EventListener
     public void handle(LogoutSessionEvent event) {
         try {
