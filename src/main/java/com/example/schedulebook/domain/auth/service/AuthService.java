@@ -10,7 +10,9 @@ import com.example.schedulebook.domain.auth.dto.response.LoginResponse;
 import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
+import com.example.schedulebook.domain.auth.event.LogoutEvent;
 import com.example.schedulebook.domain.auth.event.RefreshReplayDetectedEvent;
+import com.example.schedulebook.domain.auth.event.LogoutSessionEvent;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import com.example.schedulebook.domain.user.validator.UserValidator;
@@ -67,9 +69,9 @@ public class AuthService {
 
         userValidator.validateLoginUserStatus(user);
 
-        String ip = servletRequest.getRemoteAddr();
+        String ip = getUserIp(servletRequest);
 
-        String userAgent = servletRequest.getHeader("User-Agent");
+        String userAgent = getUserAgent(servletRequest);
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             loginFailureService.handleFailure(request.loginId(), ip, userAgent);
@@ -84,14 +86,20 @@ public class AuthService {
         return LoginResponse.from(user, token.accessToken(), token.refreshToken());
     }
 
-    public void logout(String accessToken) {
-        sessionService.logout(accessToken);
+    public void logout(String accessToken, HttpServletRequest servletRequest) {
+        String ip = getUserIp(servletRequest);
+
+        String userAgent = getUserAgent(servletRequest);
+
+        LoginToken token = sessionService.logout(accessToken);
+
+        applicationEventPublisher.publishEvent(new LogoutEvent(token.userId(), ip, userAgent));
     }
 
     public LoginResponse refresh(RefreshRequest request, HttpServletRequest servletRequest) {
-        String ip = servletRequest.getRemoteAddr();
+        String ip = getUserIp(servletRequest);
 
-        String userAgent = servletRequest.getHeader("User-Agent");
+        String userAgent = getUserAgent(servletRequest);
 
         try {
             LoginToken token = sessionService.refresh(request.refreshToken());
@@ -120,10 +128,16 @@ public class AuthService {
         return sessionService.findSessions(currentUserId);
     }
 
-    public void logoutSession(Long currentUserId, String sessionId) {
+    public void logoutSession(Long currentUserId, String sessionId, HttpServletRequest servletRequest) {
+        String ip = getUserIp(servletRequest);
+
+        String userAgent = getUserAgent(servletRequest);
+
         userValidator.validateActiveUser(currentUserId);
 
         sessionService.logoutSession(currentUserId, sessionId);
+
+        applicationEventPublisher.publishEvent(new LogoutSessionEvent(currentUserId, ip, userAgent));
     }
 
     private void processLogin(User user, String ip, String userAgent) {
@@ -133,5 +147,25 @@ public class AuthService {
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new BaseException(ErrorEnum.LOGIN_CONFLICT);
         }
+    }
+
+    private String getUserAgent(HttpServletRequest servletRequest) {
+        String userAgent = servletRequest.getHeader("User-Agent");
+
+        if (userAgent == null || userAgent.isBlank()) {
+            userAgent = "UNKNOWN";
+        }
+
+        return userAgent;
+    }
+
+    private String getUserIp(HttpServletRequest servletRequest) {
+        String ip = servletRequest.getRemoteAddr();
+
+        if (ip == null || ip.isBlank()) {
+            ip = "UNKNOWN";
+        }
+
+        return ip;
     }
 }

@@ -3,9 +3,10 @@ package com.example.schedulebook.domain.auth.service;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.redis.RedisLoginLockService;
-import com.example.schedulebook.domain.auth.enums.LoginResult;
+import com.example.schedulebook.domain.auth.event.LoginFailedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class LoginFailureService {
     private final RedisLoginLockService redisLoginLockService;
-    private final LoginAuditService loginAuditService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleFailure(String loginId, String ip, String userAgent) {
@@ -27,10 +28,10 @@ public class LoginFailureService {
         }
 
         try {
-            loginAuditService.save(loginId, LoginResult.FAIL, ip, userAgent);
+            applicationEventPublisher.publishEvent(new LoginFailedEvent(loginId, ip, userAgent));
 
         } catch (Exception e) {
-            log.error("로그인 감시 저장 실패 : {}", e.getMessage(), e);
+            log.error("로그인 실패 감사 이벤트 발행 에러 : {}", e.getMessage(), e);
         }
     }
 
