@@ -16,10 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -109,6 +106,7 @@ public class SessionService {
                 .map(redisSessionService::getSessionInfo)
                 .flatMap(Optional::stream)
                 .map(SessionInfoResponse::from)
+                .sorted(Comparator.comparing(SessionInfoResponse::loginAt).reversed())
                 .toList();
     }
 

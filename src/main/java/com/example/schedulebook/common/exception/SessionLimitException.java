@@ -7,7 +7,7 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
-public class SessionLimitException extends BaseException{
+public class SessionLimitException extends BaseException {
     private final List<SessionInfoResponse> sessionInfoResponses;
 
     public SessionLimitException(ErrorEnum errorEnum, List<SessionInfoResponse> sessionInfoResponses) {
