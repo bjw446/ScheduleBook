@@ -2,14 +2,13 @@ package com.example.schedulebook.domain.auth.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.common.exception.SessionLimitException;
 import com.example.schedulebook.common.security.JwtProvider;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
 import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
-import com.example.schedulebook.domain.auth.dto.response.LoginResponse;
-import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
+import com.example.schedulebook.domain.auth.dto.response.*;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
-import com.example.schedulebook.domain.auth.dto.response.SignupResponse;
 import com.example.schedulebook.domain.auth.event.LogoutEvent;
 import com.example.schedulebook.domain.auth.event.RefreshReplayDetectedEvent;
 import com.example.schedulebook.domain.auth.event.LogoutSessionEvent;
@@ -38,6 +37,7 @@ public class AuthService {
     private final SessionService sessionService;
     private final JwtProvider jwtProvider;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final SessionLimitService sessionLimitService;
 
     public SignupResponse signup(SignupRequest request) {
         userValidator.validateDuplicateUser(
@@ -80,6 +80,12 @@ public class AuthService {
         }
 
         processLogin(user, ip, userAgent);
+
+        SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
+
+        if (sessionLimitResult.exceeded()) {
+            throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
+        }
 
         LoginToken token = sessionService.createSession(user.getId(), ip, userAgent, user.getUserRole());
 
