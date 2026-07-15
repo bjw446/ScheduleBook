@@ -12,10 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -133,6 +130,20 @@ public class RedisSessionService {
 
     public boolean existsSession(String sessionId) {
         return stringRedisTemplate.hasKey(buildSessionInfoKey(sessionId));
+    }
+
+    public List<SessionInfo> findAllSessionInfo(Long userId) {
+        Set<String> sessionIds = getSessions(userId);
+
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return List.of();
+        }
+
+        return sessionIds.stream()
+                .map(this::getSessionInfo)
+                .flatMap(Optional::stream)
+                .sorted(Comparator.comparing(SessionInfo::loginAt))
+                .toList();
     }
 
     private String buildSessionInfoKey(String sessionId) {

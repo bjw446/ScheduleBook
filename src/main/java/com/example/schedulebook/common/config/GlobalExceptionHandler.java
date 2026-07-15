@@ -2,7 +2,9 @@ package com.example.schedulebook.common.config;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.common.exception.SessionLimitException;
 import com.example.schedulebook.common.response.ApiResponse;
+import com.example.schedulebook.domain.auth.dto.response.SessionLimitResponse;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.NestedExceptionUtils;
@@ -25,6 +27,7 @@ public class GlobalExceptionHandler {
         log.warn("비즈니스 예외 발생 : {}", e.getMessage());
 
         ErrorEnum errorEnum = e.getErrorEnum();
+
         return ResponseEntity.status(errorEnum.getStatus()).body(ApiResponse.fail(errorEnum));
     }
 
@@ -84,5 +87,17 @@ public class GlobalExceptionHandler {
         log.error("예상하지 못한 서버 오류 발생 : {}", e.getMessage());
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.fail(ErrorEnum.INTERNAL_SERVER_ERROR));
+    }
+
+    @ExceptionHandler(SessionLimitException.class)
+    public ResponseEntity<ApiResponse<SessionLimitResponse>> handleSessionLimitException(SessionLimitException e) {
+        log.warn("로그인 가능한 환경 수 초과 오류 발생 : {}", e.getMessage());
+
+        return ResponseEntity.status(e.getErrorEnum().getStatus()).body(
+                ApiResponse.fail(
+                        e.getErrorEnum(),
+                        new SessionLimitResponse(e.getSessionInfoResponses())
+                )
+        );
     }
 }

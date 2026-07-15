@@ -33,6 +33,7 @@ public enum ErrorEnum {
     PASSWORD_SAME_AS_OLD(400, "기존 비밀번호와 동일하게 변경할 수 없습니다."),
     ACCOUNT_LOCKED(423, "계정이 잠겨 있습니다, 잠시 후 다시 시도해주세요."),
     SESSION_NOT_FOUND(404, "존재하지 않는 세션 입니다."),
+    SESSION_LIMIT_EXCEEDED(429, "로그인 가능한 환경 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해주세요."),
 
     // Token
     TOKEN_EXPIRED(401, "만료된 토큰입니다."),
