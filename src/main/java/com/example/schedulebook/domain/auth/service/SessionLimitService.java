@@ -26,4 +26,20 @@ public class SessionLimitService {
 
         return SessionLimitResult.exceeded(sessionService.findSessions(userId));
     }
+
+    public SessionLimitResult validateSessionLimitExcluding(Long userId, UserRole userRole, String sessionId) {
+        Set<String> sessions = redisSessionService.getSessions(userId);
+
+        int activeCount = sessions == null ? 0 : sessions.size();
+
+        if (sessions != null  && sessions.contains(sessionId)) {
+            activeCount--;
+        }
+
+        if (activeCount < sessionLimitProperties.getLimit(userRole)) {
+            return SessionLimitResult.available();
+        }
+
+        return SessionLimitResult.exceeded(sessionService.findSessions(userId));
+    }
 }

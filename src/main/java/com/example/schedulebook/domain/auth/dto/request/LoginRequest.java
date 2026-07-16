@@ -1,6 +1,7 @@
 package com.example.schedulebook.domain.auth.dto.request;
 
 import com.example.schedulebook.domain.auth.consts.AuthValidationPatterns;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -16,6 +17,9 @@ public record LoginRequest(
                 regexp = AuthValidationPatterns.PASSWORD_COMPLEXITY,
                 message = "비밀번호는 영문 대소문자, 숫자, 특수문자를 모두 포함해야 합니다."
         )
-        String password
+        String password,
+
+        @Nullable
+        String replaceSessionId
 ) {
 }

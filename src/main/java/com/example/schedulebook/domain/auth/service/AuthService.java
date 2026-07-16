@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.auth.service;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.exception.SessionLimitException;
+import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.common.security.JwtProvider;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
@@ -17,6 +18,7 @@ import com.example.schedulebook.domain.user.repository.UserRepository;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +30,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -38,6 +41,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final SessionLimitService sessionLimitService;
+    private final AfterCommitExecutor afterCommitExecutor;
 
     public SignupResponse signup(SignupRequest request) {
         userValidator.validateDuplicateUser(
@@ -79,13 +83,30 @@ public class AuthService {
             throw new BaseException(ErrorEnum.LOGIN_FAILED);
         }
 
-        processLogin(user, ip, userAgent);
+        if (request.replaceSessionId() != null && !request.replaceSessionId().isBlank()) {
+            SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimitExcluding(
+                    user.getId(),
+                    user.getUserRole(),
+                    request.replaceSessionId()
+            );
 
-        SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
+            if (sessionLimitResult.exceeded()) {
+                throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
+            }
 
-        if (sessionLimitResult.exceeded()) {
-            throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
+            sessionService.logoutSession(user.getId(), request.replaceSessionId());
+
+            afterCommit(new LogoutSessionEvent(user.getId(), ip, userAgent));
+
+        } else {
+            SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
+
+            if (sessionLimitResult.exceeded()) {
+                throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
+            }
         }
+
+        processLogin(user, ip, userAgent);
 
         LoginToken token = sessionService.createSession(user.getId(), ip, userAgent, user.getUserRole());
 
@@ -99,7 +120,7 @@ public class AuthService {
 
         LoginToken token = sessionService.logout(accessToken);
 
-        applicationEventPublisher.publishEvent(new LogoutEvent(token.userId(), ip, userAgent));
+        afterCommit(new LogoutEvent(token.userId(), ip, userAgent));
     }
 
     public LoginResponse refresh(RefreshRequest request, HttpServletRequest servletRequest) {
@@ -121,7 +142,14 @@ public class AuthService {
 
                 User user = userValidator.validateActiveUser(userId);
 
-                applicationEventPublisher.publishEvent(new RefreshReplayDetectedEvent(userId, user.getLoginId(), ip, userAgent));
+                applicationEventPublisher.publishEvent(
+                        new RefreshReplayDetectedEvent(
+                                userId,
+                                user.getLoginId(),
+                                ip,
+                                userAgent
+                        )
+                );
             }
 
             throw e;
@@ -143,7 +171,7 @@ public class AuthService {
 
         sessionService.logoutSession(currentUserId, sessionId);
 
-        applicationEventPublisher.publishEvent(new LogoutSessionEvent(currentUserId, ip, userAgent));
+        afterCommit(new LogoutSessionEvent(currentUserId, ip, userAgent));
     }
 
     private void processLogin(User user, String ip, String userAgent) {
@@ -173,5 +201,16 @@ public class AuthService {
         }
 
         return ip;
+    }
+
+    private void afterCommit(Object object) {
+        afterCommitExecutor.execute(() -> {
+            try {
+                applicationEventPublisher.publishEvent(object);
+
+            } catch (Exception e) {
+                log.error("커밋 후 이벤트 발행 실패 : {}", e.getMessage(), e);
+            }
+        });
     }
 }
