@@ -84,15 +84,26 @@ public class AuthService {
         }
 
         if (request.replaceSessionId() != null && !request.replaceSessionId().isBlank()) {
+            SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimitExcluding(
+                    user.getId(),
+                    user.getUserRole(),
+                    request.replaceSessionId()
+            );
+
+            if (sessionLimitResult.exceeded()) {
+                throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
+            }
+
             sessionService.logoutSession(user.getId(), request.replaceSessionId());
 
             afterCommit(new LogoutEvent(user.getId(), ip, userAgent));
-        }
 
-        SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
+        } else {
+            SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
 
-        if (sessionLimitResult.exceeded()) {
-            throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
+            if (sessionLimitResult.exceeded()) {
+                throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
+            }
         }
 
         processLogin(user, ip, userAgent);
