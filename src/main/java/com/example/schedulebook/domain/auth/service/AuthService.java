@@ -79,13 +79,17 @@ public class AuthService {
             throw new BaseException(ErrorEnum.LOGIN_FAILED);
         }
 
-        processLogin(user, ip, userAgent);
+        if (request.replaceSessionId() != null && !request.replaceSessionId().isBlank()) {
+            sessionService.logoutForReplace(user.getId(), request.replaceSessionId());
+        }
 
         SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
 
         if (sessionLimitResult.exceeded()) {
             throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
         }
+
+        processLogin(user, ip, userAgent);
 
         LoginToken token = sessionService.createSession(user.getId(), ip, userAgent, user.getUserRole());
 

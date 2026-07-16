@@ -116,6 +116,12 @@ public class SessionService {
         removeSession(userId, sessionId);
     }
 
+    public void logoutForReplace(Long userId, String sessionId) {
+        validateSessionOwner(userId, sessionId);
+
+        removeSession(userId, sessionId);
+    }
+
     private LoginToken validateRefreshToken(String refreshToken) {
         jwtProvider.validateToken(refreshToken);
 
