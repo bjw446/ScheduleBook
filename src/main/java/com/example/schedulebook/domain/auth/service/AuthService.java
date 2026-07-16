@@ -96,7 +96,7 @@ public class AuthService {
 
             sessionService.logoutSession(user.getId(), request.replaceSessionId());
 
-            afterCommit(new LogoutEvent(user.getId(), ip, userAgent));
+            afterCommit(new LogoutSessionEvent(user.getId(), ip, userAgent));
 
         } else {
             SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
@@ -142,7 +142,14 @@ public class AuthService {
 
                 User user = userValidator.validateActiveUser(userId);
 
-                afterCommit(new RefreshReplayDetectedEvent(userId, user.getLoginId(), ip, userAgent));
+                applicationEventPublisher.publishEvent(
+                        new RefreshReplayDetectedEvent(
+                                userId,
+                                user.getLoginId(),
+                                ip,
+                                userAgent
+                        )
+                );
             }
 
             throw e;

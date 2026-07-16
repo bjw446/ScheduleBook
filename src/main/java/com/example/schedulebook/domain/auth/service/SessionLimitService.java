@@ -7,7 +7,6 @@ import com.example.schedulebook.domain.user.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Set;
 
 @Service
@@ -31,11 +30,13 @@ public class SessionLimitService {
     public SessionLimitResult validateSessionLimitExcluding(Long userId, UserRole userRole, String sessionId) {
         Set<String> sessions = redisSessionService.getSessions(userId);
 
-        if (sessions != null) {
-            sessions.remove(sessionId);
+        int activeCount = sessions == null ? 0 : sessions.size();
+
+        if (sessions != null  && sessions.contains(sessionId)) {
+            activeCount--;
         }
 
-        if (sessions == null || sessions.size() < sessionLimitProperties.getLimit(userRole)) {
+        if (activeCount < sessionLimitProperties.getLimit(userRole)) {
             return SessionLimitResult.available();
         }
 
