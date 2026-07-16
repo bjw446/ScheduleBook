@@ -80,7 +80,9 @@ public class AuthService {
         }
 
         if (request.replaceSessionId() != null && !request.replaceSessionId().isBlank()) {
-            sessionService.logoutForReplace(user.getId(), request.replaceSessionId());
+            sessionService.logoutSession(user.getId(), request.replaceSessionId());
+
+            applicationEventPublisher.publishEvent(new LogoutEvent(user.getId(), ip, userAgent));
         }
 
         SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
