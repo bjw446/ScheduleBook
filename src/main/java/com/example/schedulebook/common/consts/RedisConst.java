@@ -114,4 +114,5 @@ public final class RedisConst {
             
             return 2
             """;
+    public static final String FORCE_LOGOUT_SESSION = "auth:force-logout";
 }

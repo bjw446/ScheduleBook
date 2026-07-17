@@ -156,6 +156,7 @@ public class AuthService {
         }
     }
 
+    @Transactional(readOnly = true)
     public List<SessionInfoResponse> findMySessions(Long currentUserId) {
         userValidator.validateActiveUser(currentUserId);
 
