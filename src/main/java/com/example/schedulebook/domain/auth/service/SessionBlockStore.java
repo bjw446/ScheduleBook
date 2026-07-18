@@ -46,9 +46,11 @@ public class SessionBlockStore {
         }
 
         if (Instant.now().isAfter(expiredAt)) {
-            blockedSessions.remove(sessionId, expiredAt);
+            if (blockedSessions.remove(sessionId, expiredAt)) {
+                return false;
+            }
 
-            return false;
+            return isBlocked(sessionId);
         }
 
         return true;
