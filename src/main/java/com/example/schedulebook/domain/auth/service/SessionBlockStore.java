@@ -7,13 +7,12 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
 public class SessionBlockStore {
-    private final Set<String> blockedSessions = ConcurrentHashMap.newKeySet();
+    private final ConcurrentHashMap<String, Instant> blockedSessions = new ConcurrentHashMap<>();
     private final TaskScheduler sessionBlockTaskScheduler;
 
     public void block(String sessionId, long expiration) {
@@ -21,17 +20,38 @@ public class SessionBlockStore {
             throw new BaseException(ErrorEnum.INVALID_INPUT);
         }
 
-        blockedSessions.add(sessionId);
+        if (expiration <= 0) {
+            throw new BaseException(ErrorEnum.INVALID_INPUT);
+        }
 
-        sessionBlockTaskScheduler.schedule(() -> blockedSessions.remove(sessionId), Instant.now().plusMillis(expiration));
+        Instant expireAt = Instant.now().plusMillis(expiration);
+
+        blockedSessions.put(sessionId, expireAt);
+
+        sessionBlockTaskScheduler.schedule(() ->
+                blockedSessions.remove(sessionId, expireAt),
+                expireAt
+        );
     }
 
     public boolean isBlocked(String sessionId) {
-        if (sessionId == null) {
+        if (sessionId == null || sessionId.isBlank()) {
             return false;
         }
 
-        return blockedSessions.contains(sessionId);
+        Instant expiredAt = blockedSessions.get(sessionId);
+
+        if (expiredAt == null) {
+            return false;
+        }
+
+        if (Instant.now().isAfter(expiredAt)) {
+            blockedSessions.remove(sessionId);
+
+            return false;
+        }
+
+        return true;
     }
 
     public void unblock(String sessionId) {
