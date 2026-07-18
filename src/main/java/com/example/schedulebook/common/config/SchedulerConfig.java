@@ -9,8 +9,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 @Configuration
 public class SchedulerConfig {
 
-    @Bean
-    public TaskScheduler taskScheduler() {
+    @Bean(name = "sessionBlockTaskScheduler")
+    public TaskScheduler sessionBlockTaskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(2);
         scheduler.setThreadNamePrefix(CommonConst.SESSION_BLOCK);

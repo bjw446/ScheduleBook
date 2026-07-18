@@ -122,6 +122,8 @@ public class SessionService {
     }
 
     public void forceLogoutSession(Long userId, String sessionId) {
+        validateSessionOwner(userId, sessionId);
+
         removeSession(userId, sessionId);
 
         afterCommitExecutor.execute(() ->

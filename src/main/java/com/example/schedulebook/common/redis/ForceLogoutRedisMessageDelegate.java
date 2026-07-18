@@ -19,10 +19,10 @@ public class ForceLogoutRedisMessageDelegate {
             redisSubscriber.onForceLogout(event);
 
         } catch (JsonProcessingException e) {
-            log.error("강제 로그아웃 역직렬화 실패 : {}", e.getMessage(), e);
+            log.error("강제 로그아웃 역직렬화 실패", e);
 
         } catch (Exception e) {
-            log.error("강제 로그아웃 메시지 처리 실패 : {}", e.getMessage(), e);
+            log.error("강제 로그아웃 메시지 처리 실패", e);
         }
     }
 }

@@ -12,15 +12,19 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class SessionBlockStore {
     private final Set<String> blockedSessions = ConcurrentHashMap.newKeySet();
-    private final TaskScheduler taskScheduler;
+    private final TaskScheduler sessionBlockTaskScheduler;
 
     public void block(String sessionId, long expiration) {
         blockedSessions.add(sessionId);
 
-        taskScheduler.schedule(() -> blockedSessions.remove(sessionId), Instant.now().plusMillis(expiration));
+        sessionBlockTaskScheduler.schedule(() -> blockedSessions.remove(sessionId), Instant.now().plusMillis(expiration));
     }
 
     public boolean isBlocked(String sessionId) {
+        if (sessionId == null) {
+            return false;
+        }
+
         return blockedSessions.contains(sessionId);
     }
 
