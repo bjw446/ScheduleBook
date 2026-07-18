@@ -1,5 +1,7 @@
 package com.example.schedulebook.domain.auth.service;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,10 @@ public class SessionBlockStore {
     private final TaskScheduler sessionBlockTaskScheduler;
 
     public void block(String sessionId, long expiration) {
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new BaseException(ErrorEnum.INVALID_INPUT);
+        }
+
         blockedSessions.add(sessionId);
 
         sessionBlockTaskScheduler.schedule(() -> blockedSessions.remove(sessionId), Instant.now().plusMillis(expiration));
