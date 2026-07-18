@@ -13,6 +13,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceClientConfigurat
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
@@ -66,7 +67,8 @@ public class RedisConfig {
     public RedisMessageListenerContainer redisMessageListenerContainer(
             RedisConnectionFactory connectionFactory,
             MessageListenerAdapter notificationListenerAdapter,
-            MessageListenerAdapter commentListenerAdapter
+            MessageListenerAdapter commentListenerAdapter,
+            MessageListenerAdapter forceLogoutListenerAdapter
     ) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
 
@@ -75,6 +77,8 @@ public class RedisConfig {
         container.addMessageListener(notificationListenerAdapter, new PatternTopic(RedisConst.NOTIFICATION));
 
         container.addMessageListener(commentListenerAdapter, new PatternTopic(RedisConst.COMMENT));
+
+        container.addMessageListener(forceLogoutListenerAdapter, new ChannelTopic(RedisConst.FORCE_LOGOUT_SESSION));
 
         return container;
     }
@@ -100,6 +104,20 @@ public class RedisConfig {
     ) {
         MessageListenerAdapter adapter = new MessageListenerAdapter(
                 new CommentRedisMessageDelegate(redisSubscriber, objectMapper), "handleMessage"
+        );
+
+        adapter.setSerializer(new StringRedisSerializer());
+
+        return adapter;
+    }
+
+    @Bean
+    public MessageListenerAdapter forceLogoutListenerAdapter(
+            RedisSubscriber redisSubscriber,
+            ObjectMapper objectMapper
+    ) {
+        MessageListenerAdapter adapter = new MessageListenerAdapter(
+                new ForceLogoutRedisMessageDelegate(redisSubscriber, objectMapper), "handleMessage"
         );
 
         adapter.setSerializer(new StringRedisSerializer());

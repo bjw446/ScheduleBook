@@ -1,6 +1,8 @@
 package com.example.schedulebook.common.redis;
 
 import com.example.schedulebook.common.websocket.WebSocketSessionRegistry;
+import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
+import com.example.schedulebook.domain.auth.service.ForceLogoutHandler;
 import com.example.schedulebook.domain.comment.event.CommentEvent;
 import com.example.schedulebook.domain.comment.subscriber.CommentSubscriber;
 import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
@@ -16,6 +18,7 @@ public class RedisSubscriber {
     private final SimpMessagingTemplate messagingTemplate;
     private final WebSocketSessionRegistry webSocketSessionRegistry;
     private final CommentSubscriber commentSubscriber;
+    private final ForceLogoutHandler forceLogoutHandler;
 
     public void onNotification(NotificationEventResponse event) {
         Long receiverId = event.receiverId();
@@ -49,5 +52,9 @@ public class RedisSubscriber {
 
     public void onComment(CommentEvent event) {
         commentSubscriber.onComment(event);
+    }
+
+    public void onForceLogout(ForceLogoutSessionEvent event) {
+        forceLogoutHandler.handle(event);
     }
 }

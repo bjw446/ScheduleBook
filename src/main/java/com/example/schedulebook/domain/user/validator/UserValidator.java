@@ -5,6 +5,7 @@ import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.user.dto.request.UpdateUserPasswordRequest;
 import com.example.schedulebook.domain.user.dto.request.UpdateUserRequest;
 import com.example.schedulebook.domain.user.entity.User;
+import com.example.schedulebook.domain.user.enums.UserRole;
 import com.example.schedulebook.domain.user.enums.UserStatus;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +61,26 @@ public class UserValidator {
     public void validateUserStatus(User user) {
         if (user.getUserStatus() != UserStatus.ACTIVE) {
             throw new BaseException(ErrorEnum.USER_NOT_ACTIVE);
+        }
+    }
+
+    public User validateActiveAdmin(Long adminId) {
+        User user = userRepository.findById(adminId).orElseThrow(
+                () -> new BaseException(ErrorEnum.ADMIN_NOT_FOUND)
+        );
+
+        if (user.getUserRole() != UserRole.SUPER_ADMIN) {
+            throw new BaseException(ErrorEnum.ADMIN_NOT_FOUND);
+        }
+
+        validateAdminStatus(user);
+
+        return user;
+    }
+
+    public void validateAdminStatus(User user) {
+        if (user.getUserStatus() != UserStatus.ACTIVE) {
+            throw new BaseException(ErrorEnum.ADMIN_NOT_ACTIVE);
         }
     }
 

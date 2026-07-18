@@ -5,6 +5,7 @@ import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.redis.RedisBlacklistService;
 import com.example.schedulebook.common.redis.RedisSessionService;
 import com.example.schedulebook.common.response.ApiResponse;
+import com.example.schedulebook.domain.auth.service.SessionBlockStore;
 import com.example.schedulebook.domain.user.enums.UserRole;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -32,6 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
     private final RedisBlacklistService redisBlacklistService;
     private final RedisSessionService redisSessionService;
+    private final SessionBlockStore sessionBlockStore;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -50,6 +52,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long userId = jwtProvider.extractUserId(token);
 
                 String sessionId = jwtProvider.extractSessionId(token);
+
+                if (sessionBlockStore.isBlocked(sessionId)) {
+                    throw new BaseException(ErrorEnum.FORCE_LOGOUT);
+                }
 
                 UserRole userRole = jwtProvider.extractUserRole(token);
 

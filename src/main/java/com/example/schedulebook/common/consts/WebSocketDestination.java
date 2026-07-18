@@ -34,4 +34,7 @@ public final class WebSocketDestination {
     public static String SCHEDULE_COMMENT(Long scheduleId) {
         return SCHEDULE(scheduleId) + "/comments";
     }
+
+    public static final String FORCE_LOGOUT = "/queue/logout";
+
 }

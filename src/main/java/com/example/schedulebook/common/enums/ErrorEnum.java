@@ -22,6 +22,7 @@ public enum ErrorEnum {
     // USER
     LOGIN_FAILED(401, "사용자 정보가 일치하지 않습니다."),
     LOGIN_CONFLICT(409, "이미 로그인 되어 있습니다."),
+    FORCE_LOGOUT(401, "다른 환경에서 로그아웃되어 다시 로그인해야 합니다."),
     USER_NOT_ACTIVE(400, "활성화된 사용자가 아닙니다."),
     USER_ALREADY_WITHDRAW(409, "이미 탈퇴한 회원 입니다."),
     LOGIN_ID_ALREADY_EXISTS(400, "이미 사용중인 아이디 입니다."),
@@ -116,8 +117,11 @@ public enum ErrorEnum {
     COMMENT_NOT_FOUND(404, "댓글이 존재하지 않습니다."),
     COMMENT_ALREADY_DELETE(409, "이미 삭제된 댓글 입니다."),
     COMMENT_FORBIDDEN(403, "해당 댓글에 대한 접근 권한이 없습니다."),
-    INVALID_COMMENT(400, "잘못된 댓글 입니다.");
+    INVALID_COMMENT(400, "잘못된 댓글 입니다."),
 
+    // Admin
+    ADMIN_NOT_ACTIVE(400, "활성화된 관리자가 아닙니다."),
+    ADMIN_NOT_FOUND(404, "존재하지 않는 관리자 입니다.");
     private final int status;
     private final String message;
 }

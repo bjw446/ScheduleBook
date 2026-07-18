@@ -2,11 +2,14 @@ package com.example.schedulebook.domain.auth.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.common.redis.RedisBlacklistService;
+import com.example.schedulebook.common.redis.RedisEventPublisher;
 import com.example.schedulebook.common.redis.RedisRefreshTokenService;
 import com.example.schedulebook.common.redis.RedisSessionService;
 import com.example.schedulebook.common.security.JwtProperties;
 import com.example.schedulebook.common.security.JwtProvider;
+import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import com.example.schedulebook.domain.auth.dto.response.SessionInfo;
 import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
@@ -27,6 +30,8 @@ public class SessionService {
     private final RedisRefreshTokenService redisRefreshTokenService;
     private final RedisSessionService redisSessionService;
     private final RedisBlacklistService redisBlacklistService;
+    private final RedisEventPublisher redisEventPublisher;
+    private final AfterCommitExecutor afterCommitExecutor;
 
     public LoginToken createSession(Long userId, String ip, String userAgent, UserRole userRole) {
         String sessionId = UUID.randomUUID().toString();
@@ -114,6 +119,36 @@ public class SessionService {
         validateSessionOwner(userId, sessionId);
 
         removeSession(userId, sessionId);
+    }
+
+    public void forceLogoutSession(Long userId, String sessionId) {
+        validateSessionOwner(userId, sessionId);
+
+        removeSession(userId, sessionId);
+
+        afterCommitExecutor.execute(() ->
+                redisEventPublisher.publish(new ForceLogoutSessionEvent(userId, sessionId, jwtProperties.accessTokenExpiration()))
+        );
+    }
+
+    public void forceLogoutAllSessions(Long userId) {
+        Set<String> sessionIds = redisSessionService.getSessions(userId);
+
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return;
+        }
+
+        List<ForceLogoutSessionEvent> events = new ArrayList<>();
+
+        for (String sessionId : sessionIds) {
+            removeSession(userId, sessionId);
+
+            events.add(new ForceLogoutSessionEvent(userId, sessionId, jwtProperties.accessTokenExpiration()));
+        }
+
+        afterCommitExecutor.execute(() -> {
+            events.forEach(redisEventPublisher::publish);
+        });
     }
 
     private LoginToken validateRefreshToken(String refreshToken) {
