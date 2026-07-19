@@ -78,4 +78,15 @@ public class AuditLogListener {
             log.error("세션 로그아웃 로그 저장 에러 발생 : {}", e.getMessage(), e);
         }
     }
+
+    @Async
+    @EventListener
+    public void handle(ForceLogoutAuditEvent event) {
+        try {
+            auditLogService.saveForceLogout(event);
+
+        } catch (Exception e) {
+            log.error("강제 로그아웃 로그 저장 에러 발생 : {}", e.getMessage(), e);
+        }
+    }
 }

@@ -11,7 +11,7 @@ public record ForceLogoutResponse(
     public static ForceLogoutResponse from(ForceLogoutSessionEvent event) {
         return new ForceLogoutResponse(
                 event.sessionId(),
-                AuditEventType.ADMIN_ACTION.toString(),
+                AuditEventType.FORCE_LOGOUT.toString(),
                 "다른 환경에서 로그아웃되었습니다."
         );
     }
