@@ -19,6 +19,9 @@ public class AuditLog extends CreateEntity {
     @Column(name = "user_id")
     private Long userId;
 
+    @Column(name = "admin_id")
+    private Long adminId;
+
     @Column(name = "login_id")
     private String loginId;
 
@@ -26,18 +29,30 @@ public class AuditLog extends CreateEntity {
     @Column(nullable = false, name = "audit_event_type")
     private AuditEventType auditEventType;
 
+    private String description;
+
     @Column(nullable = false)
     private String ip;
 
     @Column(nullable = false, name = "user_agent")
     private String userAgent;
 
-    public static AuditLog create(Long userId, String loginId, AuditEventType auditEventType, String ip, String userAgent) {
+    public static AuditLog create(
+            Long userId,
+            Long adminId,
+            String loginId,
+            AuditEventType auditEventType,
+            String description,
+            String ip,
+            String userAgent
+    ) {
         AuditLog auditLog = new AuditLog();
 
         auditLog.userId = userId;
+        auditLog.adminId = adminId;
         auditLog.loginId = loginId;
         auditLog.auditEventType = auditEventType;
+        auditLog.description = description;
         auditLog.ip = ip;
         auditLog.userAgent = userAgent;
 

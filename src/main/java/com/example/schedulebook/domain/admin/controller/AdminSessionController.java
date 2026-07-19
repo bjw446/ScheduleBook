@@ -5,6 +5,7 @@ import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
 import com.example.schedulebook.domain.admin.service.AdminSessionService;
 import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,8 +30,12 @@ public class AdminSessionController {
     }
 
     @DeleteMapping("/users/{userId}/sessions/{sessionId}")
-    public ResponseEntity<ApiResponse<Void>> logoutUserOneSession(@PathVariable Long userId, @PathVariable String sessionId) {
-        adminSessionService.logoutUserOneSession(SecurityUtils.getCurrentUserId(), userId, sessionId);
+    public ResponseEntity<ApiResponse<Void>> logoutUserOneSession(
+            @PathVariable Long userId,
+            @PathVariable String sessionId,
+            HttpServletRequest servletRequest
+    ) {
+        adminSessionService.logoutUserOneSession(SecurityUtils.getCurrentUserId(), userId, sessionId, servletRequest);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
@@ -41,8 +46,8 @@ public class AdminSessionController {
     }
 
     @DeleteMapping("/users/{userId}/sessions")
-    public ResponseEntity<ApiResponse<Void>> logoutUserAllSessions(@PathVariable Long userId) {
-        adminSessionService.logoutUserAllSession(SecurityUtils.getCurrentUserId(), userId);
+    public ResponseEntity<ApiResponse<Void>> logoutUserAllSessions(@PathVariable Long userId, HttpServletRequest servletRequest) {
+        adminSessionService.logoutUserAllSession(SecurityUtils.getCurrentUserId(), userId, servletRequest);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
