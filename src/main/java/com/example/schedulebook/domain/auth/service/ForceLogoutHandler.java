@@ -1,7 +1,7 @@
 package com.example.schedulebook.domain.auth.service;
 
 import com.example.schedulebook.common.consts.WebSocketDestination;
-import com.example.schedulebook.common.websocket.WebSocketSessionRegistry;
+import com.example.schedulebook.common.redis.service.RedisPresenceService;
 import com.example.schedulebook.domain.auth.dto.response.ForceLogoutResponse;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ForceLogoutHandler {
     private final SessionBlockStore sessionBlockStore;
-    private final WebSocketSessionRegistry webSocketSessionRegistry;
+    private final RedisPresenceService redisPresenceService;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     public void handle(ForceLogoutSessionEvent event) {
@@ -22,7 +22,7 @@ public class ForceLogoutHandler {
 
         log.info("강제 로그아웃 처리 : userId = {}, sessionId = {}", event.userId(), event.sessionId());
 
-        if (!webSocketSessionRegistry.isOnline(event.userId())) {
+        if (!redisPresenceService.isOnline(event.userId())) {
             return;
         }
 

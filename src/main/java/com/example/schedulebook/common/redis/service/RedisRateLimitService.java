@@ -1,4 +1,4 @@
-package com.example.schedulebook.common.redis;
+package com.example.schedulebook.common.redis.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;

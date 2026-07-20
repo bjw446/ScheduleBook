@@ -2,7 +2,7 @@ package com.example.schedulebook.domain.friend.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.common.websocket.WebSocketSessionRegistry;
+import com.example.schedulebook.common.redis.service.RedisPresenceService;
 import com.example.schedulebook.domain.friend.dto.request.FriendRequest;
 import com.example.schedulebook.domain.friend.dto.response.ReceivedFriendRequestResponse;
 import com.example.schedulebook.domain.friend.dto.response.FriendResponse;
@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -32,9 +33,9 @@ import java.util.List;
 public class FriendService {
     private final FriendRepository friendRepository;
     private final ApplicationEventPublisher eventPublisher;
-    private final WebSocketSessionRegistry webSocketSessionRegistry;
     private final UserValidator userValidator;
     private final FriendValidator friendValidator;
+    private final RedisPresenceService redisPresenceService;
 
     public FriendResponse requestFriend(FriendRequest request, Long currentUserId) {
         friendValidator.validateMyself(request.receiverId(), currentUserId);
@@ -75,16 +76,22 @@ public class FriendService {
 
         List<Friend> friends = friendRepository.findAcceptedFriends(currentUserId, FriendStatus.ACCEPTED);
 
+        List<Long> friendIds = friends.stream()
+                .map(friend ->
+                        friendValidator.extractFriendUser(friend, currentUserId).getId()
+                )
+                .toList();
+
+        Map<Long, Boolean> onlineMap = redisPresenceService.getOnlineStatuses(friendIds);
+
         return friends.stream()
                 .map(friend -> {
                     User friendUser = friendValidator.extractFriendUser(friend, currentUserId);
 
-                    boolean online = webSocketSessionRegistry.isOnline(friendUser.getId());
-
                     return FriendSummaryResponse.from(
                             friend.getId(),
                             friendUser,
-                            online
+                            onlineMap.getOrDefault(friendUser.getId(), false)
                     );
                 })
                 .toList();

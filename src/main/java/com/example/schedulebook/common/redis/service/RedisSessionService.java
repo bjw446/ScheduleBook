@@ -1,4 +1,4 @@
-package com.example.schedulebook.common.redis;
+package com.example.schedulebook.common.redis.service;
 
 import com.example.schedulebook.common.consts.RedisConst;
 import com.example.schedulebook.domain.auth.dto.response.SessionInfo;

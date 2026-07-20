@@ -75,4 +75,10 @@ public class WebSocketSessionRegistry {
     public int getOnlineUserCount() {
         return userSessionsMap.size();
     }
+
+    public Set<String> getSessionIds(Long userId) {
+        Set<String> sessions = userSessionsMap.getOrDefault(userId, Set.of());
+
+        return sessions == null ? Set.of() : Set.copyOf(sessions);
+    }
 }

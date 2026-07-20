@@ -21,7 +21,7 @@ public class ScheduleSubscriptionValidator implements SubscriptionValidator{
 
     @Override
     public boolean supports(String destination) {
-        return destination.startsWith(WebSocketDestination.SCHEDULE_PREFIX());
+        return destination.startsWith(WebSocketDestination.getSchedulePrefix());
     }
 
     @Override

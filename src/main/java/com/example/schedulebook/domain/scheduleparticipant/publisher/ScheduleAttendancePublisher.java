@@ -16,7 +16,7 @@ public class ScheduleAttendancePublisher {
 
     public void publishAttendanceUpdated(ScheduleAttendanceResponse response) {
         webSocketPublisher.sendAfterCommit(
-                WebSocketDestination.SCHEDULE(response.scheduleId()),
+                WebSocketDestination.getScheduleDestination(response.scheduleId()),
                 response
         );
     }

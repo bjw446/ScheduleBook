@@ -1,4 +1,4 @@
-package com.example.schedulebook.common.redis;
+package com.example.schedulebook.common.redis.service;
 
 import com.example.schedulebook.common.consts.RedisConst;
 import lombok.RequiredArgsConstructor;

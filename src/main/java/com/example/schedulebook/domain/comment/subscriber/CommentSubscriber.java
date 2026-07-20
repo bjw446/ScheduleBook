@@ -14,6 +14,6 @@ public class CommentSubscriber {
     private final WebSocketPublisher webSocketPublisher;
 
     public void onComment(CommentEvent event) {
-        webSocketPublisher.send(WebSocketDestination.SCHEDULE_COMMENT(event.commentEventResponse().scheduleId()), event);
+        webSocketPublisher.send(WebSocketDestination.getScheduleCommentDestination(event.commentEventResponse().scheduleId()), event);
     }
 }
