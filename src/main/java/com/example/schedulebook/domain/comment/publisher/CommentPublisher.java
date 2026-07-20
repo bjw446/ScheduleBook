@@ -15,7 +15,7 @@ public class CommentPublisher {
 
     public void publish(CommentEvent event) {
         webSocketPublisher.sendAfterCommit(
-                WebSocketDestination.SCHEDULE_COMMENT(event.commentEventResponse().scheduleId()),
+                WebSocketDestination.getScheduleCommentDestination(event.commentEventResponse().scheduleId()),
                 event
         );
     }

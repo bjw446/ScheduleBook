@@ -19,7 +19,7 @@ public class ChatSubscriptionValidator implements SubscriptionValidator{
 
     @Override
     public boolean supports(String destination) {
-        return destination.startsWith(WebSocketDestination.CHAT_PREFIX());
+        return destination.startsWith(WebSocketDestination.getChatPrefix());
     }
 
     @Override

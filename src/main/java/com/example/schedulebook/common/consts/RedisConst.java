@@ -116,12 +116,12 @@ public final class RedisConst {
             """;
     public static final String FORCE_LOGOUT_SESSION = "auth:force-logout";
     public static final String PRESENCE = "presence:user:";
-    public static String PRESENCE_KEY(Long userId) {
+    public static String getPresenceKey(Long userId) {
         return PRESENCE + userId;
     }
     public static final Duration PRESENCE_TTL = Duration.ofHours(2);
     public static final String PRESENCE_SESSION = "presence:session:";
-    public static String PRESENCE_SESSION_KEY(String sessionId) {
+    public static String getPresenceSessionKey(String sessionId) {
         return PRESENCE_SESSION + sessionId;
     }
 }

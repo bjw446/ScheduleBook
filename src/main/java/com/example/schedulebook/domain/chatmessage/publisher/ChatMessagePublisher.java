@@ -26,19 +26,19 @@ public class ChatMessagePublisher {
     public void publishMessage(ChatMessage chatMessage, int unreadCount) {
         ChatMessageResponse response = ChatMessageResponse.from(chatMessage, unreadCount);
 
-        webSocketPublisher.sendAfterCommit(WebSocketDestination.CHAT(response.roomId()), response);
+        webSocketPublisher.sendAfterCommit(WebSocketDestination.getChatDestination(response.roomId()), response);
     }
 
     public void publishReadMessageAfterCommit(Long roomId, Long currentUserId, Long lastReadMessageId) {
         webSocketPublisher.sendAfterCommit(
-                WebSocketDestination.CHAT_READ(roomId),
+                WebSocketDestination.getChatReadDestination(roomId),
                 ReadMessageEvent.from(roomId, currentUserId, lastReadMessageId)
         );
     }
 
     public void publishDeleteMessageAfterCommit(Long roomId, Long messageId) {
         webSocketPublisher.sendAfterCommit(
-                WebSocketDestination.CHAT_DELETE(roomId),
+                WebSocketDestination.getChatDeleteDestination(roomId),
                 new ChatMessageDeletedEvent(
                         roomId,
                         messageId,
@@ -56,7 +56,7 @@ public class ChatMessagePublisher {
         afterCommitExecutor.execute(() -> {
             responses.forEach(response ->
                     webSocketPublisher.send(
-                            WebSocketDestination.CHAT(response.roomId()),
+                            WebSocketDestination.getChatDestination(response.roomId()),
                             response
                     )
             );

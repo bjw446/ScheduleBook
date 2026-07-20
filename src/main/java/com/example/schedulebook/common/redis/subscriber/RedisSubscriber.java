@@ -1,6 +1,6 @@
 package com.example.schedulebook.common.redis.subscriber;
 
-import com.example.schedulebook.common.websocket.WebSocketSessionRegistry;
+import com.example.schedulebook.common.redis.service.RedisPresenceService;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import com.example.schedulebook.domain.auth.service.ForceLogoutHandler;
 import com.example.schedulebook.domain.comment.event.CommentEvent;
@@ -16,9 +16,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class RedisSubscriber {
     private final SimpMessagingTemplate messagingTemplate;
-    private final WebSocketSessionRegistry webSocketSessionRegistry;
     private final CommentSubscriber commentSubscriber;
     private final ForceLogoutHandler forceLogoutHandler;
+    private final RedisPresenceService redisPresenceService;
 
     public void onNotification(NotificationEventResponse event) {
         Long receiverId = event.receiverId();
@@ -29,7 +29,7 @@ public class RedisSubscriber {
             return;
         }
 
-        if (!webSocketSessionRegistry.isOnline(receiverId)) {
+        if (!redisPresenceService.isOnline(receiverId)) {
             log.info("사용자 {} 오프라인 상태, 실시간 전송 생략", receiverId);
 
             return;

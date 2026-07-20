@@ -67,7 +67,7 @@ public class ScheduleSharePublisher {
 
     private void publishResponses(ChatMessageResponse response) {
         webSocketPublisher.sendAfterCommit(
-                WebSocketDestination.CHAT(response.roomId()),
+                WebSocketDestination.getChatDestination(response.roomId()),
                 response
         );
     }
@@ -80,7 +80,7 @@ public class ScheduleSharePublisher {
         afterCommitExecutor.execute(() -> {
             responses.forEach(response ->
                 webSocketPublisher.send(
-                        WebSocketDestination.CHAT(response.roomId()),
+                        WebSocketDestination.getChatDestination(response.roomId()),
                         response)
             );
         });

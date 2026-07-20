@@ -2,7 +2,7 @@ package com.example.schedulebook.domain.friend.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.common.websocket.WebSocketSessionRegistry;
+import com.example.schedulebook.common.redis.service.RedisPresenceService;
 import com.example.schedulebook.domain.friend.dto.request.FriendRequest;
 import com.example.schedulebook.domain.friend.dto.response.ReceivedFriendRequestResponse;
 import com.example.schedulebook.domain.friend.dto.response.FriendResponse;
@@ -32,9 +32,9 @@ import java.util.List;
 public class FriendService {
     private final FriendRepository friendRepository;
     private final ApplicationEventPublisher eventPublisher;
-    private final WebSocketSessionRegistry webSocketSessionRegistry;
     private final UserValidator userValidator;
     private final FriendValidator friendValidator;
+    private final RedisPresenceService redisPresenceService;
 
     public FriendResponse requestFriend(FriendRequest request, Long currentUserId) {
         friendValidator.validateMyself(request.receiverId(), currentUserId);
@@ -79,7 +79,7 @@ public class FriendService {
                 .map(friend -> {
                     User friendUser = friendValidator.extractFriendUser(friend, currentUserId);
 
-                    boolean online = webSocketSessionRegistry.isOnline(friendUser.getId());
+                    boolean online = redisPresenceService.isOnline(friendUser.getId());
 
                     return FriendSummaryResponse.from(
                             friend.getId(),

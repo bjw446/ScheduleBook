@@ -20,7 +20,7 @@ public class ScheduleParticipantPublisher {
         ScheduleParticipantListResponse response = scheduleParticipantReader.getParticipantList(scheduleId);
 
         webSocketPublisher.sendAfterCommit(
-                WebSocketDestination.SCHEDULE_PARTICIPANTS(scheduleId),
+                WebSocketDestination.getScheduleParticipantsDestination(scheduleId),
                 response
         );
     }

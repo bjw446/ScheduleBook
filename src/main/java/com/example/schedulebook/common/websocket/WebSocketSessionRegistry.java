@@ -77,6 +77,8 @@ public class WebSocketSessionRegistry {
     }
 
     public Set<String> getSessionIds(Long userId) {
-        return userSessionsMap.getOrDefault(userId, Set.of());
+        Set<String> sessions = userSessionsMap.getOrDefault(userId, Set.of());
+
+        return sessions == null ? Set.of() : Set.copyOf(sessions);
     }
 }

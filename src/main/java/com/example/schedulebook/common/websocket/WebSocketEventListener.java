@@ -47,7 +47,7 @@ public class WebSocketEventListener {
         Long userId = redisPresenceService.findUser(event.getSessionId());
 
         if (userId == null) {
-            log.warn("WebSocket DISCONNECT unknow sessionId  = {}", event.getSessionId());
+            log.warn("WebSocket DISCONNECT unknown sessionId = {}", event.getSessionId());
 
             return;
         }
