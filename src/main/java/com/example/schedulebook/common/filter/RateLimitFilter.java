@@ -3,7 +3,7 @@ package com.example.schedulebook.common.filter;
 import com.example.schedulebook.common.consts.RedisConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.common.redis.RedisRateLimitService;
+import com.example.schedulebook.common.redis.service.RedisRateLimitService;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.CachedBodyHttpServletRequest;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;

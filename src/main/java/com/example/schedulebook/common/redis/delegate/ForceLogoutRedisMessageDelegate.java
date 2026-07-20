@@ -1,5 +1,6 @@
-package com.example.schedulebook.common.redis;
+package com.example.schedulebook.common.redis.delegate;
 
+import com.example.schedulebook.common.redis.subscriber.RedisSubscriber;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

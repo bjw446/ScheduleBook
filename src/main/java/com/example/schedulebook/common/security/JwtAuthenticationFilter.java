@@ -2,8 +2,8 @@ package com.example.schedulebook.common.security;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.common.redis.RedisBlacklistService;
-import com.example.schedulebook.common.redis.RedisSessionService;
+import com.example.schedulebook.common.redis.service.RedisBlacklistService;
+import com.example.schedulebook.common.redis.service.RedisSessionService;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.domain.auth.service.SessionBlockStore;
 import com.example.schedulebook.domain.user.enums.UserRole;

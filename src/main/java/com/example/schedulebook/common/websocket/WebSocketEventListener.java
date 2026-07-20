@@ -1,5 +1,6 @@
 package com.example.schedulebook.common.websocket;
 
+import com.example.schedulebook.common.redis.service.RedisPresenceService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -12,10 +13,10 @@ import java.security.Principal;
 @Component
 @Slf4j
 public class WebSocketEventListener {
-    private final WebSocketSessionRegistry webSocketSessionRegistry;
+    private final RedisPresenceService redisPresenceService;
 
-    public WebSocketEventListener(WebSocketSessionRegistry webSocketSessionRegistry) {
-        this.webSocketSessionRegistry = webSocketSessionRegistry;
+    public WebSocketEventListener(RedisPresenceService redisPresenceService) {
+        this.redisPresenceService = redisPresenceService;
     }
 
     @EventListener
@@ -32,19 +33,18 @@ public class WebSocketEventListener {
 
         Long userId = Long.valueOf(principal.getName());
 
-        webSocketSessionRegistry.register(accessor.getSessionId(), userId);
+        redisPresenceService.register(userId, accessor.getSessionId());
 
-        log.info("WebSocket CONNECT userId = {}, sessionId = {}, userSessionCount = {}, onlineUsers = {}",
+        log.info("WebSocket CONNECT userId = {}, sessionId = {}, userSessionCount = {}",
                 userId,
                 accessor.getSessionId(),
-                webSocketSessionRegistry.getSessionCount(userId),
-                webSocketSessionRegistry.getOnlineUserCount()
+                redisPresenceService.getSessionCount(userId)
         );
     }
 
     @EventListener
     public void handleWebSocketDisconnect(SessionDisconnectEvent event) {
-        Long userId = webSocketSessionRegistry.remove(event.getSessionId());
+        Long userId = redisPresenceService.findUser(event.getSessionId());
 
         if (userId == null) {
             log.warn("WebSocket DISCONNECT unknow sessionId  = {}", event.getSessionId());
@@ -52,11 +52,12 @@ public class WebSocketEventListener {
             return;
         }
 
-        log.info("WebSocket DISCONNECT userId = {}, sessionId = {}, remainingSessions = {}, onlineUsers = {}",
+        redisPresenceService.remove(userId, event.getSessionId());
+
+        log.info("WebSocket DISCONNECT userId = {}, sessionId = {}, remainingSessions = {}",
                 userId,
                 event.getSessionId(),
-                webSocketSessionRegistry.getSessionCount(userId),
-                webSocketSessionRegistry.getOnlineUserCount()
+                redisPresenceService.getSessionCount(userId)
         );
     }
 }

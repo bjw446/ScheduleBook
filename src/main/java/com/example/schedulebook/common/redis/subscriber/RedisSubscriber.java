@@ -1,4 +1,4 @@
-package com.example.schedulebook.common.redis;
+package com.example.schedulebook.common.redis.subscriber;
 
 import com.example.schedulebook.common.websocket.WebSocketSessionRegistry;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;

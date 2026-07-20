@@ -1,6 +1,6 @@
 package com.example.schedulebook.domain.auth.service;
 
-import com.example.schedulebook.common.redis.RedisSessionService;
+import com.example.schedulebook.common.redis.service.RedisSessionService;
 import com.example.schedulebook.domain.auth.dto.properties.SessionLimitProperties;
 import com.example.schedulebook.domain.auth.dto.response.SessionLimitResult;
 import com.example.schedulebook.domain.user.enums.UserRole;

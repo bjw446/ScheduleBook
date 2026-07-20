@@ -2,7 +2,7 @@ package com.example.schedulebook.domain.auth.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.common.redis.RedisLoginLockService;
+import com.example.schedulebook.common.redis.service.RedisLoginLockService;
 import com.example.schedulebook.domain.auth.event.LoginFailedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

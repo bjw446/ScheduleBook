@@ -1,6 +1,10 @@
-package com.example.schedulebook.common.redis;
+package com.example.schedulebook.common.redis.config;
 
 import com.example.schedulebook.common.consts.RedisConst;
+import com.example.schedulebook.common.redis.delegate.CommentRedisMessageDelegate;
+import com.example.schedulebook.common.redis.delegate.ForceLogoutRedisMessageDelegate;
+import com.example.schedulebook.common.redis.delegate.NotificationRedisMessageDelegate;
+import com.example.schedulebook.common.redis.subscriber.RedisSubscriber;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.TimeoutOptions;
@@ -12,7 +16,6 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
@@ -123,30 +126,5 @@ public class RedisConfig {
         adapter.setSerializer(new StringRedisSerializer());
 
         return adapter;
-    }
-
-    @Bean
-    public RedisScript<Long> refreshRotateScript() {
-        return RedisScript.of(RedisConst.REFRESH_ROTATE_SCRIPT, Long.class);
-    }
-
-    @Bean
-    public RedisScript<Long> rateLimitScript() {
-        return RedisScript.of(RedisConst.RATE_LIMIT_SCRIPT, Long.class);
-    }
-
-    @Bean
-    public RedisScript<Long> removeSessionScript() {
-        return RedisScript.of(RedisConst.REMOVE_SESSION_SCRIPT, Long.class);
-    }
-
-    @Bean
-    public RedisScript<Long> deleteAllSessionsScript() {
-        return RedisScript.of(RedisConst.DELETE_ALL_SESSIONS_SCRIPT, Long.class);
-    }
-
-    @Bean
-    public RedisScript<Long> updateLastAccessScript() {
-        return RedisScript.of(RedisConst.UPDATE_LAST_ACCESS_SCRIPT, Long.class);
     }
 }

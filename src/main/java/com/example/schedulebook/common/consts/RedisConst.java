@@ -115,4 +115,13 @@ public final class RedisConst {
             return 2
             """;
     public static final String FORCE_LOGOUT_SESSION = "auth:force-logout";
+    public static final String PRESENCE = "presence:user:";
+    public static String PRESENCE_KEY(Long userId) {
+        return PRESENCE + userId;
+    }
+    public static final Duration PRESENCE_TTL = Duration.ofHours(2);
+    public static final String PRESENCE_SESSION = "presence:session:";
+    public static String PRESENCE_SESSION_KEY(String sessionId) {
+        return PRESENCE_SESSION + sessionId;
+    }
 }

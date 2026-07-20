@@ -1,4 +1,4 @@
-package com.example.schedulebook.common.redis;
+package com.example.schedulebook.common.redis.publisher;
 
 import com.example.schedulebook.common.consts.RedisConst;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
