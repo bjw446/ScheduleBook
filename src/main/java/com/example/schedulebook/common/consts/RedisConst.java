@@ -124,4 +124,22 @@ public final class RedisConst {
     public static String getPresenceSessionKey(String sessionId) {
         return PRESENCE_SESSION + sessionId;
     }
+    public static final String PRESENCE_COUNT_SCRIPT = """
+            local key = KEYS[1]
+            
+            local now = tonumber(ARGV[1])
+            
+            redis.call("ZREMRANGEBYSCORE", key, "-inf", now)
+            
+            return redis.call("ZCARD", key)
+            """;
+    public static final String PRESENCE_SESSIONS_SCRIPT = """
+            local key = KEYS[1]
+            
+            local now = tonumber(ARGV[1])
+            
+            redis.call("ZREMRANGEBYSCORE", key, "-inf", now)
+            
+            return redis.call("ZRANGE", key, 0, -1)
+            """;
 }

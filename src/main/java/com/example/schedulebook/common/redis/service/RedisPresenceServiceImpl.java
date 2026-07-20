@@ -2,16 +2,22 @@ package com.example.schedulebook.common.redis.service;
 
 import com.example.schedulebook.common.consts.RedisConst;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.connection.ReturnType;
+import org.springframework.data.redis.connection.StringRedisConnection;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
-import java.util.Set;
+import java.util.*;
 
 
 @Service
 @RequiredArgsConstructor
 public class RedisPresenceServiceImpl implements RedisPresenceService{
     private final StringRedisTemplate stringRedisTemplate;
+    private final RedisScript<Long> presenceCountScript;
+    private final RedisScript<List> presenceSessionsScript;
 
     @Override
     public void register(Long userId, String sessionId) {
@@ -53,9 +59,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     public boolean isOnline(Long userId) {
         String key = RedisConst.getPresenceKey(userId);
 
-        cleanUpExpiredSessions(key);
-
-        Long count = stringRedisTemplate.opsForZSet().zCard(key);
+        Long count = aliveSessionCount(key);
 
         return count != null && count > 0;
     }
@@ -64,9 +68,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     public int getSessionCount(Long userId) {
         String key = RedisConst.getPresenceKey(userId);
 
-        cleanUpExpiredSessions(key);
-
-        Long count = stringRedisTemplate.opsForZSet().zCard(key);
+        Long count = aliveSessionCount(key);
 
         return count == null ? 0 : count.intValue();
     }
@@ -86,11 +88,14 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     public Set<String> getSessionIds(Long userId) {
         String key = RedisConst.getPresenceKey(userId);
 
-        cleanUpExpiredSessions(key);
+        @SuppressWarnings("unchecked")
+        List<String> sessions = (List<String>) stringRedisTemplate.execute(
+                presenceSessionsScript,
+                List.of(key),
+                String.valueOf(System.currentTimeMillis())
+        );
 
-        Set<String> sessions = stringRedisTemplate.opsForZSet().range(key, 0, -1);
-
-        return sessions == null ? Set.of() : sessions;
+        return sessions == null ? Set.of() : new HashSet<>(sessions);
     }
 
     @Override
@@ -113,8 +118,47 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
         );
     }
 
-    private void cleanUpExpiredSessions(String userKey) {
-        stringRedisTemplate.opsForZSet().removeRangeByScore(userKey, 0, System.currentTimeMillis() - 1);
+    @Override
+    public Map<Long, Boolean> getOnlineStatuses(List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Object> results = stringRedisTemplate.executePipelined(
+                (RedisCallback<Object>) connection -> {
+                    StringRedisConnection redis = (StringRedisConnection) connection;
+
+                    for (Long userId : userIds) {
+                        redis.eval(
+                                presenceCountScript.getScriptAsString(),
+                                ReturnType.INTEGER,
+                                1,
+                                RedisConst.getPresenceKey(userId),
+                                String.valueOf(System.currentTimeMillis())
+                        );
+                    }
+
+                    return null;
+                }
+        );
+
+        Map<Long, Boolean> onlineMap = new HashMap<>();
+
+        for (int i = 0; i< userIds.size(); i++) {
+            Number count = (Number) results.get(i);
+
+            onlineMap.put(userIds.get(i), count != null && count.longValue() > 0);
+        }
+
+        return onlineMap;
+    }
+
+    private Long aliveSessionCount(String key) {
+        return stringRedisTemplate.execute(
+                presenceCountScript,
+                List.of(key),
+                String.valueOf(System.currentTimeMillis())
+        );
     }
 }
 

@@ -26,10 +26,12 @@ public class PresenceService {
             userValidator.validateActiveUser(targetUserId);
         }
 
+        int sessionCount = redisPresenceService.getSessionCount(targetUserId);
+
         return new UserPresenceResponse(
                 targetUserId,
-                redisPresenceService.isOnline(targetUserId),
-                redisPresenceService.getSessionCount(targetUserId)
+                sessionCount > 0,
+                sessionCount
         );
     }
 }

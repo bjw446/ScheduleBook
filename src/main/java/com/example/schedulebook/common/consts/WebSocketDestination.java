@@ -8,7 +8,7 @@ public final class WebSocketDestination {
     }
 
     public static String getChatDestination(Long roomId) {
-        return "/topic/chat/" + roomId;
+        return getChatPrefix() + roomId;
     }
 
     public static String getChatReadDestination(Long roomId) {
@@ -24,7 +24,7 @@ public final class WebSocketDestination {
     }
 
     public static String getScheduleDestination(Long scheduleId) {
-        return "/topic/schedule/" + scheduleId;
+        return getSchedulePrefix() + scheduleId;
     }
 
     public static String getScheduleParticipantsDestination(Long scheduleId) {

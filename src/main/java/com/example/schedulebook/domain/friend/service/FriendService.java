@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -75,16 +76,22 @@ public class FriendService {
 
         List<Friend> friends = friendRepository.findAcceptedFriends(currentUserId, FriendStatus.ACCEPTED);
 
+        List<Long> friendIds = friends.stream()
+                .map(friend ->
+                        friendValidator.extractFriendUser(friend, currentUserId).getId()
+                )
+                .toList();
+
+        Map<Long, Boolean> onlineMap = redisPresenceService.getOnlineStatuses(friendIds);
+
         return friends.stream()
                 .map(friend -> {
                     User friendUser = friendValidator.extractFriendUser(friend, currentUserId);
 
-                    boolean online = redisPresenceService.isOnline(friendUser.getId());
-
                     return FriendSummaryResponse.from(
                             friend.getId(),
                             friendUser,
-                            online
+                            onlineMap.getOrDefault(friendUser.getId(), false)
                     );
                 })
                 .toList();
