@@ -47,12 +47,6 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
         stringRedisTemplate.opsForZSet().remove(userKey, sessionId);
 
         stringRedisTemplate.delete(RedisConst.getPresenceSessionKey(sessionId));
-
-        Long remain = stringRedisTemplate.opsForZSet().zCard(userKey);
-
-        if (remain != null && remain == 0) {
-            stringRedisTemplate.delete(userKey);
-        }
     }
 
     @Override
@@ -128,13 +122,17 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
                 (RedisCallback<Object>) connection -> {
                     StringRedisConnection redis = (StringRedisConnection) connection;
 
+                    String scriptAsString = presenceCountScript.getScriptAsString();
+
+                    String now = String.valueOf(System.currentTimeMillis());
+
                     for (Long userId : userIds) {
                         redis.eval(
-                                presenceCountScript.getScriptAsString(),
+                                scriptAsString,
                                 ReturnType.INTEGER,
                                 1,
                                 RedisConst.getPresenceKey(userId),
-                                String.valueOf(System.currentTimeMillis())
+                                now
                         );
                     }
 
