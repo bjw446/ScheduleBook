@@ -142,4 +142,61 @@ public final class RedisConst {
             
             return redis.call("ZRANGE", key, 0, -1)
             """;
+    public static final String PRESENCE_REFRESH_SCRIPT = """
+            local userKey = KEYS[1]
+            
+            local sessionKey = KEYS[2]
+            
+            local sessionId = ARGV[1]
+            
+            local expireTime = tonumber(ARGV[2])
+            
+            local ttl = tonumber(ARGV[3])
+            
+            if redis.call("EXISTS", sessionKey) == 0 then return 0
+            
+            end
+            
+            redis.call("ZADD", userKey, expireTime, sessionId)
+            
+            redis.call("PEXPIRE", userKey, ttl)
+            
+            redis.call("PEXPIRE", sessionKey, ttl)
+            
+            return 1
+            """;
+    public static final String PRESENCE_REMOVE_SCRIPT = """
+            local userKey = KEYS[1]
+            
+            local sessionKey = KEYS[2]
+            
+            local sessionId = ARGV[1]
+            
+            local deleted = redis.call("DEL", sessionKey)
+            
+            redis.call("ZREM", userKey, sessionId)
+            
+            return deleted
+            """;
+    public static final String PRESENCE_REGISTER_SCRIPT = """
+            local userKey = KEYS[1]
+            
+            local sessionKey = KEYS[2]
+            
+            local sessionId = ARGV[1]
+            
+            local userId = ARGV[2]
+            
+            local expireTime = tonumber(ARGV[3])
+            
+            local ttl = tonumber(ARGV[4])
+            
+            redis.call("ZADD", userKey, expireTime, sessionId)
+            
+            redis.call("SET", sessionKey, userId, "PX", ttl)
+            
+            redis.call("PEXPIRE", userKey, ttl)
+            
+            return 1
+            """;
 }

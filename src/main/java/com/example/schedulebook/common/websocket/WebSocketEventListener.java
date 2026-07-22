@@ -44,20 +44,25 @@ public class WebSocketEventListener {
 
     @EventListener
     public void handleWebSocketDisconnect(SessionDisconnectEvent event) {
-        Long userId = redisPresenceService.findUser(event.getSessionId());
+        try {
+            Long userId = redisPresenceService.findUser(event.getSessionId());
 
-        if (userId == null) {
-            log.warn("WebSocket DISCONNECT unknown sessionId = {}", event.getSessionId());
+            if (userId == null) {
+                log.debug("WebSocket DISCONNECT unknown sessionId = {}", event.getSessionId());
 
-            return;
+                return;
+            }
+
+            redisPresenceService.remove(userId, event.getSessionId());
+
+            log.info("WebSocket DISCONNECT userId = {}, sessionId = {}, remainingSessions = {}",
+                    userId,
+                    event.getSessionId(),
+                    redisPresenceService.getSessionCount(userId)
+            );
+
+        } catch (Exception e) {
+            log.warn("Redis 장애로 Disconnect 처리 실패 sessionId = {}", event.getSessionId(), e);
         }
-
-        redisPresenceService.remove(userId, event.getSessionId());
-
-        log.info("WebSocket DISCONNECT userId = {}, sessionId = {}, remainingSessions = {}",
-                userId,
-                event.getSessionId(),
-                redisPresenceService.getSessionCount(userId)
-        );
     }
 }
