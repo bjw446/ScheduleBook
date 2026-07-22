@@ -22,27 +22,25 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     private final RedisScript<List> presenceSessionsScript;
     private final RedisScript<Long> presenceRefreshScript;
     private final RedisScript<Long> presenceRemoveScript;
+    private final RedisScript<Long> presenceRegisterScript;
 
     @Override
     public void register(Long userId, String sessionId) {
         try {
-            if (userId == null) {
+            if (userId == null || sessionId == null || sessionId.isBlank()) {
                 return;
             }
 
-            String userKey = RedisConst.getPresenceKey(userId);
-
             long expireTime = System.currentTimeMillis() + RedisConst.PRESENCE_TTL.toMillis();
 
-            stringRedisTemplate.opsForZSet().add(userKey, sessionId, expireTime);
-
-            stringRedisTemplate.opsForValue().set(
-                    RedisConst.getPresenceSessionKey(sessionId),
-                    userId.toString(),
-                    RedisConst.PRESENCE_TTL
+            stringRedisTemplate.execute(
+                    presenceRegisterScript,
+                    List.of(RedisConst.getPresenceKey(userId), RedisConst.getPresenceSessionKey(sessionId)),
+                    sessionId,
+                    String.valueOf(userId),
+                    String.valueOf(expireTime),
+                    String.valueOf(RedisConst.PRESENCE_TTL.toMillis())
             );
-
-            stringRedisTemplate.expire(userKey, RedisConst.PRESENCE_TTL);
 
         } catch (Exception e) {
             log.warn("Redis 등록 실패", e);
@@ -52,7 +50,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     @Override
     public void remove(Long userId, String sessionId) {
         try {
-            if (userId == null) {
+            if (userId == null || sessionId == null || sessionId.isBlank()) {
                 return;
             }
 
@@ -78,6 +76,10 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     @Override
     public boolean isOnline(Long userId) {
         try {
+            if (userId == null) {
+                return false;
+            }
+
             String key = RedisConst.getPresenceKey(userId);
 
             Long count = aliveSessionCount(key);
@@ -94,6 +96,10 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     @Override
     public int getSessionCount(Long userId) {
         try {
+            if (userId == null) {
+                return 0;
+            }
+
             String key = RedisConst.getPresenceKey(userId);
 
             Long count = aliveSessionCount(key);
@@ -109,25 +115,26 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
 
     @Override
     public Long findUser(String sessionId) {
-        try {
-            String value = stringRedisTemplate.opsForValue().get(RedisConst.getPresenceSessionKey(sessionId));
-
-            if (value == null) {
-                return null;
-            }
-
-            return Long.valueOf(value);
-
-        } catch (Exception e) {
-            log.warn("Redis 조회 실패", e);
-
+        if (sessionId == null || sessionId.isBlank()) {
             return null;
         }
+
+        String value = stringRedisTemplate.opsForValue().get(RedisConst.getPresenceSessionKey(sessionId));
+
+        if (value == null) {
+            return null;
+        }
+
+        return Long.valueOf(value);
     }
 
     @Override
     public Set<String> getSessionIds(Long userId) {
         try {
+            if (userId == null) {
+                return Set.of();
+            }
+
             String key = RedisConst.getPresenceKey(userId);
 
             @SuppressWarnings("unchecked")
@@ -149,6 +156,10 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     @Override
     public void refresh(Long userId, String sessionId) {
         try {
+            if (userId == null || sessionId == null || sessionId.isBlank()) {
+                return;
+            }
+
             String userKey = RedisConst.getPresenceKey(userId);
 
             String sessionKey = RedisConst.getPresenceSessionKey(sessionId);
@@ -175,7 +186,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     @Override
     public Map<Long, Boolean> getOnlineStatuses(List<Long> userIds) {
         try {
-            if (userIds.isEmpty()) {
+            if (userIds == null || userIds.isEmpty()) {
                 return Map.of();
             }
 

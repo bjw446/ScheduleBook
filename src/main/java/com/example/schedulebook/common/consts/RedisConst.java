@@ -176,8 +176,27 @@ public final class RedisConst {
             
             redis.call("ZREM", userKey, sessionId)
             
-            end
-            
             return deleted
+            """;
+    public static final String PRESENCE_REGISTER_SCRIPT = """
+            local userKey = KEYS[1]
+            
+            local sessionKey = KEYS[2]
+            
+            local sessionId = ARGV[1]
+            
+            local userId = ARGV[2]
+            
+            local expireTime = tonumber(ARGV[3])
+            
+            local ttl = tonumber(ARGV[4])
+            
+            redis.call("ZADD", userKey, expireTime, sessionId)
+            
+            redis.call("SET", sessionKey, userId, "PX", ttl)
+            
+            redis.call("PEXPIRE", userKey, ttl)
+            
+            return 1
             """;
 }
