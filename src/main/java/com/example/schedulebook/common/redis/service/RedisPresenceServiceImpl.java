@@ -21,6 +21,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     private final RedisScript<Long> presenceCountScript;
     private final RedisScript<List> presenceSessionsScript;
     private final RedisScript<Long> presenceRefreshScript;
+    private final RedisScript<Long> presenceRemoveScript;
 
     @Override
     public void register(Long userId, String sessionId) {
@@ -57,9 +58,17 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
 
             String userKey = RedisConst.getPresenceKey(userId);
 
-            stringRedisTemplate.opsForZSet().remove(userKey, sessionId);
+            String sessionKey = RedisConst.getPresenceSessionKey(sessionId);
 
-            stringRedisTemplate.delete(RedisConst.getPresenceSessionKey(sessionId));
+            Long removed = stringRedisTemplate.execute(
+                    presenceRemoveScript,
+                    List.of(userKey, sessionKey),
+                    sessionId
+            );
+
+            if (removed != null && removed == 0L) {
+                log.debug("이미 삭제된 세션 sessionId = {}", sessionId);
+            }
 
         } catch (Exception e) {
             log.warn("Redis 삭제 실패", e);

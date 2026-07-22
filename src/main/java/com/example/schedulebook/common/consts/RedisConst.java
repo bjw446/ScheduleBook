@@ -165,4 +165,19 @@ public final class RedisConst {
             
             return 1
             """;
+    public static final String PRESENCE_REMOVE_SCRIPT = """
+            local userKey = KEYS[1]
+            
+            local sessionKey = KEYS[2]
+            
+            local sessionId = ARGV[1]
+            
+            local deleted = redis.call("DEL", sessionKey)
+            
+            redis.call("ZREM", userKey, sessionId)
+            
+            end
+            
+            return deleted
+            """;
 }
