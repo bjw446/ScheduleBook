@@ -20,10 +20,15 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     private final StringRedisTemplate stringRedisTemplate;
     private final RedisScript<Long> presenceCountScript;
     private final RedisScript<List> presenceSessionsScript;
+    private final RedisScript<Long> presenceRefreshScript;
 
     @Override
     public void register(Long userId, String sessionId) {
         try {
+            if (userId == null) {
+                return;
+            }
+
             String userKey = RedisConst.getPresenceKey(userId);
 
             long expireTime = System.currentTimeMillis() + RedisConst.PRESENCE_TTL.toMillis();
@@ -57,7 +62,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
             stringRedisTemplate.delete(RedisConst.getPresenceSessionKey(sessionId));
 
         } catch (Exception e) {
-            log.warn("Redis 삭제 실해", e);
+            log.warn("Redis 삭제 실패", e);
         }
     }
 
@@ -87,7 +92,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
             return count == null ? 0 : count.intValue();
 
         } catch (Exception e) {
-            log.warn("Redis 조회 실해", e);
+            log.warn("Redis 조회 실패", e);
 
             return 0;
         }
@@ -105,7 +110,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
             return Long.valueOf(value);
 
         } catch (Exception e) {
-            log.warn("Redis 조회 실해", e);
+            log.warn("Redis 조회 실패", e);
 
             return null;
         }
@@ -126,7 +131,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
             return sessions == null ? Set.of() : new HashSet<>(sessions);
 
         } catch (Exception e) {
-            log.error("Redis 조회 실해", e);
+            log.error("Redis 조회 실패", e);
 
             return Set.of();
         }
@@ -137,16 +142,21 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
         try {
             String userKey = RedisConst.getPresenceKey(userId);
 
+            String sessionKey = RedisConst.getPresenceSessionKey(sessionId);
+
             long expireTime = System.currentTimeMillis() + RedisConst.PRESENCE_TTL.toMillis();
 
-            stringRedisTemplate.opsForZSet().add(userKey, sessionId, expireTime);
-
-            stringRedisTemplate.expire(userKey, RedisConst.PRESENCE_TTL);
-
-            stringRedisTemplate.expire(
-                    RedisConst.getPresenceSessionKey(sessionId),
-                    RedisConst.PRESENCE_TTL
+            Long updated = stringRedisTemplate.execute(
+                    presenceRefreshScript,
+                    List.of(userKey, sessionKey),
+                    sessionId,
+                    String.valueOf(expireTime),
+                    String.valueOf(RedisConst.PRESENCE_TTL.toMillis())
             );
+
+            if (updated != null && updated == 0L) {
+                log.debug("이미 삭제된 세션 heartbeat 무시 sessionId = {}", sessionId);
+            }
 
         } catch (Exception e) {
             log.warn("Redis 리프레쉬 실패", e);

@@ -44,4 +44,9 @@ public class RedisScriptConfig {
     public RedisScript<List> presenceSessionsScript() {
         return RedisScript.of(RedisConst.PRESENCE_SESSIONS_SCRIPT, List.class);
     }
+
+    @Bean
+    public RedisScript<Long> presenceRefreshScript() {
+        return RedisScript.of(RedisConst.PRESENCE_REFRESH_SCRIPT, Long.class);
+    }
 }
