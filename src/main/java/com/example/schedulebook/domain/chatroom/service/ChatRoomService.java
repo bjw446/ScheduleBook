@@ -185,6 +185,22 @@ public class ChatRoomService {
         handleLeave(chatRoom, chatRoomMember);
     }
 
+    public void removeAllChatRelations(Long userId) {
+        List<ChatRoomMember> chatRoomMembers = chatRoomMemberRepository.findAllByUserId(userId);
+
+        for (ChatRoomMember chatRoomMember : chatRoomMembers) {
+            ChatRoom chatRoom = chatRoomMember.getChatRoom();
+
+            if (chatRoom.getChatRoomType() == ChatRoomType.GROUP) {
+                chatRoom.decreaseMemberCount();
+            }
+
+            chatRoomMemberRepository.delete(chatRoomMember);
+        }
+
+        directChatRoomRepository.deleteDirectChatRoomByUserId(userId);
+    }
+
     private boolean processInvitation(ChatRoom chatRoom, User user, LocalDateTime now) {
         Optional<ChatRoomMember> memberOpt = chatRoomMemberRepository.findByChatRoomIdAndUserId(chatRoom.getId(), user.getId());
 

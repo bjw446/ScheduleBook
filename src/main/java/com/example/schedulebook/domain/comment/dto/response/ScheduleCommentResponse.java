@@ -26,12 +26,12 @@ public record ScheduleCommentResponse(
                 comment.getId(),
                 comment.getParent() == null ? null : comment.getParent().getId(),
                 comment.getWriter().getId(),
-                comment.getWriter().getNickname(),
+                comment.getWriter().getDisplayNickname(),
                 comment.getContent(),
                 comment.isEdited(),
                 comment.isDeleted(),
                 comment.getCreatedAt(),
-                comment.getWriter().getId().equals(currentUserId),
+                comment.getWriter().getDeletedAt() == null && comment.getWriter().getId().equals(currentUserId),
                 replies
         );
     }

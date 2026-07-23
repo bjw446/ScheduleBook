@@ -59,4 +59,8 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
     @Query("UPDATE ChatRoomMember crm SET crm.unreadCount = crm.unreadCount + 1 " +
             "WHERE crm.chatRoom.id = :roomId AND crm.deletedAt IS NULL")
     void increaseUnreadCountAll(Long roomId);
+
+    @Query("SELECT crm FROM ChatRoomMember crm JOIN FETCH crm.chatRoom " +
+            "WHERE crm.user.id = :userId AND crm.deletedAt IS NULL")
+    List<ChatRoomMember> findAllByUserId(@Param("userId") Long userId);
 }
