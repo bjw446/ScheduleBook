@@ -3,7 +3,7 @@ package com.example.schedulebook.domain.chatmessage.publisher;
 import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.consts.WebSocketDestination;
 import com.example.schedulebook.common.executor.AfterCommitExecutor;
-import com.example.schedulebook.common.websocket.WebSocketPublisher;
+import com.example.schedulebook.common.websocket.publisher.WebSocketPublisher;
 import com.example.schedulebook.domain.chatmessage.dto.request.PublishChatMessage;
 import com.example.schedulebook.domain.chatmessage.dto.response.ChatMessageResponse;
 import com.example.schedulebook.domain.chatmessage.entity.ChatMessage;

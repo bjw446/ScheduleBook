@@ -192,6 +192,12 @@ public class ScheduleShareService {
         );
     }
 
+    public void deleteAllShared(Long userId) {
+        scheduleShareRepository.deleteAllBySharedUserId(userId);
+
+        scheduleShareRepository.softDeleteOwnedShares(userId);
+    }
+
     private void createParticipants(Schedule schedule, List<User> users) {
         Set<Long> participantIds = new HashSet<>(scheduleParticipantRepository.findParticipantIds(schedule.getId()));
 

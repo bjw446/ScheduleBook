@@ -4,6 +4,7 @@ import com.example.schedulebook.domain.auth.entity.AuditLog;
 import com.example.schedulebook.domain.auth.enums.AuditEventType;
 import com.example.schedulebook.domain.auth.event.*;
 import com.example.schedulebook.domain.auth.repository.AuditLogRepository;
+import com.example.schedulebook.domain.user.event.UserWithdrawEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -32,7 +33,7 @@ public class AuditLogService {
     }
 
     public void saveWithdraw(UserWithdrawEvent event) {
-        save(event.userId(), null, event.loginId(), AuditEventType.USER_WITHDRAW, event.ip(), event.userAgent());
+        save(event.userId(), null, event.loginId(), AuditEventType.USER_WITHDRAW, null, null);
     }
 
     public void saveLogoutSession(LogoutSessionEvent event) {

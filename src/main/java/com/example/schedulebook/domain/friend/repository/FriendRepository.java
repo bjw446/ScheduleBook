@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.friend.repository;
 import com.example.schedulebook.domain.friend.entity.Friend;
 import com.example.schedulebook.domain.friend.enums.FriendStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -34,4 +35,8 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
             @Param("friendIds") List<Long> friendIds,
             @Param("status") FriendStatus status
     );
+
+    @Modifying
+    @Query("DELETE FROM Friend f WHERE f.requester.id = :userId OR f.receiver.id =:userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }

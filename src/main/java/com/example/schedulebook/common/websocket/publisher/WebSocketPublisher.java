@@ -1,4 +1,4 @@
-package com.example.schedulebook.common.websocket;
+package com.example.schedulebook.common.websocket.publisher;
 
 import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import lombok.RequiredArgsConstructor;

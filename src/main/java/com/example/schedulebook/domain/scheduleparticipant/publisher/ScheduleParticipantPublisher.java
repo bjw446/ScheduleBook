@@ -1,7 +1,7 @@
 package com.example.schedulebook.domain.scheduleparticipant.publisher;
 
 import com.example.schedulebook.common.consts.WebSocketDestination;
-import com.example.schedulebook.common.websocket.WebSocketPublisher;
+import com.example.schedulebook.common.websocket.publisher.WebSocketPublisher;
 import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleParticipantListResponse;
 import com.example.schedulebook.domain.scheduleparticipant.service.ScheduleParticipantReader;
 import lombok.RequiredArgsConstructor;

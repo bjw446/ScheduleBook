@@ -42,12 +42,14 @@ public class UserValidator {
         }
     }
 
-    public void validatePassword(UpdateUserPasswordRequest request, User user) {
-        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+    public void validatePassword(String currentPassword, User user) {
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new BaseException(ErrorEnum.PASSWORD_NOT_MATCH);
         }
+    }
 
-        if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
+    public void validateNewPassword(String newPassword, User user) {
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new BaseException(ErrorEnum.PASSWORD_SAME_AS_OLD);
         }
     }

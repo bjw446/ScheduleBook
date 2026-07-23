@@ -23,6 +23,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
     private final RedisScript<Long> presenceRefreshScript;
     private final RedisScript<Long> presenceRemoveScript;
     private final RedisScript<Long> presenceRegisterScript;
+    private final RedisScript<Long> deleteAllPresenceScript;
 
     @Override
     public void register(Long userId, String sessionId) {
@@ -35,7 +36,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
 
             stringRedisTemplate.execute(
                     presenceRegisterScript,
-                    List.of(RedisConst.getPresenceKey(userId), RedisConst.getPresenceSessionKey(sessionId)),
+                    List.of(generateUserKey(userId), generateSessionKey(sessionId)),
                     sessionId,
                     String.valueOf(userId),
                     String.valueOf(expireTime),
@@ -54,9 +55,9 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
                 return;
             }
 
-            String userKey = RedisConst.getPresenceKey(userId);
+            String userKey = generateUserKey(userId);
 
-            String sessionKey = RedisConst.getPresenceSessionKey(sessionId);
+            String sessionKey = generateSessionKey(sessionId);
 
             Long removed = stringRedisTemplate.execute(
                     presenceRemoveScript,
@@ -80,7 +81,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
                 return false;
             }
 
-            String key = RedisConst.getPresenceKey(userId);
+            String key = generateUserKey(userId);
 
             Long count = aliveSessionCount(key);
 
@@ -100,7 +101,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
                 return 0;
             }
 
-            String key = RedisConst.getPresenceKey(userId);
+            String key = generateUserKey(userId);
 
             Long count = aliveSessionCount(key);
 
@@ -119,7 +120,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
             return null;
         }
 
-        String value = stringRedisTemplate.opsForValue().get(RedisConst.getPresenceSessionKey(sessionId));
+        String value = stringRedisTemplate.opsForValue().get(generateSessionKey(sessionId));
 
         if (value == null) {
             return null;
@@ -135,7 +136,7 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
                 return Set.of();
             }
 
-            String key = RedisConst.getPresenceKey(userId);
+            String key = generateUserKey(userId);
 
             @SuppressWarnings("unchecked")
             List<String> sessions = (List<String>) stringRedisTemplate.execute(
@@ -160,9 +161,9 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
                 return;
             }
 
-            String userKey = RedisConst.getPresenceKey(userId);
+            String userKey = generateUserKey(userId);
 
-            String sessionKey = RedisConst.getPresenceSessionKey(sessionId);
+            String sessionKey = generateSessionKey(sessionId);
 
             long expireTime = System.currentTimeMillis() + RedisConst.PRESENCE_TTL.toMillis();
 
@@ -229,12 +230,40 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
         }
     }
 
+    @Override
+    public void removeAll(Long userId) {
+        try {
+            if (userId == null) {
+                return;
+            }
+
+            String userKey = generateUserKey(userId);
+
+            stringRedisTemplate.execute(
+                    deleteAllPresenceScript,
+                    List.of(userKey),
+                    RedisConst.PRESENCE_SESSION
+            );
+
+        } catch (Exception e) {
+            log.warn("Redis 삭제 실패", e);
+        }
+    }
+
     private Long aliveSessionCount(String key) {
         return stringRedisTemplate.execute(
                 presenceCountScript,
                 List.of(key),
                 String.valueOf(System.currentTimeMillis())
         );
+    }
+
+    private String generateUserKey(Long userId) {
+        return RedisConst.getPresenceKey(userId);
+    }
+
+    private String generateSessionKey(String sessionId) {
+        return RedisConst.getPresenceSessionKey(sessionId);
     }
 }
 

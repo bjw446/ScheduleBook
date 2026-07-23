@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.scheduleparticipant.repository;
 import com.example.schedulebook.domain.scheduleparticipant.entity.ScheduleParticipant;
 import com.example.schedulebook.domain.scheduleparticipant.projection.ScheduleParticipantProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -24,4 +25,12 @@ public interface ScheduleParticipantRepository extends JpaRepository<SchedulePar
     List<ScheduleParticipantProjection> findParticipants(@Param("scheduleId") Long scheduleId);
 
     List<ScheduleParticipant> findAllBySchedule_Id(Long scheduleId);
+
+    @Modifying
+    @Query("DELETE FROM ScheduleParticipant sp WHERE sp.user.id = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("DELETE FROM ScheduleParticipant sp WHERE sp.schedule.user.id = :userId")
+    void deleteByOwnedSchedule(@Param("userId") Long userId);
 }

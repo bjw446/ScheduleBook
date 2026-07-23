@@ -1,4 +1,4 @@
-package com.example.schedulebook.common.websocket;
+package com.example.schedulebook.common.websocket.interceptor;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;

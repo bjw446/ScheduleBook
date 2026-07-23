@@ -1,4 +1,4 @@
-package com.example.schedulebook.common.websocket;
+package com.example.schedulebook.common.websocket.listener;
 
 import com.example.schedulebook.common.redis.service.RedisPresenceService;
 import lombok.extern.slf4j.Slf4j;

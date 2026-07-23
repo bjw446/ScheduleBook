@@ -30,7 +30,7 @@ public record SignupRequest(
 
         @NotBlank(message = "전화번호는 필수 입력 사항 입니다.")
         @Size(max = 20, message = "전화번호는 최대 20자리 까지 입력 가능합니다")
-        @Pattern(regexp = "^\\d{2,3}-\\d{3,4}-\\d{4}$", message = "전화번호 형식이 올바르지 않습니다.")
+        @Pattern(regexp = AuthValidationPatterns.PHONE_NUMBER_COMPLEXITY, message = "전화번호 형식이 올바르지 않습니다.")
         String phoneNumber
 ) {
 }

@@ -10,4 +10,5 @@ public final class CommonConst {
     public static final String DELETED_COMMENT = "삭제된 댓글입니다.";
     public static final int MAX_LOGIN_FAIL = 5;
     public static final String SESSION_BLOCK = "session-block-";
+    public static final String WITHDRAW_USER = "탈퇴한 사용자_";
 }

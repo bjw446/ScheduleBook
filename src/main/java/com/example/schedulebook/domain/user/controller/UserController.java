@@ -5,6 +5,7 @@ import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
 import com.example.schedulebook.domain.user.dto.request.UpdateUserPasswordRequest;
 import com.example.schedulebook.domain.user.dto.request.UpdateUserRequest;
+import com.example.schedulebook.domain.user.dto.request.WithdrawUserRequest;
 import com.example.schedulebook.domain.user.dto.response.UpdateUserResponse;
 import com.example.schedulebook.domain.user.dto.response.UserResponse;
 import com.example.schedulebook.domain.user.service.UserService;
@@ -43,6 +44,18 @@ public class UserController {
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(SuccessEnum.UPDATE_SUCCESS, null)
+        );
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<Void>> withdraw(@Valid @RequestBody WithdrawUserRequest request) {
+        userService.withdraw(request, SecurityUtils.getCurrentUserId());
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.DELETE_SUCCESS,
+                        null
+                )
         );
     }
 }
