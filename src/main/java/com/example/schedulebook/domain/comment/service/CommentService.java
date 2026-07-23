@@ -102,6 +102,12 @@ public class CommentService {
         publishCommentEvent(comment, CommentEventType.DELETED, commentCount);
     }
 
+    public void removeAllComments(Long userId) {
+        List<Comment> comments = commentRepository.findAllByWriterId(userId);
+
+        comments.forEach(Comment::deleteComment);
+    }
+
     private List<ScheduleCommentResponse> createCommentTree(List<Comment> parents, Long currentUserId) {
         List<Long> parentIds = parents.stream()
                 .map(Comment::getId)

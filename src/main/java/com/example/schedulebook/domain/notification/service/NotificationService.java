@@ -162,6 +162,10 @@ public class NotificationService {
         );
     }
 
+    public void deleteAllNotifications(Long userId) {
+        notificationRepository.softDeleteAllByReceiverId(userId);
+    }
+
     private Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
         User receiver = userValidator.validateActiveUser(receiverId);
         return saveNotification(receiver, notificationType, title, content, targetId);

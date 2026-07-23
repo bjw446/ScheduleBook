@@ -295,5 +295,12 @@ public class User extends DeleteEntity {
     public int getRequiredExp() {
         return level * 100;
     }
+
+    public String getDisplayNickname() {
+        if (getDeletedAt() != null) {
+            return CommonConst.WITHDRAW_USER;
+        }
+        return nickname;
+    }
 }
 

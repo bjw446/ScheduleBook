@@ -25,7 +25,7 @@ public record CommentEventResponse(
                 comment.getSchedule().getId(),
                 comment.getParent() == null ? null : comment.getParent().getId(),
                 comment.getWriter().getId(),
-                comment.getWriter().getNickname(),
+                comment.getWriter().getDisplayNickname(),
                 comment.getContent(),
                 comment.isEdited(),
                 comment.isDeleted(),

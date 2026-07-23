@@ -22,4 +22,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     long countBySchedule_IdAndDeletedFalse(Long scheduleId);
 
     boolean existsByIdAndDeletedFalse(Long commentId);
+
+    @Query("SELECT c FROM Comment c WHERE c.writer.id = :userId AND c.deletedAt IS NULL")
+    List<Comment> findAllByWriterId(@Param("userId") Long userId);
 }
