@@ -1,0 +1,17 @@
+package com.example.schedulebook.domain.outbox.enums;
+
+public enum OutboxEventType {
+    COMMENT_CREATED,
+    COMMENT_UPDATED,
+    COMMENT_DELETED,
+    SCHEDULE_CREATED,
+    SCHEDULE_UPDATED,
+    SCHEDULE_DELETED,
+    FRIEND_ACCEPTED,
+    CHAT_MESSAGE_SENT,
+    CHAT_ROOM_CREATED,
+    CHAT_MEMBER_INVITED,
+    USER_WITHDRAW,
+    NOTIFICATION_CREATED,
+    REWARD_GRANTED
+}
