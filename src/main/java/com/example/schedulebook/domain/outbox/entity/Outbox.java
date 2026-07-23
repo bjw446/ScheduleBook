@@ -58,6 +58,9 @@ public class Outbox extends ModifyEntity {
     @Column(length = 500, name = "error_message")
     private String errorMessage;
 
+    @Column(name = "processing_at")
+    private LocalDateTime processingAt;
+
     public static Outbox create(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType, String payload) {
         Outbox outbox = new Outbox();
 
@@ -78,6 +81,8 @@ public class Outbox extends ModifyEntity {
         }
 
         this.status = OutboxStatus.PROCESSING;
+        this.processingAt = LocalDateTime.now();
+        this.errorMessage = null;
     }
 
     public void success() {
@@ -88,6 +93,7 @@ public class Outbox extends ModifyEntity {
         this.status = OutboxStatus.SUCCESS;
         this.publishedAt = LocalDateTime.now();
         this.errorMessage = null;
+        this.processingAt = null;
     }
 
     public void fail(String errorMessage, LocalDateTime nextRetryAt) {
@@ -95,9 +101,19 @@ public class Outbox extends ModifyEntity {
             throw new BaseException(ErrorEnum.INVALID_OUTBOX_STATUS);
         }
 
-        this.status = OutboxStatus.FAILED;
-        this.retryCount++;
         this.errorMessage = errorMessage;
+        this.status = OutboxStatus.FAILED;
         this.nextRetryAt = nextRetryAt;
+        this.processingAt = null;
+    }
+
+    public void increaseRetryCount() {
+        this.retryCount++;
+    }
+
+    public void dead() {
+        this.status = OutboxStatus.DEAD;
+        this.nextRetryAt = null;
+        this.processingAt = null;
     }
 }

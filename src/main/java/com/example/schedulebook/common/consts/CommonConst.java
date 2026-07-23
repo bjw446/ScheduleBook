@@ -13,4 +13,5 @@ public final class CommonConst {
     public static final String WITHDRAW_USER = "탈퇴한 사용자_";
     public static final int BATCH_SIZE = 100;
     public static final int OUTBOX_RETRY_DELAY = 5;
+    public static final int MAX_RETRY = 5;
 }
