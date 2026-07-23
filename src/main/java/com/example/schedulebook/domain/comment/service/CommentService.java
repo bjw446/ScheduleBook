@@ -22,6 +22,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -95,7 +96,7 @@ public class CommentService {
 
         comment.deleteComment();
 
-        scheduleRepository.decreaseCommentCount(comment.getSchedule().getId());
+        scheduleRepository.decreaseCommentCount(comment.getSchedule().getId(), 1);
 
         int commentCount = getCurrentCommentCount(comment.getSchedule().getId());
 
@@ -105,7 +106,23 @@ public class CommentService {
     public void removeAllComments(Long userId) {
         List<Comment> comments = commentRepository.findAllByWriterId(userId);
 
-        comments.forEach(Comment::deleteComment);
+        Map<Long, Integer> scheduleCommentCount = new HashMap<>();
+
+        for (Comment comment : comments) {
+            if (comment.isDeleted()) {
+                continue;
+            }
+
+            comment.deleteComment();
+
+            scheduleCommentCount.merge(
+                    comment.getSchedule().getId(),
+                    1,
+                    Integer::sum
+            );
+        }
+
+        scheduleCommentCount.forEach(scheduleRepository::decreaseCommentCount);
     }
 
     private List<ScheduleCommentResponse> createCommentTree(List<Comment> parents, Long currentUserId) {

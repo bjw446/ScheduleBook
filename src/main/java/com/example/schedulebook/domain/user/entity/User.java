@@ -298,7 +298,7 @@ public class User extends DeleteEntity {
 
     public String getDisplayNickname() {
         if (getDeletedAt() != null) {
-            return CommonConst.WITHDRAW_USER;
+            return CommonConst.UNKNOWN_NICKNAME;
         }
         return nickname;
     }
