@@ -149,7 +149,7 @@ public class User extends DeleteEntity {
     }
 
     private String maskLoginId(String loginId) {
-        if (loginId == null) {
+        if (loginId == null || loginId.isBlank()) {
             return null;
         }
 
@@ -167,27 +167,54 @@ public class User extends DeleteEntity {
 
         String uuidPart = UUID.randomUUID().toString().substring(0, 8);
 
-        return CommonConst.WITHDRAW_USER + prefix + masked + uuidPart;
+        String result = CommonConst.WITHDRAW_USER + prefix + masked + uuidPart;
+
+        int maxLength = 50;
+
+        if (result.length() > maxLength) {
+            result = result.substring(0, maxLength);
+        }
+
+        return result;
     }
 
     private String maskNickname(String nickname) {
-        if (nickname == null) {
+        if (nickname == null || nickname.isBlank()) {
             return null;
         }
 
-        return CommonConst.WITHDRAW_USER + UUID.randomUUID().toString().substring(0, 8);
+        String prefix = nickname.substring(0, Math.min(2, nickname.length()));
+        String random = UUID.randomUUID().toString().substring(0, 8);
+
+        String result = CommonConst.WITHDRAW_USER + prefix + "_****_" + random;
+
+        // DB 컬럼 길이 제한 적용 (예: 50자)
+        int maxLength = 50;
+
+        if (result.length() > maxLength) {
+            result = result.substring(0, maxLength);
+        }
+
+        return result;
     }
 
     private String maskEmail(String email) {
-        if (email == null) {
+        if (email == null || email.isBlank()) {
             return null;
         }
 
-        return UUID.randomUUID()
-                .toString()
-                .replace("-", "")
-                .substring(0, 20)
-                + "@deleted.com";
+        String random = UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+
+        String result = random + "@deleted.com";
+
+        // DB 컬럼 길이 제한 적용 (예: 100자)
+        int maxLength = 100;
+
+        if (result.length() > maxLength) {
+            result = result.substring(0, maxLength);
+        }
+
+        return result;
     }
 
     private String maskPhoneNumber(String phoneNumber) {
@@ -198,15 +225,15 @@ public class User extends DeleteEntity {
         // 숫자만 추출 (국내/국제 모두)
         String digits = phoneNumber.replaceAll("\\D", "");
 
-        // 최소 정보를 위한 뒤 4자리 추출
-        String suffix = digits.substring(digits.length() - 4);
-
         String random = UUID.randomUUID().toString().substring(0, 8);
 
         // 최소 길이 체크
         if (digits.length() < 7) {
             return String.format("%s%s_%s", CommonConst.WITHDRAW_USER, digits, random);
         }
+
+        // 최소 정보를 위한 뒤 4자리 추출
+        String suffix = digits.substring(digits.length() - 4);
 
         // 국내 번호(010으로 시작, 총 11자리)
         if (digits.startsWith("010") && digits.length() == 11) {
@@ -217,7 +244,9 @@ public class User extends DeleteEntity {
         }
 
         // 국제 번호 → 앞 국가번호(1~3자리)
-        String countryCode = digits.substring(0, digits.length() - 4);
+        int countryCodeLength = Math.min(3, digits.length() - 4);
+
+        String countryCode = digits.substring(0, countryCodeLength);
 
         return String.format("%s%s-****-%s_%s",
                 CommonConst.WITHDRAW_USER, countryCode, suffix, random);
