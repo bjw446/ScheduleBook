@@ -14,6 +14,9 @@ public class LoggingExecutor {
 
         } catch (Exception e) {
             log.error("{} 실패 : {}", name, e.getMessage(), e);
+
+            // TODO Outbox 저장
+            // TODO Retry Queue 등록
         }
     }
 }

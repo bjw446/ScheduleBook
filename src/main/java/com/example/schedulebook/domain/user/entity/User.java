@@ -41,7 +41,7 @@ public class User extends DeleteEntity {
     private String email;
 
     @NotBlank
-    @Column(nullable = false, length = 20, name = "phone_number")
+    @Column(nullable = false, length = 20, unique = true, name = "phone_number")
     private String phoneNumber;
 
     @Column(nullable = false)
@@ -195,7 +195,32 @@ public class User extends DeleteEntity {
             return null;
         }
 
-        return phoneNumber.substring(0, 3) + "-****-" + phoneNumber.substring(phoneNumber.length() - 4);
+        // 숫자만 추출 (국내/국제 모두)
+        String digits = phoneNumber.replaceAll("\\D", "");
+
+        // 최소 정보를 위한 뒤 4자리 추출
+        String suffix = digits.substring(digits.length() - 4);
+
+        String random = UUID.randomUUID().toString().substring(0, 8);
+
+        // 최소 길이 체크
+        if (digits.length() < 7) {
+            return String.format("%s%s_%s", CommonConst.WITHDRAW_USER, digits, random);
+        }
+
+        // 국내 번호(010으로 시작, 총 11자리)
+        if (digits.startsWith("010") && digits.length() == 11) {
+            String prefix = digits.substring(0, 3);
+
+            return String.format("%s%s-****-%s_%s",
+                    CommonConst.WITHDRAW_USER, prefix, suffix, random);
+        }
+
+        // 국제 번호 → 앞 국가번호(1~3자리)
+        String countryCode = digits.substring(0, digits.length() - 4);
+
+        return String.format("%s%s-****-%s_%s",
+                CommonConst.WITHDRAW_USER, countryCode, suffix, random);
     }
 
     private void levelUp() {

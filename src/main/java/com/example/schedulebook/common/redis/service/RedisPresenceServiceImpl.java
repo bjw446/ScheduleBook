@@ -241,7 +241,8 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
 
             stringRedisTemplate.execute(
                     deleteAllPresenceScript,
-                    List.of(userKey)
+                    List.of(userKey),
+                    RedisConst.PRESENCE_SESSION
             );
 
         } catch (Exception e) {

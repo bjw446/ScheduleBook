@@ -198,10 +198,18 @@ public final class RedisConst {
             return 1
             """;
     public static final String DELETE_ALL_PRESENCE_SCRIPT = """
-            local key = KEYS[1]
+            local userKey = KEYS[1]
             
-            redis.call("DEL", key)
+            local sessions = redis.call("ZRANGE", userKey, 0, -1)
             
-            return 1
+            for _, sessionId in ipairs(sessions) do
+            
+            redis.call("DEL", ARGV[1] .. sessionId)
+            
+            end
+            
+            redis.call("DEL", userKey)
+            
+            return #sessions
             """;
 }

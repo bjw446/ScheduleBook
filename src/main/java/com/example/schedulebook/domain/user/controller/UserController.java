@@ -48,7 +48,7 @@ public class UserController {
     }
 
     @DeleteMapping("/me")
-    public ResponseEntity<ApiResponse<Void>> withdraw(@RequestBody WithdrawUserRequest request) {
+    public ResponseEntity<ApiResponse<Void>> withdraw(@Valid @RequestBody WithdrawUserRequest request) {
         userService.withdraw(request, SecurityUtils.getCurrentUserId());
 
         return ResponseEntity.status(HttpStatus.OK).body(
