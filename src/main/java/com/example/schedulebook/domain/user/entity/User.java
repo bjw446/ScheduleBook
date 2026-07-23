@@ -25,7 +25,7 @@ public class User extends DeleteEntity {
     private Long id;
 
     @NotBlank
-    @Column(nullable = false, length = 20, unique = true, name = "login_id")
+    @Column(nullable = false, length = 50, unique = true, name = "login_id")
     private String loginId;
 
     @NotBlank
@@ -41,7 +41,7 @@ public class User extends DeleteEntity {
     private String email;
 
     @NotBlank
-    @Column(nullable = false, length = 20, unique = true, name = "phone_number")
+    @Column(nullable = false, length = 50, unique = true, name = "phone_number")
     private String phoneNumber;
 
     @Column(nullable = false)
