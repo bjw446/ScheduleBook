@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.user.entity;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.entity.DeleteEntity;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
@@ -12,6 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Getter
 @Entity
@@ -39,7 +41,7 @@ public class User extends DeleteEntity {
     private String email;
 
     @NotBlank
-    @Column(nullable = false, length = 20, unique = true, name = "phone_number")
+    @Column(nullable = false, length = 20, name = "phone_number")
     private String phoneNumber;
 
     @Column(nullable = false)
@@ -132,12 +134,68 @@ public class User extends DeleteEntity {
         levelUp();
     }
 
-    public void withdraw() {
+    public void withdraw(String encodedPassword) {
         if (this.userStatus == UserStatus.WITHDRAW) {
             throw new BaseException(ErrorEnum.USER_ALREADY_WITHDRAW);
         }
+
         this.userStatus = UserStatus.WITHDRAW;
+        this.loginId = maskLoginId(this.loginId);
+        this.password = encodedPassword;
+        this.nickname = maskNickname(this.nickname);
+        this.email = maskEmail(this.email);
+        this.phoneNumber = maskPhoneNumber(this.phoneNumber);
         this.delete();
+    }
+
+    private String maskLoginId(String loginId) {
+        if (loginId == null) {
+            return null;
+        }
+
+        int prefixLength = Math.min(loginId.length(), 3);
+
+        String prefix = loginId.substring(0, prefixLength);
+
+        int remainLength = Math.max(0, loginId.length() - prefixLength);
+
+        StringBuilder masked = new StringBuilder();
+
+        for (int i = 0; i < remainLength; i++) {
+            masked.append("*");
+        }
+
+        String uuidPart = UUID.randomUUID().toString().substring(0, 8);
+
+        return CommonConst.WITHDRAW_USER + prefix + masked + uuidPart;
+    }
+
+    private String maskNickname(String nickname) {
+        if (nickname == null) {
+            return null;
+        }
+
+        return CommonConst.WITHDRAW_USER + UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    private String maskEmail(String email) {
+        if (email == null) {
+            return null;
+        }
+
+        return UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .substring(0, 20)
+                + "@deleted.com";
+    }
+
+    private String maskPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null) {
+            return null;
+        }
+
+        return phoneNumber.substring(0, 3) + "-****-" + phoneNumber.substring(phoneNumber.length() - 4);
     }
 
     private void levelUp() {

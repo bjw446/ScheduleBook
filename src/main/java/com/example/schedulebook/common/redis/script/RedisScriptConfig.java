@@ -59,4 +59,9 @@ public class RedisScriptConfig {
     public RedisScript<Long> presenceRegisterScript() {
         return RedisScript.of(RedisConst.PRESENCE_REGISTER_SCRIPT, Long.class);
     }
+
+    @Bean
+    public RedisScript<Long> deleteAllPresenceScript() {
+        return RedisScript.of(RedisConst.DELETE_ALL_PRESENCE_SCRIPT, Long.class);
+    }
 }

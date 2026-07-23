@@ -21,4 +21,6 @@ public interface RedisPresenceService {
     void refresh(Long userId, String sessionId);
 
     Map<Long, Boolean> getOnlineStatuses(List<Long> userIds);
+
+    void removeAll(Long userId);
 }

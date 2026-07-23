@@ -1,7 +1,7 @@
 package com.example.schedulebook.domain.comment.publisher;
 
 import com.example.schedulebook.common.consts.WebSocketDestination;
-import com.example.schedulebook.common.websocket.WebSocketPublisher;
+import com.example.schedulebook.common.websocket.publisher.WebSocketPublisher;
 import com.example.schedulebook.domain.comment.event.CommentEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

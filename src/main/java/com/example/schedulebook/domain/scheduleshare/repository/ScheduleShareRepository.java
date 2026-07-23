@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.scheduleshare.repository;
 import com.example.schedulebook.domain.scheduleshare.entity.ScheduleShare;
 import com.example.schedulebook.domain.scheduleshare.enums.ScheduleShareStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -43,4 +44,14 @@ public interface ScheduleShareRepository extends JpaRepository <ScheduleShare, L
     boolean existsBySchedule_IdAndSharedUser_IdAndScheduleShareStatus(Long scheduleId, Long sharedUserId, ScheduleShareStatus status);
 
     List<ScheduleShare> findAllBySchedule_Id(Long scheduleId);
+
+    @Modifying
+    @Query("DELETE FROM ScheduleShare ss WHERE ss.sharedUser.id = :userId")
+    void deleteAllBySharedUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("UPDATE ScheduleShare ss SET ss.deletedAt = CURRENT TIMESTAMP, ss.deleted = TRUE, " +
+            "ss.scheduleShareStatus = com.example.schedulebook.domain.scheduleshare.enums." +
+            "ScheduleShareStatus.SCHEDULE_DELETED WHERE ss.schedule.user.id = :userId")
+    void softDeleteOwnedShares(@Param("userId") Long userId);
 }

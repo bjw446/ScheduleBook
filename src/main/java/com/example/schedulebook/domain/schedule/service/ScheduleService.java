@@ -123,4 +123,12 @@ public class ScheduleService {
 
         applicationEventPublisher.publishEvent(new ScheduleDeletedEvent(schedule.getId()));
     }
+
+    public void deleteAllSchedules(Long userId) {
+        scheduleParticipantRepository.deleteAllByUserId(userId);
+
+        scheduleParticipantRepository.deleteByOwnedSchedule(userId);
+
+        scheduleRepository.softDeleteAllByUserId(userId);
+    }
 }

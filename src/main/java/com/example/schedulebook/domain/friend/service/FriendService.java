@@ -169,6 +169,10 @@ public class FriendService {
         friend.deleteFriend();
     }
 
+    public void removeAllFriendRelations(Long userId) {
+        friendRepository.deleteAllByUserId(userId);
+    }
+
     private FriendResponse completeFriendRequest(Friend friend, User requester, User receiver) {
         eventPublisher.publishEvent(new FriendRequestedEvent(receiver.getId(), requester.getNickname(), friend.getId()));
 

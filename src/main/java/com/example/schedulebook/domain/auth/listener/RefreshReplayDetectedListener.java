@@ -1,5 +1,6 @@
-package com.example.schedulebook.domain.auth.event;
+package com.example.schedulebook.domain.auth.listener;
 
+import com.example.schedulebook.domain.auth.event.RefreshReplayDetectedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

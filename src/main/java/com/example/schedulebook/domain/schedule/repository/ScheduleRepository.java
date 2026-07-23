@@ -39,4 +39,9 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     int findCommentCount(@Param("scheduleId") Long scheduleId);
 
     boolean existsByIdAndUser_Id(Long scheduleId, Long userId);
+
+    @Modifying
+    @Query("UPDATE Schedule s SET s.deletedAt = CURRENT TIMESTAMP, s.deleted = TRUE " +
+            "WHERE s.user.id = :userId AND s.deleted = FALSE")
+    void softDeleteAllByUserId(@Param("userId") Long userId);
 }

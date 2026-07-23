@@ -1,4 +1,4 @@
-package com.example.schedulebook.domain.scheduleshare.event;
+package com.example.schedulebook.domain.scheduleshare.listener;
 
 import com.example.schedulebook.domain.schedule.event.ScheduleCanceledEvent;
 import com.example.schedulebook.domain.schedule.event.ScheduleDeletedEvent;

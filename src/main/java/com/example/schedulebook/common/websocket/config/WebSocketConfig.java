@@ -1,4 +1,4 @@
-package com.example.schedulebook.common.websocket;
+package com.example.schedulebook.common.websocket.config;
 
 import com.example.schedulebook.common.security.JwtChannelInterceptor;
 import lombok.RequiredArgsConstructor;

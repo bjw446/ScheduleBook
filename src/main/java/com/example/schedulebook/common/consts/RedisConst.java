@@ -79,9 +79,7 @@ public final class RedisConst {
             
             local infoKey = ARGV[2] .. sessionId
             
-            redis.call('DEL', refreshKey)
-            
-            redis.call('DEL', infoKey)
+            redis.call("DEL", refreshKey, infoKey)
             
             end
             
@@ -196,6 +194,13 @@ public final class RedisConst {
             redis.call("SET", sessionKey, userId, "PX", ttl)
             
             redis.call("PEXPIRE", userKey, ttl)
+            
+            return 1
+            """;
+    public static final String DELETE_ALL_PRESENCE_SCRIPT = """
+            local key = KEYS[1]
+            
+            redis.call("DEL", key)
             
             return 1
             """;
