@@ -85,36 +85,7 @@ public class Outbox extends ModifyEntity {
         this.errorMessage = null;
     }
 
-    public void success() {
-        if (this.status != OutboxStatus.PROCESSING) {
-            throw new BaseException(ErrorEnum.INVALID_OUTBOX_STATUS);
-        }
-
-        this.status = OutboxStatus.SUCCESS;
-        this.publishedAt = LocalDateTime.now();
-        this.errorMessage = null;
-        this.processingAt = null;
-    }
-
-    public void fail(String errorMessage, LocalDateTime nextRetryAt) {
-        if (this.status != OutboxStatus.PROCESSING) {
-            throw new BaseException(ErrorEnum.INVALID_OUTBOX_STATUS);
-        }
-
-        this.errorMessage = errorMessage;
-        this.status = OutboxStatus.FAILED;
-        this.nextRetryAt = nextRetryAt;
-        this.processingAt = null;
-    }
-
     public void increaseRetryCount() {
         this.retryCount++;
-    }
-
-    public void dead(String errorMessage) {
-        this.errorMessage = errorMessage;
-        this.status = OutboxStatus.DEAD;
-        this.nextRetryAt = null;
-        this.processingAt = null;
     }
 }

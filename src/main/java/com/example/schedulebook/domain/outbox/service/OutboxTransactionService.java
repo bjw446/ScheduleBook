@@ -34,28 +34,48 @@ public class OutboxTransactionService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markSuccess(Long outboxId) {
-        Outbox outbox = outboxRepository.findByIdAndStatus(outboxId, OutboxStatus.PROCESSING)
-                .orElseThrow(() -> new BaseException(ErrorEnum.OUTBOX_NOT_FOUND));
+        int updated = outboxRepository.updateStatusIfProcessing(outboxId, OutboxStatus.SUCCESS, LocalDateTime.now());
 
-        outbox.success();
+        if (updated == 0) {
+            log.info("Outbox {} 상태 전이 실패 : 이미 다른 트랜잭션에서 처리됨", outboxId);
+        }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleFailure(Long outboxId, Exception e) {
-        Outbox outbox = outboxRepository.findByIdAndStatus(outboxId, OutboxStatus.PROCESSING)
-                        .orElseThrow(() -> new BaseException(ErrorEnum.OUTBOX_NOT_FOUND));
+        Outbox outbox = findById(outboxId);
 
         outbox.increaseRetryCount();
 
+        OutboxStatus outboxStatus;
+
+        LocalDateTime nextRetryAt = null;
+
         if (outbox.getRetryCount() >= CommonConst.MAX_RETRY) {
-            outbox.dead(normalizeMessage(e));
+            outboxStatus = OutboxStatus.DEAD;
 
             log.error("Outbox {} 영구 실패", outbox.getId(), e);
 
         } else {
-            outbox.fail(normalizeMessage(e), LocalDateTime.now().plusMinutes(CommonConst.OUTBOX_RETRY_DELAY));
+            outboxStatus = OutboxStatus.FAILED;
+
+            nextRetryAt = LocalDateTime.now().plusMinutes(CommonConst.OUTBOX_RETRY_DELAY);
 
             log.error("Outbox 발행 실패 : {}", outbox.getId(), e);
+        }
+
+        int updated = outboxRepository.updateFailureIfProcessing(
+                outboxId,
+                outboxStatus,
+                normalizeMessage(e),
+                nextRetryAt
+        );
+
+        if (updated == 0) {
+            log.info("Outbox {} 실패 처리 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outboxId);
+
+        } else {
+            log.error("Outbox {} 발행 실패 처리", outboxId, e);
         }
     }
 
@@ -69,20 +89,40 @@ public class OutboxTransactionService {
         for (Outbox outbox : outboxes) {
             outbox.increaseRetryCount();
 
+            OutboxStatus outboxStatus;
+
+            LocalDateTime nextRetryAt = null;
+
+            String errorMessage;
+
             if (outbox.getRetryCount() >= CommonConst.MAX_RETRY) {
-                outbox.dead("Outbox lease timeout으로 DEAD 처리");
+                outboxStatus = OutboxStatus.DEAD;
+
+                errorMessage = "Outbox lease timeout으로 DEAD 처리";
 
                 log.error("Outbox {} lease timeout으로 DEAD 처리", outbox.getId());
 
             } else {
-                outbox.fail(
-                        "Outbox 처리 중 시간 초과",
-                        LocalDateTime.now().plusMinutes(CommonConst.OUTBOX_RETRY_DELAY)
-                );
+                outboxStatus = OutboxStatus.FAILED;
+
+                errorMessage = "Outbox 처리 중 시간 초과";
+
+                nextRetryAt = LocalDateTime.now().plusMinutes(CommonConst.OUTBOX_RETRY_DELAY);
+
+                log.error("Outbox {} 처리 중 시간 초과", outbox.getId());
+            }
+
+            int updated = outboxRepository.updateRecoverIfProcessing(
+                    outbox.getId(),
+                    outboxStatus,
+                    errorMessage,
+                    nextRetryAt
+            );
+
+            if (updated == 0) {
+                log.info("Outbox {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outbox.getId());
             }
         }
-
-        outboxRepository.flush();
     }
 
     public Outbox findById(Long outboxId) {
