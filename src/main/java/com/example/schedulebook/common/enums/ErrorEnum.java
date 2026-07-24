@@ -121,7 +121,14 @@ public enum ErrorEnum {
 
     // Admin
     ADMIN_NOT_ACTIVE(400, "활성화된 관리자가 아닙니다."),
-    ADMIN_NOT_FOUND(404, "존재하지 않는 관리자 입니다.");
+    ADMIN_NOT_FOUND(404, "존재하지 않는 관리자 입니다."),
+
+    // Outbox
+    INVALID_OUTBOX_STATUS(400, "잘못된 아웃박스 상태 입니다."),
+    INVALID_OUTBOX_EVENT_TYPE(400, "잘못된 아웃박스 이벤트 타입 입니다."),
+    OUTBOX_PAYLOAD_SERIALIZATION_FAILED(500, "아웃박스 페이로드 직렬화에 실패했습니다."),
+    OUTBOX_NOT_FOUND(404, "존재하지 않는 아웃박스 입니다.");
+
     private final int status;
     private final String message;
 }
