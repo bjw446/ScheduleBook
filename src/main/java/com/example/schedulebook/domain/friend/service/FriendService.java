@@ -17,11 +17,11 @@ import com.example.schedulebook.domain.friend.validator.FriendValidator;
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
+import com.example.schedulebook.domain.outbox.service.OutboxPublishService;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,10 +35,10 @@ import java.util.Map;
 @Slf4j
 public class FriendService {
     private final FriendRepository friendRepository;
-    private final ApplicationEventPublisher eventPublisher;
     private final UserValidator userValidator;
     private final FriendValidator friendValidator;
     private final RedisPresenceService redisPresenceService;
+    private final OutboxPublishService outboxPublishService;
 
     public FriendResponse requestFriend(FriendRequest request, Long currentUserId) {
         friendValidator.validateMyself(request.receiverId(), currentUserId);
@@ -139,7 +139,7 @@ public class FriendService {
                 friend.getId()
         );
 
-        eventPublisher.publishEvent(new OutboxSaveEvent(
+        outboxPublishService.publish(new OutboxSaveEvent(
                 OutboxAggregateType.FRIEND,
                 friend.getId(),
                 OutboxEventType.FRIEND_ACCEPTED,
@@ -194,7 +194,7 @@ public class FriendService {
                 friend.getId()
         );
 
-        eventPublisher.publishEvent(new OutboxSaveEvent(
+        outboxPublishService.publish(new OutboxSaveEvent(
                 OutboxAggregateType.FRIEND,
                 friend.getId(),
                 OutboxEventType.FRIEND_REQUESTED,

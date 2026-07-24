@@ -15,9 +15,10 @@ public class NotificationEventHandler {
 
     @Async
     @EventListener
-    public void handle(Object event) {
+    public void handle(NotificationEventMarker event) {
         try {
-            NotificationEventProcessor<Object> notificationEventProcessor = notificationProcessorRegistry.get(event);
+            NotificationEventProcessor<NotificationEventMarker> notificationEventProcessor =
+                    notificationProcessorRegistry.get(event);
 
             if (notificationEventProcessor != null) {
                 notificationEventProcessor.process(event);

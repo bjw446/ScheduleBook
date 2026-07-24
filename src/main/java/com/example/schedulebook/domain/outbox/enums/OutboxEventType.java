@@ -1,8 +1,12 @@
 package com.example.schedulebook.domain.outbox.enums;
 
+import com.example.schedulebook.domain.auth.event.ForceLogoutAuditEvent;
 import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
 import com.example.schedulebook.domain.friend.event.FriendAcceptedEvent;
 import com.example.schedulebook.domain.friend.event.FriendRequestedEvent;
+import com.example.schedulebook.domain.schedule.event.ScheduleCanceledEvent;
+import com.example.schedulebook.domain.schedule.event.ScheduleDeletedEvent;
+import com.example.schedulebook.domain.schedule.event.ScheduleUpdatedEvent;
 import com.example.schedulebook.domain.scheduleshare.event.ScheduleSharedEvent;
 import com.example.schedulebook.domain.user.event.UserWithdrawEvent;
 import lombok.Getter;
@@ -13,9 +17,13 @@ import lombok.RequiredArgsConstructor;
 public enum OutboxEventType {
     COMMENT_CREATED(CommentCreatedEvent.class),
     SCHEDULE_SHARED(ScheduleSharedEvent.class),
+    SCHEDULE_UPDATED(ScheduleUpdatedEvent.class),
+    SCHEDULE_CANCELED(ScheduleCanceledEvent.class),
+    SCHEDULE_DELETED(ScheduleDeletedEvent.class),
     FRIEND_ACCEPTED(FriendAcceptedEvent.class),
     FRIEND_REQUESTED(FriendRequestedEvent.class),
-    USER_WITHDRAW(UserWithdrawEvent.class);
+    USER_WITHDRAW(UserWithdrawEvent.class),
+    FORCE_LOGOUT_AUDIT(ForceLogoutAuditEvent.class);
 
     private final Class<?> eventClass;
 }
