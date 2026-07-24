@@ -27,9 +27,7 @@ public class OutboxPublisher {
                 applicationEventPublisher.publishEvent(event);
             }
 
-            case CHAT_MESSAGE_SENT -> {
-
-            }
+            // TODO 이벤트 들 추가 예정
 
             default -> throw new BaseException(ErrorEnum.INVALID_OUTBOX_EVENT_TYPE);
         }

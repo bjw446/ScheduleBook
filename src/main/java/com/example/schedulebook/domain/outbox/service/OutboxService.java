@@ -34,7 +34,5 @@ public class OutboxService {
         } catch (JsonProcessingException e) {
             throw new BaseException(ErrorEnum.OUTBOX_PAYLOAD_SERIALIZATION_FAILED);
         }
-
-
     }
 }

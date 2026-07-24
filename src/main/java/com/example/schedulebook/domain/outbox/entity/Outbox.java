@@ -111,7 +111,8 @@ public class Outbox extends ModifyEntity {
         this.retryCount++;
     }
 
-    public void dead() {
+    public void dead(String errorMessage) {
+        this.errorMessage = errorMessage;
         this.status = OutboxStatus.DEAD;
         this.nextRetryAt = null;
         this.processingAt = null;
