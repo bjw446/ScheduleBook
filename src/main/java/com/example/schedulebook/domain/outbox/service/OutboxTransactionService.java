@@ -1,7 +1,10 @@
 package com.example.schedulebook.domain.outbox.service;
 
 import com.example.schedulebook.common.consts.CommonConst;
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.outbox.entity.Outbox;
+import com.example.schedulebook.domain.outbox.enums.OutboxStatus;
 import com.example.schedulebook.domain.outbox.repository.OutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,23 +22,29 @@ public class OutboxTransactionService {
     private final OutboxRepository outboxRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public List<Outbox> claimOutboxes() {
+    public List<Long> claimOutboxes() {
         List<Outbox> outboxes = outboxRepository.findRetryTargets(LocalDateTime.now(), CommonConst.BATCH_SIZE);
 
         outboxes.forEach(Outbox::processing);
 
         outboxRepository.flush();
 
-        return outboxes;
+        return outboxes.stream().map(Outbox::getId).toList();
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markSuccess(Outbox outbox) {
+    public void markSuccess(Long outboxId) {
+        Outbox outbox = outboxRepository.findByIdAndStatus(outboxId, OutboxStatus.PROCESSING)
+                .orElseThrow(() -> new BaseException(ErrorEnum.OUTBOX_NOT_FOUND));
+
         outbox.success();
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleFailure(Outbox outbox, Exception e) {
+    public void handleFailure(Long outboxId, Exception e) {
+        Outbox outbox = outboxRepository.findByIdAndStatus(outboxId, OutboxStatus.PROCESSING)
+                        .orElseThrow(() -> new BaseException(ErrorEnum.OUTBOX_NOT_FOUND));
+
         outbox.increaseRetryCount();
 
         if (outbox.getRetryCount() >= CommonConst.MAX_RETRY) {
@@ -74,6 +83,12 @@ public class OutboxTransactionService {
         }
 
         outboxRepository.flush();
+    }
+
+    public Outbox findById(Long outboxId) {
+        return outboxRepository.findById(outboxId).orElseThrow(
+                () -> new BaseException(ErrorEnum.OUTBOX_NOT_FOUND)
+        );
     }
 
     private String normalizeMessage(Exception e) {

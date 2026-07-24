@@ -16,16 +16,18 @@ public class OutboxProcessor {
     public void processPendingOutbox() {
         outboxTransactionService.recoverStuck();
 
-        List<Outbox> outboxes = outboxTransactionService.claimOutboxes();
+        List<Long> outboxIds = outboxTransactionService.claimOutboxes();
 
-        for (Outbox outbox : outboxes) {
+        for (Long outboxId : outboxIds) {
             try {
+                Outbox outbox = outboxTransactionService.findById(outboxId);
+
                 outboxPublisher.publish(outbox);
 
-                outboxTransactionService.markSuccess(outbox);
+                outboxTransactionService.markSuccess(outboxId);
 
             } catch (Exception e) {
-                outboxTransactionService.handleFailure(outbox, e);
+                outboxTransactionService.handleFailure(outboxId, e);
             }
         }
     }
