@@ -14,6 +14,9 @@ import com.example.schedulebook.domain.friend.event.FriendAcceptedEvent;
 import com.example.schedulebook.domain.friend.event.FriendRequestedEvent;
 import com.example.schedulebook.domain.friend.repository.FriendRepository;
 import com.example.schedulebook.domain.friend.validator.FriendValidator;
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
@@ -130,7 +133,18 @@ public class FriendService {
 
         friend.acceptFriend();
 
-        eventPublisher.publishEvent(new FriendAcceptedEvent(friend.getRequester().getId(), friend.getReceiver().getNickname(), friend.getId()));
+        FriendAcceptedEvent friendAcceptedEvent = new FriendAcceptedEvent(
+                friend.getRequester().getId(),
+                friend.getReceiver().getNickname(),
+                friend.getId()
+        );
+
+        eventPublisher.publishEvent(new OutboxSaveEvent(
+                OutboxAggregateType.FRIEND,
+                friend.getId(),
+                OutboxEventType.FRIEND_ACCEPTED,
+                friendAcceptedEvent
+        ));
 
         return FriendResponse.from(friend);
     }
@@ -174,7 +188,18 @@ public class FriendService {
     }
 
     private FriendResponse completeFriendRequest(Friend friend, User requester, User receiver) {
-        eventPublisher.publishEvent(new FriendRequestedEvent(receiver.getId(), requester.getNickname(), friend.getId()));
+        FriendRequestedEvent friendRequestedEvent = new FriendRequestedEvent(
+                receiver.getId(),
+                requester.getNickname(),
+                friend.getId()
+        );
+
+        eventPublisher.publishEvent(new OutboxSaveEvent(
+                OutboxAggregateType.FRIEND,
+                friend.getId(),
+                OutboxEventType.FRIEND_REQUESTED,
+                friendRequestedEvent
+        ));
 
         return FriendResponse.from(friend);
     }

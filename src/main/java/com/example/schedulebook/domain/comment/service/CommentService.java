@@ -12,6 +12,9 @@ import com.example.schedulebook.domain.comment.event.CommentEvent;
 import com.example.schedulebook.domain.comment.publisher.CommentPublisher;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
 import com.example.schedulebook.domain.comment.validator.CommentValidator;
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
@@ -63,7 +66,12 @@ public class CommentService {
                 parent == null ? null : parent.getId()
         );
 
-        eventPublisher.publishEvent(createdEvent);
+        eventPublisher.publishEvent(new OutboxSaveEvent(
+                OutboxAggregateType.COMMENT,
+                savedComment.getId(),
+                OutboxEventType.COMMENT_CREATED,
+                createdEvent
+        ));
     }
 
     @Transactional(readOnly = true)

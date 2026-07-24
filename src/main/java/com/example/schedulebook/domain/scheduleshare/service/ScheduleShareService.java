@@ -1,6 +1,9 @@
 package com.example.schedulebook.domain.scheduleshare.service;
 
 import com.example.schedulebook.domain.friend.validator.FriendValidator;
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
 import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
 import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleAttendanceResponse;
 import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleParticipantInfo;
@@ -210,13 +213,18 @@ public class ScheduleShareService {
     }
 
     private ScheduleShareResponse completeShare(Schedule schedule, User friendUser, ScheduleShare scheduleShare) {
-        applicationEventPublisher.publishEvent(
-                new ScheduleSharedEvent(
+        ScheduleSharedEvent scheduleSharedEvent = new ScheduleSharedEvent(
                         friendUser.getId(),
                         schedule.getUser().getNickname(),
                         scheduleShare.getId()
-                )
         );
+
+        applicationEventPublisher.publishEvent(new OutboxSaveEvent(
+                OutboxAggregateType.SCHEDULE,
+                scheduleShare.getId(),
+                OutboxEventType.SCHEDULE_SHARED,
+                scheduleSharedEvent
+        ));
 
         return ScheduleShareResponse.from(scheduleShare);
     }
