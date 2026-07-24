@@ -84,8 +84,4 @@ public class Outbox extends ModifyEntity {
         this.processingAt = LocalDateTime.now();
         this.errorMessage = null;
     }
-
-    public void increaseRetryCount() {
-        this.retryCount++;
-    }
 }

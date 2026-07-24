@@ -45,13 +45,11 @@ public class OutboxTransactionService {
     public void handleFailure(Long outboxId, Exception e) {
         Outbox outbox = findById(outboxId);
 
-        outbox.increaseRetryCount();
-
         OutboxStatus outboxStatus;
 
         LocalDateTime nextRetryAt = null;
 
-        if (outbox.getRetryCount() >= CommonConst.MAX_RETRY) {
+        if ((outbox.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
             outboxStatus = OutboxStatus.DEAD;
 
             log.error("Outbox {} 영구 실패", outbox.getId(), e);
@@ -87,7 +85,6 @@ public class OutboxTransactionService {
         );
 
         for (Outbox outbox : outboxes) {
-            outbox.increaseRetryCount();
 
             OutboxStatus outboxStatus;
 
@@ -95,7 +92,7 @@ public class OutboxTransactionService {
 
             String errorMessage;
 
-            if (outbox.getRetryCount() >= CommonConst.MAX_RETRY) {
+            if ((outbox.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
                 outboxStatus = OutboxStatus.DEAD;
 
                 errorMessage = "Outbox lease timeout으로 DEAD 처리";
