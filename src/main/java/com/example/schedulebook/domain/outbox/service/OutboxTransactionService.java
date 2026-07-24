@@ -37,7 +37,7 @@ public class OutboxTransactionService {
         int updated = outboxRepository.updateStatusIfProcessing(outboxId, OutboxStatus.SUCCESS, LocalDateTime.now());
 
         if (updated == 0) {
-            log.info("Outbox {} 상태 전이 실패 : 이미 다른 트랜잭션에서 처리됨", outboxId);
+            log.warn("Outbox {} 상태 전이 실패 : 이미 다른 트랜잭션에서 처리됨", outboxId);
         }
     }
 
@@ -70,7 +70,7 @@ public class OutboxTransactionService {
         );
 
         if (updated == 0) {
-            log.info("Outbox {} 실패 처리 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outboxId);
+            log.warn("Outbox {} 실패 처리 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outboxId);
 
         } else {
             log.error("Outbox {} 발행 실패 처리", outboxId, e);
@@ -117,7 +117,7 @@ public class OutboxTransactionService {
             );
 
             if (updated == 0) {
-                log.info("Outbox {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outbox.getId());
+                log.warn("Outbox {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outbox.getId());
             }
         }
     }
