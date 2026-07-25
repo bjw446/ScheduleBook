@@ -226,7 +226,7 @@ public class ScheduleShareService {
 
         outboxPublishService.publish(new OutboxSaveEvent(
                 OutboxAggregateType.SCHEDULE,
-                scheduleShare.getId(),
+                schedule.getId(),
                 OutboxEventType.SCHEDULE_SHARED,
                 scheduleSharedEvent
         ));

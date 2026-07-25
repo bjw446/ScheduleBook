@@ -26,6 +26,8 @@ public class NotificationEventHandler {
 
         } catch (Exception e) {
             log.error("Notification 처리 실패, event = {}", event.getClass().getSimpleName(), e);
+
+            // TODO Outbox 재시도/실패 상태 기록 연결
         }
     }
 }
