@@ -1,5 +1,9 @@
 package com.example.schedulebook.domain.user.service;
 
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
+import com.example.schedulebook.domain.outbox.service.OutboxPublishService;
 import com.example.schedulebook.domain.user.event.UserWithdrawEvent;
 import com.example.schedulebook.domain.user.dto.request.UpdateUserPasswordRequest;
 import com.example.schedulebook.domain.user.dto.request.UpdateUserRequest;
@@ -11,7 +15,6 @@ import com.example.schedulebook.domain.user.repository.UserRepository;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +27,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserValidator userValidator;
     private final UserRepository userRepository;
-    private final ApplicationEventPublisher applicationEventPublisher;
+    private final OutboxPublishService outboxPublishService;
 
     @Transactional(readOnly = true)
     public UserResponse findMyProfile(Long currentUserId) {
@@ -64,6 +67,13 @@ public class UserService {
 
         userRepository.saveAndFlush(user);
 
-        applicationEventPublisher.publishEvent(new UserWithdrawEvent(user.getId(), loginId));
+        UserWithdrawEvent userWithdrawEvent = new UserWithdrawEvent(user.getId(), loginId);
+
+        outboxPublishService.publish(new OutboxSaveEvent(
+                OutboxAggregateType.USER,
+                user.getId(),
+                OutboxEventType.USER_WITHDRAW,
+                userWithdrawEvent
+        ));
     }
 }

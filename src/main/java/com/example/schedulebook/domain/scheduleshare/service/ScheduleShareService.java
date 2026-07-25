@@ -1,6 +1,10 @@
 package com.example.schedulebook.domain.scheduleshare.service;
 
 import com.example.schedulebook.domain.friend.validator.FriendValidator;
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
+import com.example.schedulebook.domain.outbox.service.OutboxPublishService;
 import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
 import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleAttendanceResponse;
 import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleParticipantInfo;
@@ -24,7 +28,6 @@ import com.example.schedulebook.domain.scheduleshare.validator.ScheduleShareVali
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,12 +45,12 @@ public class ScheduleShareService {
     private final ScheduleParticipantReader scheduleParticipantReader;
     private final ScheduleAttendancePublisher scheduleAttendancePublisher;
     private final ScheduleParticipantPublisher scheduleParticipantPublisher;
-    private final ApplicationEventPublisher applicationEventPublisher;
     private final UserValidator userValidator;
     private final ScheduleValidator scheduleValidator;
     private final ScheduleShareValidator scheduleShareValidator;
     private final FriendValidator friendValidator;
     private final ScheduleParticipantValidator scheduleParticipantValidator;
+    private final OutboxPublishService outboxPublishService;
 
     public ScheduleShareResponse shareSchedule(Long scheduleId, ScheduleShareRequest request, Long currentUserId) {
         userValidator.validateActiveUser(currentUserId);
@@ -184,12 +187,17 @@ public class ScheduleShareService {
 
         scheduleShare.cancelShare();
 
-        applicationEventPublisher.publishEvent(
-                new ScheduleCanceledEvent(
+        ScheduleCanceledEvent scheduleCanceledEvent = new ScheduleCanceledEvent(
                         scheduleShare.getSchedule().getId(),
                         scheduleShare.getSharedUser().getId()
-                )
         );
+
+        outboxPublishService.publish(new OutboxSaveEvent(
+                OutboxAggregateType.SCHEDULE,
+                scheduleShare.getSchedule().getId(),
+                OutboxEventType.SCHEDULE_CANCELED,
+                scheduleCanceledEvent
+        ));
     }
 
     public void deleteAllShared(Long userId) {
@@ -210,13 +218,18 @@ public class ScheduleShareService {
     }
 
     private ScheduleShareResponse completeShare(Schedule schedule, User friendUser, ScheduleShare scheduleShare) {
-        applicationEventPublisher.publishEvent(
-                new ScheduleSharedEvent(
+        ScheduleSharedEvent scheduleSharedEvent = new ScheduleSharedEvent(
                         friendUser.getId(),
                         schedule.getUser().getNickname(),
                         scheduleShare.getId()
-                )
         );
+
+        outboxPublishService.publish(new OutboxSaveEvent(
+                OutboxAggregateType.SCHEDULE,
+                schedule.getId(),
+                OutboxEventType.SCHEDULE_SHARED,
+                scheduleSharedEvent
+        ));
 
         return ScheduleShareResponse.from(scheduleShare);
     }

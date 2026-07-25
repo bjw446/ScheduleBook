@@ -1,5 +1,9 @@
 package com.example.schedulebook.domain.schedule.service;
 
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
+import com.example.schedulebook.domain.outbox.service.OutboxPublishService;
 import com.example.schedulebook.domain.schedule.dto.request.CreateScheduleRequest;
 import com.example.schedulebook.domain.schedule.dto.request.UpdateScheduleRequest;
 import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
@@ -16,7 +20,6 @@ import com.example.schedulebook.domain.scheduleparticipant.repository.SchedulePa
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +31,11 @@ import java.util.List;
 @Transactional
 public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
-    private final ApplicationEventPublisher applicationEventPublisher;
     private final ScheduleParticipantRepository scheduleParticipantRepository;
     private final ScheduleParticipantReader scheduleParticipantReader;
     private final UserValidator userValidator;
     private final ScheduleValidator scheduleValidator;
+    private final OutboxPublishService outboxPublishService;
 
     public ScheduleSummaryResponse createSchedule(CreateScheduleRequest request, Long currentUserId) {
         User user = userValidator.validateActiveUser(currentUserId);
@@ -109,7 +112,14 @@ public class ScheduleService {
                 request.endTime()
         );
 
-        applicationEventPublisher.publishEvent(new ScheduleUpdatedEvent(schedule.getId()));
+        ScheduleUpdatedEvent scheduleUpdatedEvent = new ScheduleUpdatedEvent(schedule.getId());
+
+        outboxPublishService.publish(new OutboxSaveEvent(
+                OutboxAggregateType.SCHEDULE,
+                schedule.getId(),
+                OutboxEventType.SCHEDULE_UPDATED,
+                scheduleUpdatedEvent
+        ));
 
         return ScheduleSummaryResponse.from(schedule);
     }
@@ -121,7 +131,14 @@ public class ScheduleService {
 
         schedule.delete();
 
-        applicationEventPublisher.publishEvent(new ScheduleDeletedEvent(schedule.getId()));
+        ScheduleDeletedEvent scheduleDeletedEvent = new ScheduleDeletedEvent(schedule.getId());
+
+        outboxPublishService.publish(new OutboxSaveEvent(
+                OutboxAggregateType.SCHEDULE,
+                schedule.getId(),
+                OutboxEventType.SCHEDULE_DELETED,
+                scheduleDeletedEvent
+        ));
     }
 
     public void deleteAllSchedules(Long userId) {

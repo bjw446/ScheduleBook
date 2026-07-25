@@ -12,13 +12,16 @@ import com.example.schedulebook.domain.comment.event.CommentEvent;
 import com.example.schedulebook.domain.comment.publisher.CommentPublisher;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
 import com.example.schedulebook.domain.comment.validator.CommentValidator;
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
+import com.example.schedulebook.domain.outbox.service.OutboxPublishService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,10 +37,10 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final ScheduleRepository scheduleRepository;
     private final CommentPublisher commentPublisher;
-    private final ApplicationEventPublisher eventPublisher;
     private final ScheduleValidator scheduleValidator;
     private final UserValidator userValidator;
     private final CommentValidator commentValidator;
+    private final OutboxPublishService outboxPublishService;
 
     public void createComment(Long currentUserId, Long scheduleId, CreateScheduleCommentRequest request) {
         User user = userValidator.validateActiveUser(currentUserId);
@@ -63,7 +66,12 @@ public class CommentService {
                 parent == null ? null : parent.getId()
         );
 
-        eventPublisher.publishEvent(createdEvent);
+        outboxPublishService.publish(new OutboxSaveEvent(
+                OutboxAggregateType.COMMENT,
+                savedComment.getId(),
+                OutboxEventType.COMMENT_CREATED,
+                createdEvent
+        ));
     }
 
     @Transactional(readOnly = true)
