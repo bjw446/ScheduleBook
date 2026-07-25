@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.outbox.service;
 import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.outbox.dto.RetryDecision;
 import com.example.schedulebook.domain.outbox.entity.Outbox;
 import com.example.schedulebook.domain.outbox.enums.OutboxStatus;
 import com.example.schedulebook.domain.outbox.repository.OutboxRepository;
@@ -20,6 +21,7 @@ import java.util.List;
 @Slf4j
 public class OutboxTransactionService {
     private final OutboxRepository outboxRepository;
+    private final OutboxRetryPolicy outboxRetryPolicy;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public List<Long> claimOutboxes() {
@@ -45,35 +47,29 @@ public class OutboxTransactionService {
     public void handleFailure(Long outboxId, Exception e) {
         Outbox outbox = findById(outboxId);
 
-        OutboxStatus outboxStatus;
+        int nextRetry = outbox.getRetryCount() + 1;
 
-        LocalDateTime nextRetryAt = null;
+        RetryDecision retryDecision = outboxRetryPolicy.decide(nextRetry);
 
-        if ((outbox.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
-            outboxStatus = OutboxStatus.DEAD;
-
+        if (retryDecision.isDead()) {
             log.error("Outbox {} 영구 실패", outbox.getId(), e);
 
         } else {
-            outboxStatus = OutboxStatus.FAILED;
-
-            nextRetryAt = LocalDateTime.now().plusMinutes(CommonConst.OUTBOX_RETRY_DELAY);
-
-            log.error("Outbox 발행 실패 : {}", outbox.getId(), e);
+            log.warn("Outbox {} 발행 실패 : {}회 재시도 예정", outbox.getId(), nextRetry, e);
         }
 
         int updated = outboxRepository.updateFailureIfProcessing(
                 outboxId,
-                outboxStatus,
+                retryDecision.outboxStatus(),
                 normalizeMessage(e),
-                nextRetryAt
+                retryDecision.nextRetryAt()
         );
 
         if (updated == 0) {
             log.warn("Outbox {} 실패 처리 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outboxId);
 
         } else {
-            log.error("Outbox {} 발행 실패 처리", outboxId, e);
+            log.debug("Outbox {} 상태 {}로 변경", outboxId, retryDecision.outboxStatus());
         }
     }
 
@@ -85,39 +81,34 @@ public class OutboxTransactionService {
         );
 
         for (Outbox outbox : outboxes) {
+            int nextRetry = outbox.getRetryCount() + 1;
 
-            OutboxStatus outboxStatus;
-
-            LocalDateTime nextRetryAt = null;
+            RetryDecision retryDecision = outboxRetryPolicy.decide(nextRetry);
 
             String errorMessage;
 
-            if ((outbox.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
-                outboxStatus = OutboxStatus.DEAD;
-
+            if (retryDecision.isDead()) {
                 errorMessage = "Outbox lease timeout으로 DEAD 처리";
 
                 log.error("Outbox {} lease timeout으로 DEAD 처리", outbox.getId());
 
             } else {
-                outboxStatus = OutboxStatus.FAILED;
-
                 errorMessage = "Outbox 처리 중 시간 초과";
 
-                nextRetryAt = LocalDateTime.now().plusMinutes(CommonConst.OUTBOX_RETRY_DELAY);
-
-                log.error("Outbox {} 처리 중 시간 초과", outbox.getId());
+                log.warn("Outbox {} 처리 중 시간 초과", outbox.getId());
             }
 
             int updated = outboxRepository.updateRecoverIfProcessing(
                     outbox.getId(),
-                    outboxStatus,
+                    retryDecision.outboxStatus(),
                     errorMessage,
-                    nextRetryAt
+                    retryDecision.nextRetryAt()
             );
 
             if (updated == 0) {
                 log.warn("Outbox {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outbox.getId());
+            } else {
+                log.debug("Outbox {} 상태 {}로 복구 성공", outbox.getId(), retryDecision.outboxStatus());
             }
         }
     }
