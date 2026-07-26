@@ -1,6 +1,8 @@
 package com.example.schedulebook.domain.admin.controller;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.enums.SuccessEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.response.PageResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
@@ -49,6 +51,10 @@ public class AdminOutboxController {
 
     @DeleteMapping("/success")
     public ResponseEntity<ApiResponse<CleanupOutboxResponse>> deleteSuccessOutbox(@RequestParam(defaultValue = "30") int days) {
+        if (days < 1) {
+            throw new BaseException(ErrorEnum.INVALID_INPUT);
+        }
+
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
                         SuccessEnum.DELETE_SUCCESS,
