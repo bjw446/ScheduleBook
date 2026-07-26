@@ -2,6 +2,8 @@ package com.example.schedulebook.domain.outbox.repository;
 
 import com.example.schedulebook.domain.outbox.entity.Outbox;
 import com.example.schedulebook.domain.outbox.enums.OutboxStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -46,4 +48,19 @@ public interface OutboxRepository extends JpaRepository<Outbox, Long> {
                                   @Param("nextRetryAt") LocalDateTime nextRetryAt);
 
 
+    Page<Outbox> findAllByStatus(OutboxStatus outboxStatus, Pageable pageable);
+
+    @Modifying
+    @Query("DELETE FROM Outbox o WHERE o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.SUCCESS " +
+            "AND o.publishedAt < :target")
+    int deleteSuccessBefore(@Param("target") LocalDateTime target);
+
+    @Query("SELECT " +
+            "SUM(CASE WHEN o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.PENDING THEN 1 ELSE 0 END), " +
+            "SUM(CASE WHEN o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.PROCESSING THEN 1 ELSE 0 END), " +
+            "SUM(CASE WHEN o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.FAILED THEN 1 ELSE 0 END), " +
+            "SUM(CASE WHEN o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.DEAD THEN 1 ELSE 0 END), " +
+            "SUM(CASE WHEN o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.SUCCESS THEN 1 ELSE 0 END) " +
+            "FROM Outbox o")
+    Object[] countStats();
 }

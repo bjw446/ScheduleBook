@@ -19,7 +19,8 @@ import java.time.LocalDateTime;
         name = "outbox",
         indexes = {
                 @Index(name = "idx_outbox_status", columnList = "status"),
-                @Index(name = "idx_outbox_retry", columnList = "next_retry_at")
+                @Index(name = "idx_outbox_retry", columnList = "next_retry_at"),
+                @Index(name = "idx_outbox_cleanup", columnList = "status, published_at")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -83,5 +84,18 @@ public class Outbox extends ModifyEntity {
         this.status = OutboxStatus.PROCESSING;
         this.processingAt = LocalDateTime.now();
         this.errorMessage = null;
+    }
+
+    public void retry() {
+        if (this.status != OutboxStatus.DEAD) {
+            throw new BaseException(ErrorEnum.INVALID_OUTBOX_STATUS);
+        }
+
+        this.status = OutboxStatus.PENDING;
+        this.retryCount = 0;
+        this.errorMessage = null;
+        this.nextRetryAt = LocalDateTime.now();
+        this.processingAt = null;
+        this.publishedAt = null;
     }
 }

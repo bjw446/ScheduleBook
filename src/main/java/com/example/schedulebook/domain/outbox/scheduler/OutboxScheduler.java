@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.outbox.scheduler;
 
+import com.example.schedulebook.domain.outbox.service.OutboxCleanupService;
 import com.example.schedulebook.domain.outbox.service.OutboxProcessor;
 import com.example.schedulebook.domain.outbox.service.OutboxRecoveryService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class OutboxScheduler {
     private final OutboxProcessor outboxProcessor;
     private final OutboxRecoveryService outboxRecoveryService;
+    private final OutboxCleanupService outboxCleanupService;
 
     @Scheduled(fixedDelay = 3000)
     public void process() {
@@ -33,6 +35,18 @@ public class OutboxScheduler {
 
         } catch (Exception e) {
             log.error("Outbox 복구 실패", e);
+        }
+    }
+
+    @Scheduled(cron = "0 0 3 * * *")
+    public void cleanup() {
+        try {
+            int deleted = outboxCleanupService.cleanup(30);
+
+            log.info("{}개의 SUCCESS Outbox 삭제", deleted);
+
+        } catch (Exception e) {
+            log.error("SUCCESS Outbox 삭제 실패", e);
         }
     }
 }
