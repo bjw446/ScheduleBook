@@ -13,9 +13,21 @@ public class RedisCleanupProcessor {
     private final RedisPresenceService redisPresenceService;
     private final LoggingExecutor loggingExecutor;
 
-    public void process(Long outboxId, Long userId) {
-        loggingExecutor.execute("Redis Session 정리", () -> redisSessionService.deleteAllSessions(userId));
+    public boolean process(Long outboxId, Long userId) {
+        boolean success = true;
 
-        loggingExecutor.execute("Presence 삭제", () -> redisPresenceService.removeAll(userId));
+        success &= loggingExecutor.execute(
+                outboxId,
+                "Redis Session 정리",
+                () -> redisSessionService.deleteAllSessions(userId)
+        );
+
+        success &= loggingExecutor.execute(
+                outboxId,
+                "Presence 삭제",
+                () -> redisPresenceService.removeAll(userId)
+        );
+
+        return success;
     }
 }

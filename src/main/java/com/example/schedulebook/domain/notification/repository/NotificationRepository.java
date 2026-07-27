@@ -1,6 +1,7 @@
 package com.example.schedulebook.domain.notification.repository;
 
 import com.example.schedulebook.domain.notification.entity.Notification;
+import com.example.schedulebook.domain.notification.enums.NotificationType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -27,4 +28,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("UPDATE Notification n SET n.deleted = TRUE, n.deletedAt = CURRENT TIMESTAMP " +
             "WHERE n.receiver.id = :userId AND n.deleted = FALSE")
     void softDeleteAllByReceiverId(@Param("userId") Long userId);
+
+    @Query("SELECT CASE WHEN COUNT(n) > 0 THEN TRUE ELSE FALSE END FROM Notification n " +
+            "WHERE n.receiver.id = :receiverId AND n.targetId = :targetId AND n.notificationType = :notificationType")
+    boolean existsNotification(@Param("receiverId") Long receiverId,
+                               @Param("targetId") Long targetId,
+                               @Param("notificationType") NotificationType notificationType);
 }

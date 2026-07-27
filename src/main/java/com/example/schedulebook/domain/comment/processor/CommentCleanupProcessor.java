@@ -11,7 +11,11 @@ public class CommentCleanupProcessor {
     private final CommentService commentService;
     private final LoggingExecutor loggingExecutor;
 
-    public void process(Long outboxId, Long userId) {
-        loggingExecutor.execute("댓글 정리", () -> commentService.removeAllComments(userId));
+    public boolean process(Long outboxId, Long userId) {
+        return loggingExecutor.execute(
+                outboxId,
+                "댓글 정리",
+                () -> commentService.removeAllComments(userId)
+        );
     }
 }

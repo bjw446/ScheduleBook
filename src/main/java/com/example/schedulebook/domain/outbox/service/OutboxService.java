@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,9 +33,6 @@ public class OutboxService {
             );
 
             outboxRepository.save(outbox);
-
-        } catch (DataIntegrityViolationException e) {
-            log.info("중복 Outbox 저장 무시 : aggregateId = {}, eventType = {}", aggregateId, eventType);
 
         } catch (JsonProcessingException e) {
             throw new BaseException(ErrorEnum.OUTBOX_PAYLOAD_SERIALIZATION_FAILED);

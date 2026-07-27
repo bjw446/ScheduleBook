@@ -11,7 +11,11 @@ public class FriendCleanupProcessor {
     private final FriendService friendService;
     private final LoggingExecutor loggingExecutor;
 
-    public void process(Long outboxId, Long userId) {
-        loggingExecutor.execute("친구 관계 삭제", () -> friendService.removeAllFriendRelations(userId));
+    public boolean process(Long outboxId, Long userId) {
+        return loggingExecutor.execute(
+                outboxId,
+                "친구 관계 삭제",
+                () -> friendService.removeAllFriendRelations(userId)
+        );
     }
 }

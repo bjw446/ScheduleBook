@@ -12,7 +12,15 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "notifications")
+@Table(
+        name = "notifications",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_notification_receiver_target_type",
+                        columnNames = {"receiver_id", "target_id", "notification_type"}
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Notification extends DeleteEntity {
     @Id

@@ -72,13 +72,19 @@ public class NotificationService {
     }
 
     public void createScheduleCommentNotification(Long receiverId, String writerNickname, Long scheduleId) {
-        createNotification(
+        if (!notificationRepository.existsNotification(
                 receiverId,
-                NotificationType.SCHEDULE_COMMENT,
-                NotificationType.SCHEDULE_COMMENT.getTitle(),
-                writerNickname + NotificationType.SCHEDULE_COMMENT.getDefaultMessage(),
-                scheduleId
-        );
+                scheduleId,
+                NotificationType.SCHEDULE_COMMENT
+        )) {
+            createNotification(
+                    receiverId,
+                    NotificationType.SCHEDULE_COMMENT,
+                    NotificationType.SCHEDULE_COMMENT.getTitle(),
+                    writerNickname + NotificationType.SCHEDULE_COMMENT.getDefaultMessage(),
+                    scheduleId
+            );
+        }
     }
 
     public void createCommentReplyNotification(Long receiverId, String writerNickname, Long scheduleId) {

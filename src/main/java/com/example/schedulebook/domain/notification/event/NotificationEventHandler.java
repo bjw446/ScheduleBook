@@ -1,5 +1,7 @@
 package com.example.schedulebook.domain.notification.event;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.notification.processor.NotificationEventProcessor;
 import com.example.schedulebook.domain.notification.processor.NotificationProcessorRegistry;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +21,10 @@ public class NotificationEventHandler {
         NotificationEventProcessor<NotificationEventMarker> notificationEventProcessor =
                 notificationProcessorRegistry.get(event.payload());
 
-        if (notificationEventProcessor != null) {
-            notificationEventProcessor.process(event.outboxId(), event.payload());
+        if (notificationEventProcessor == null) {
+            throw new BaseException(ErrorEnum.NOTIFICATION_EVENT_NOT_FOUND);
         }
+
+        notificationEventProcessor.process(event.outboxId(), event.payload());
     }
 }
