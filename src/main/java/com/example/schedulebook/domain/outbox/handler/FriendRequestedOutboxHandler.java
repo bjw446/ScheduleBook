@@ -22,7 +22,7 @@ public class FriendRequestedOutboxHandler implements OutboxEventHandler<FriendRe
     }
 
     @Override
-    public void handle(FriendRequestedEvent payload) {
-        friendRequestProcessor.process(payload);
+    public void handle(Long outboxId, FriendRequestedEvent payload) {
+        friendRequestProcessor.process(outboxId, payload);
     }
 }

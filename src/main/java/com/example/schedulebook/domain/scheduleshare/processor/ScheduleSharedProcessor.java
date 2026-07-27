@@ -17,7 +17,7 @@ public class ScheduleSharedProcessor implements NotificationEventProcessor<Sched
     }
 
     @Override
-    public void process(ScheduleSharedEvent event) {
+    public void process(Long outboxId, ScheduleSharedEvent event) {
         notificationService.createScheduleSharedNotification(event.receiverId(), event.ownerNickname(), event.shareId());
     }
 }

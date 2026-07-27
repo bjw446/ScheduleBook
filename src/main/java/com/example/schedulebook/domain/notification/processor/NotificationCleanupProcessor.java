@@ -11,7 +11,7 @@ public class NotificationCleanupProcessor {
     private final NotificationService notificationService;
     private final LoggingExecutor loggingExecutor;
 
-    public void process(Long userId) {
+    public void process(Long outboxId, Long userId) {
         loggingExecutor.execute("알림 삭제", () -> notificationService.deleteAllNotifications(userId));
     }
 }

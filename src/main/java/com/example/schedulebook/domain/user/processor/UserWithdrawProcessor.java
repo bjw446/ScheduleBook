@@ -23,19 +23,19 @@ public class UserWithdrawProcessor {
     private final RedisCleanupProcessor redisCleanupProcessor;
 
 
-    public void process(UserWithdrawEvent event) {
+    public void process(Long outboxId, UserWithdrawEvent event) {
         log.info("회원 탈퇴 후처리 시작 userId = {}", event.userId());
 
-        friendCleanupProcessor.process(event.userId());
+        friendCleanupProcessor.process(outboxId, event.userId());
 
-        commentCleanupProcessor.process(event.userId());
+        commentCleanupProcessor.process(outboxId, event.userId());
 
-        scheduleCleanupProcessor.process(event.userId());
+        scheduleCleanupProcessor.process(outboxId, event.userId());
 
-        notificationCleanupProcessor.process(event.userId());
+        notificationCleanupProcessor.process(outboxId, event.userId());
 
-        chatRoomCleanupProcessor.process(event.userId());
+        chatRoomCleanupProcessor.process(outboxId, event.userId());
 
-        redisCleanupProcessor.process(event.userId());
+        redisCleanupProcessor.process(outboxId, event.userId());
     }
 }

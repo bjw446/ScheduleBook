@@ -22,7 +22,7 @@ public class UserWithdrawOutboxHandler implements OutboxEventHandler<UserWithdra
     }
 
     @Override
-    public void handle(UserWithdrawEvent payload) {
-        userWithdrawProcessor.process(payload);
+    public void handle(Long outboxId, UserWithdrawEvent payload) {
+        userWithdrawProcessor.process(outboxId, payload);
     }
 }

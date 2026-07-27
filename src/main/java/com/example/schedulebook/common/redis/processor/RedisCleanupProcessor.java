@@ -13,7 +13,7 @@ public class RedisCleanupProcessor {
     private final RedisPresenceService redisPresenceService;
     private final LoggingExecutor loggingExecutor;
 
-    public void process(Long userId) {
+    public void process(Long outboxId, Long userId) {
         loggingExecutor.execute("Redis Session 정리", () -> redisSessionService.deleteAllSessions(userId));
 
         loggingExecutor.execute("Presence 삭제", () -> redisPresenceService.removeAll(userId));

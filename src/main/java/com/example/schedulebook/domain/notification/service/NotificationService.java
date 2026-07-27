@@ -176,11 +176,13 @@ public class NotificationService {
 
     private Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
         User receiver = userValidator.validateActiveUser(receiverId);
+
         return saveNotification(receiver, notificationType, title, content, targetId);
     }
 
     private Notification createNotification(User receiver, NotificationType notificationType, String title, String content, Long targetId) {
         userValidator.validateUserStatus(receiver);
+
         return saveNotification(receiver, notificationType, title, content, targetId);
     }
 

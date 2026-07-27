@@ -23,7 +23,7 @@ public class CommentOutboxHandler implements OutboxEventHandler<CommentEventResp
     }
 
     @Override
-    public void handle(CommentEventResponse payload) {
+    public void handle(Long outboxId, CommentEventResponse payload) {
         commentPublisher.publish(CommentEvent.from(payload));
     }
 }

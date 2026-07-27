@@ -22,7 +22,7 @@ public class ScheduleDeletedOutboxHandler implements OutboxEventHandler<Schedule
     }
 
     @Override
-    public void handle(ScheduleDeletedEvent payload) {
+    public void handle(Long outboxId, ScheduleDeletedEvent payload) {
         scheduleShareUpdateManager.handleDeleted(payload.scheduleId());
     }
 }

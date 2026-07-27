@@ -11,7 +11,7 @@ public class CommentCleanupProcessor {
     private final CommentService commentService;
     private final LoggingExecutor loggingExecutor;
 
-    public void process(Long userId) {
+    public void process(Long outboxId, Long userId) {
         loggingExecutor.execute("댓글 정리", () -> commentService.removeAllComments(userId));
     }
 }

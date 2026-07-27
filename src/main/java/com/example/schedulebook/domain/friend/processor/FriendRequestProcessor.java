@@ -17,7 +17,7 @@ public class FriendRequestProcessor implements NotificationEventProcessor<Friend
     }
 
     @Override
-    public void process(FriendRequestedEvent event) {
+    public void process(Long outboxId, FriendRequestedEvent event) {
         notificationService.createFriendRequestNotification(event.receiverId(), event.requesterNickname(), event.friendId());
     }
 }

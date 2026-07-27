@@ -7,5 +7,5 @@ public interface OutboxEventHandler<T> {
 
     Class<T> payloadType();
 
-    void handle(T payload);
+    void handle(Long outboxId, T payload);
 }

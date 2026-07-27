@@ -22,7 +22,7 @@ public class ScheduleSharedOutboxHandler implements OutboxEventHandler<ScheduleS
     }
 
     @Override
-    public void handle(ScheduleSharedEvent payload) {
-        scheduleSharedProcessor.process(payload);
+    public void handle(Long outboxId, ScheduleSharedEvent payload) {
+        scheduleSharedProcessor.process(outboxId, payload);
     }
 }

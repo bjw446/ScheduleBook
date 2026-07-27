@@ -21,6 +21,12 @@ import java.time.LocalDateTime;
                 @Index(name = "idx_outbox_status", columnList = "status"),
                 @Index(name = "idx_outbox_retry", columnList = "next_retry_at"),
                 @Index(name = "idx_outbox_cleanup", columnList = "status, published_at")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_outbox_event_receiver",
+                        columnNames = {"aggregate_id", "event_type", "receiver_id"}
+                )
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

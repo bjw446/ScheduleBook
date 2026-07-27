@@ -3,9 +3,11 @@ package com.example.schedulebook.domain.outbox.processor;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.outbox.entity.Outbox;
+import com.example.schedulebook.domain.outbox.entity.ProcessedOutbox;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import com.example.schedulebook.domain.outbox.handler.OutboxEventHandler;
 import com.example.schedulebook.domain.outbox.publisher.OutboxPublisher;
+import com.example.schedulebook.domain.outbox.repository.ProcessedOutboxRepository;
 import com.example.schedulebook.domain.outbox.service.OutboxTransactionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +29,7 @@ public class OutboxProcessor {
     private final List<OutboxEventHandler<?>> handlers;
     private final Map<OutboxEventType, OutboxEventHandler<?>> handlerMap = new EnumMap<>(OutboxEventType.class);
     private final ObjectMapper objectMapper;
+    private final ProcessedOutboxRepository processedOutboxRepository;
 
     @PostConstruct
     void init() {
@@ -43,6 +47,12 @@ public class OutboxProcessor {
 
         for (Long outboxId : outboxIds) {
             try {
+                if (processedOutboxRepository.existsByOutboxId(outboxId)) {
+                    outboxTransactionService.markSuccess(outboxId);
+
+                    continue;
+                }
+
                 Outbox outbox = outboxTransactionService.findById(outboxId);
 
                 OutboxEventHandler<?> outboxEventHandler = handlerMap.get(outbox.getEventType());
@@ -53,9 +63,16 @@ public class OutboxProcessor {
                     throw new BaseException(ErrorEnum.INVALID_OUTBOX_EVENT_TYPE);
                 }
 
-                handleOutbox(outboxEventHandler, outbox.getPayload());
+                handleOutbox(outboxEventHandler, outboxId, outbox.getPayload());
 
                 outboxPublisher.publish(outbox);
+
+                processedOutboxRepository.save(ProcessedOutbox.of(
+                        outboxId,
+                        outbox.getAggregateType(),
+                        outbox.getEventType(),
+                        LocalDateTime.now()
+                        ));
 
                 outboxTransactionService.markSuccess(outboxId);
 
@@ -65,9 +82,9 @@ public class OutboxProcessor {
         }
     }
 
-    private <T> void handleOutbox(OutboxEventHandler<T> handler, String payload) throws Exception {
+    private <T> void handleOutbox(OutboxEventHandler<T> handler, Long outboxId, String payload) throws Exception {
         T event = objectMapper.readValue(payload, handler.payloadType());
 
-        handler.handle(event);
+        handler.handle(outboxId, event);
     }
 }

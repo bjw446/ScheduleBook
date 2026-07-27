@@ -11,7 +11,7 @@ public class ChatRoomCleanupProcessor {
     private final ChatRoomService chatRoomService;
     private final LoggingExecutor loggingExecutor;
 
-    public void process(Long userId) {
+    public void process(Long outboxId, Long userId) {
         loggingExecutor.execute("채팅방 관계 정리", () -> chatRoomService.removeAllChatRelations(userId));
     }
 }

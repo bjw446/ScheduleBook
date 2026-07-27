@@ -22,7 +22,7 @@ public class ScheduleCanceledOutboxHandler implements OutboxEventHandler<Schedul
     }
 
     @Override
-    public void handle(ScheduleCanceledEvent payload) {
+    public void handle(Long outboxId, ScheduleCanceledEvent payload) {
         scheduleShareUpdateManager.handleCanceled(payload.scheduleId(), payload.sharedUserId());
     }
 }

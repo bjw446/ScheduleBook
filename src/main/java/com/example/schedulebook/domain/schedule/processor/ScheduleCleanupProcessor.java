@@ -13,7 +13,7 @@ public class ScheduleCleanupProcessor {
     private final ScheduleService scheduleService;
     private final LoggingExecutor loggingExecutor;
 
-    public void process(Long userId) {
+    public void process(Long outboxId, Long userId) {
         loggingExecutor.execute("공유 받은 일정 및 공유 한 일정 삭제", () -> scheduleShareService.deleteAllShared(userId));
 
         loggingExecutor.execute("일정 참여자 및 일정 삭제", () -> scheduleService.deleteAllSchedules(userId));

@@ -22,7 +22,7 @@ public class CommentCreatedOutboxHandler implements OutboxEventHandler<CommentCr
     }
 
     @Override
-    public void handle(CommentCreatedEvent payload) {
-        commentCreatedProcessor.process(payload);
+    public void handle(Long outboxId, CommentCreatedEvent payload) {
+        commentCreatedProcessor.process(outboxId, payload);
     }
 }

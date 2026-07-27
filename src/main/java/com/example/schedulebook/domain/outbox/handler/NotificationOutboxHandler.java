@@ -22,7 +22,7 @@ public class NotificationOutboxHandler implements OutboxEventHandler<Notificatio
     }
 
     @Override
-    public void handle(NotificationEventResponse payload) {
+    public void handle(Long outboxId, NotificationEventResponse payload) {
         notificationEventPublisher.publish(payload);
     }
 }

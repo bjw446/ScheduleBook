@@ -22,7 +22,7 @@ public class ScheduleUpdatedOutboxHandler implements OutboxEventHandler<Schedule
     }
 
     @Override
-    public void handle(ScheduleUpdatedEvent payload) {
+    public void handle(Long outboxId, ScheduleUpdatedEvent payload) {
         scheduleShareUpdateManager.handleUpdated(payload.scheduleId());
     }
 }
