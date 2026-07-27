@@ -1,6 +1,7 @@
 package com.example.schedulebook.domain.schedule.service;
 
 import com.example.schedulebook.domain.schedule.entity.Schedule;
+import com.example.schedulebook.domain.schedule.processor.ScheduleReminderProcessor;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

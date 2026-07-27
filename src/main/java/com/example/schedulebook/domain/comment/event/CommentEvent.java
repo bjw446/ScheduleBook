@@ -7,4 +7,10 @@ public record CommentEvent(
         CommentEventType commentEventType,
         CommentEventResponse commentEventResponse
 ) {
+    public static CommentEvent from(CommentEventResponse commentEventResponse) {
+        return new CommentEvent(
+                commentEventResponse.commentEventType(),
+                commentEventResponse
+        );
+    }
 }

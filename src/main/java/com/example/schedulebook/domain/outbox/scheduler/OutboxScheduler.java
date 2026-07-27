@@ -1,7 +1,7 @@
 package com.example.schedulebook.domain.outbox.scheduler;
 
 import com.example.schedulebook.domain.outbox.service.OutboxCleanupService;
-import com.example.schedulebook.domain.outbox.service.OutboxProcessor;
+import com.example.schedulebook.domain.outbox.processor.OutboxProcessor;
 import com.example.schedulebook.domain.outbox.service.OutboxRecoveryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

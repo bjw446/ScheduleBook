@@ -1,5 +1,7 @@
 package com.example.schedulebook.domain.notification.event;
 
+import com.example.schedulebook.domain.notification.processor.NotificationEventProcessor;
+import com.example.schedulebook.domain.notification.processor.NotificationProcessorRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

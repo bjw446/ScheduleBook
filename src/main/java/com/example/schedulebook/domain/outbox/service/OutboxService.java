@@ -9,12 +9,14 @@ import com.example.schedulebook.domain.outbox.repository.OutboxRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class OutboxService {
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
@@ -34,6 +36,11 @@ public class OutboxService {
 
         } catch (JsonProcessingException e) {
             throw new BaseException(ErrorEnum.OUTBOX_PAYLOAD_SERIALIZATION_FAILED);
+
+        } catch (Exception e) {
+            log.error("Outbox 저장 실패 {}", e.getMessage(), e);
+
+            throw e;
         }
     }
 }

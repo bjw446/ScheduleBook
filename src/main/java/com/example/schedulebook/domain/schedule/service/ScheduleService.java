@@ -2,8 +2,7 @@ package com.example.schedulebook.domain.schedule.service;
 
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
-import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
-import com.example.schedulebook.domain.outbox.service.OutboxPublishService;
+import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.schedule.dto.request.CreateScheduleRequest;
 import com.example.schedulebook.domain.schedule.dto.request.UpdateScheduleRequest;
 import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
@@ -35,7 +34,7 @@ public class ScheduleService {
     private final ScheduleParticipantReader scheduleParticipantReader;
     private final UserValidator userValidator;
     private final ScheduleValidator scheduleValidator;
-    private final OutboxPublishService outboxPublishService;
+    private final OutboxService outboxService;
 
     public ScheduleSummaryResponse createSchedule(CreateScheduleRequest request, Long currentUserId) {
         User user = userValidator.validateActiveUser(currentUserId);
@@ -114,12 +113,12 @@ public class ScheduleService {
 
         ScheduleUpdatedEvent scheduleUpdatedEvent = new ScheduleUpdatedEvent(schedule.getId());
 
-        outboxPublishService.publish(new OutboxSaveEvent(
+        outboxService.save(
                 OutboxAggregateType.SCHEDULE,
                 schedule.getId(),
                 OutboxEventType.SCHEDULE_UPDATED,
                 scheduleUpdatedEvent
-        ));
+        );
 
         return ScheduleSummaryResponse.from(schedule);
     }
@@ -133,12 +132,12 @@ public class ScheduleService {
 
         ScheduleDeletedEvent scheduleDeletedEvent = new ScheduleDeletedEvent(schedule.getId());
 
-        outboxPublishService.publish(new OutboxSaveEvent(
+        outboxService.save(
                 OutboxAggregateType.SCHEDULE,
                 schedule.getId(),
                 OutboxEventType.SCHEDULE_DELETED,
                 scheduleDeletedEvent
-        ));
+        );
     }
 
     public void deleteAllSchedules(Long userId) {

@@ -2,8 +2,7 @@ package com.example.schedulebook.domain.user.service;
 
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
-import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
-import com.example.schedulebook.domain.outbox.service.OutboxPublishService;
+import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.user.event.UserWithdrawEvent;
 import com.example.schedulebook.domain.user.dto.request.UpdateUserPasswordRequest;
 import com.example.schedulebook.domain.user.dto.request.UpdateUserRequest;
@@ -27,7 +26,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserValidator userValidator;
     private final UserRepository userRepository;
-    private final OutboxPublishService outboxPublishService;
+    private final OutboxService outboxService;
 
     @Transactional(readOnly = true)
     public UserResponse findMyProfile(Long currentUserId) {
@@ -69,11 +68,11 @@ public class UserService {
 
         UserWithdrawEvent userWithdrawEvent = new UserWithdrawEvent(user.getId(), loginId);
 
-        outboxPublishService.publish(new OutboxSaveEvent(
+        outboxService.save(
                 OutboxAggregateType.USER,
                 user.getId(),
                 OutboxEventType.USER_WITHDRAW,
                 userWithdrawEvent
-        ));
+        );
     }
 }
