@@ -1,15 +1,20 @@
 package com.example.schedulebook.domain.scheduleshare.processor;
 
+import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.processor.NotificationEventProcessor;
+import com.example.schedulebook.domain.notification.service.NotificationRetryService;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.scheduleshare.event.ScheduleSharedEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ScheduleSharedProcessor implements NotificationEventProcessor<ScheduleSharedEvent> {
     private final NotificationService notificationService;
+    private final NotificationRetryService notificationRetryService;
 
     @Override
     public Class<ScheduleSharedEvent> supports() {
@@ -18,6 +23,34 @@ public class ScheduleSharedProcessor implements NotificationEventProcessor<Sched
 
     @Override
     public void process(Long outboxId, ScheduleSharedEvent event) {
-        notificationService.createScheduleSharedNotification(event.receiverId(), event.ownerNickname(), event.shareId());
+        try {
+            notificationService.createScheduleSharedNotification(event.receiverId(), event.ownerNickname(), event.shareId());
+
+        } catch (Exception e) {
+            saveNotificationRetry(outboxId, event.receiverId(), event, e);
+        }
+
+    }
+
+    private void saveNotificationRetry(
+            Long outboxId,
+            Long receiverId,
+            Object event,
+            Exception e
+    ) {
+        try {
+            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, NotificationType.FRIEND_ACCEPTED, e);
+
+            notificationRetryService.save(
+                    outboxId,
+                    receiverId,
+                    NotificationType.SCHEDULE_SHARED,
+                    event,
+                    e.getMessage()
+            );
+
+        } catch (Exception ex) {
+            log.error("일정 공유 알림 Retry 저장 실패", ex);
+        }
     }
 }
