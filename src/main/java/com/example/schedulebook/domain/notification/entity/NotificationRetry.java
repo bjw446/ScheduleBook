@@ -45,6 +45,9 @@ public class NotificationRetry extends ModifyEntity {
     @Column(name = "next_retry_at")
     private LocalDateTime nextRetryAt;
 
+    @Column(name = "claim_token")
+    private String claimToken;
+
     public static NotificationRetry create(
             Long outboxId,
             Long receiverId,

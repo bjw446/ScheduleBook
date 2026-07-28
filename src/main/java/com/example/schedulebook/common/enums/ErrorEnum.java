@@ -63,6 +63,8 @@ public enum ErrorEnum {
     NOTIFICATION_ALREADY_READ(409, "이미 읽은 알림입니다."),
     NOTIFICATION_FORBIDDEN(403, "해당 알림에 대한 접근 권한이 없습니다."),
     INVALID_NOTIFICATION_TYPE(400, "잘못된 알림 타입 입니다."),
+    NOTIFICATION_RETRY_SAVE_FAILED(500, "알림 재시도 저장을 실패했습니다."),
+    NOTIFICATION_RETRY_FORBIDDEN(403, "해당 알림 재시도에 대한 권한이 없습니다."),
 
     // Schedule
     INVALID_SCHEDULE_TIME(400, "잘못된 일정 시간 입니다."),

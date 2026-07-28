@@ -20,43 +20,48 @@ public class NotificationRetryScheduler {
 
     @Scheduled(fixedDelay = 30_000)
     public void process() {
-        List<NotificationRetry> notificationRetries = notificationRetryService.findRetryTargets();
+        while (true) {
+            List<NotificationRetry> notificationRetries = notificationRetryService.findRetryTargets(CommonConst.BATCH_SIZE);
 
-        for (NotificationRetry notificationRetry : notificationRetries) {
-            if (!notificationRetryService.markProcessing(notificationRetry.getId())) {
-                continue;
+            if (notificationRetries.isEmpty()) {
+                break;
             }
 
-            try {
-                notificationRetryProcessor.dispatch(notificationRetry);
+            for (NotificationRetry notificationRetry : notificationRetries) {
+                String claimToken = notificationRetryService.markProcessing(notificationRetry.getId());
 
-                try {
-                    notificationRetryService.markSuccess(notificationRetry.getId());
-
-                } catch (Exception ex) {
-                    log.error("알림 재시도 성공 상태 변경 실패 notificationRetryId = {}", notificationRetry.getId(), ex);
+                if (claimToken == null) {
+                    continue;
                 }
 
-            } catch (Exception e) {
-                log.warn("알림 재시도 처리 실패 notificationRetryId = {}", notificationRetry.getId(), e);
-
                 try {
-                    if ((notificationRetry.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
-                        notificationRetryService.markFailed(
-                                notificationRetry.getId(),
-                                e.getMessage()
-                        );
+                    notificationRetryProcessor.dispatch(notificationRetry.getId());
 
-                    } else {
-                        notificationRetryService.markRetry(
-                                notificationRetry.getId(),
-                                e.getMessage(),
-                                notificationRetry.getRetryCount()
-                        );
+                    notificationRetryService.markSuccess(notificationRetry.getId(), claimToken);
+
+                } catch (Exception e) {
+                    log.warn("알림 재시도 처리 실패 notificationRetryId = {}", notificationRetry.getId(), e);
+
+                    try {
+                        if ((notificationRetry.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
+                            notificationRetryService.markFailed(
+                                    notificationRetry.getId(),
+                                    e.getMessage(),
+                                    claimToken
+                            );
+
+                        } else {
+                            notificationRetryService.markRetry(
+                                    notificationRetry.getId(),
+                                    e.getMessage(),
+                                    notificationRetry.getRetryCount(),
+                                    claimToken
+                            );
+                        }
+
+                    } catch (Exception exception) {
+                        log.error("알림 재시도 상태 갱신 실패 notificationRetryId = {}", notificationRetry.getId(), exception);
                     }
-
-                } catch (Exception exception) {
-                    log.error("알림 재시도 상태 갱신 실패 notificationRetryId = {}", notificationRetry.getId(), exception);
                 }
             }
         }

@@ -1,5 +1,7 @@
 package com.example.schedulebook.domain.comment.processor;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.comment.entity.Comment;
 import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
@@ -99,6 +101,8 @@ public class CommentCreatedProcessor implements NotificationEventProcessor<Comme
 
         } catch (Exception ex) {
             log.error("일정 댓글 생성 Retry 저장 실패", ex);
+
+            throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_SAVE_FAILED);
         }
     }
 }

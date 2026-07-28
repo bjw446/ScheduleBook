@@ -9,12 +9,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -43,36 +45,58 @@ public class NotificationRetryService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markSuccess(Long notificationRetryId) {
-        if (notificationRetryRepository.markSuccess(notificationRetryId) != 1) {
+    public void markSuccess(Long notificationRetryId, String claimToken) {
+        if (notificationRetryRepository.markSuccess(notificationRetryId, claimToken) != 1) {
             throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_NOT_FOUND);
         }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markFailed(Long notificationRetryId, String reason) {
-        if (notificationRetryRepository.markFailed(notificationRetryId, reason) != 1) {
+    public void markFailed(Long notificationRetryId, String reason, String claimToken) {
+        if (notificationRetryRepository.markFailed(notificationRetryId, reason, claimToken) != 1) {
             throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_NOT_FOUND);
         }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public boolean markProcessing(Long notificationRetryId) {
-        return notificationRetryRepository.markProcessing(notificationRetryId, LocalDateTime.now().minusMinutes(10)) == 1;
+    public String markProcessing(Long notificationRetryId) {
+        String claimToken = UUID.randomUUID().toString();
+
+        boolean claimed = notificationRetryRepository.markProcessing(
+                notificationRetryId,
+                claimToken,
+                LocalDateTime.now().minusMinutes(10)
+        ) == 1;
+
+        if (claimed) {
+            return claimToken;
+        }
+
+        return null;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markRetry(Long notificationRetryId, String reason, int retryCount) {
-        LocalDateTime delay = LocalDateTime.now().plusSeconds(nextDelaySeconds(retryCount));
+    public void markRetry(Long notificationRetryId, String reason, int retryCount, String claimToken) {
+        LocalDateTime delay = LocalDateTime.now().plusSeconds(nextDelaySeconds(retryCount + 1));
 
-        if (notificationRetryRepository.markRetry(notificationRetryId, reason, delay) != 1) {
+        if (notificationRetryRepository.markRetry(notificationRetryId, reason, delay, claimToken) != 1) {
             throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_NOT_FOUND);
         }
     }
 
     @Transactional(readOnly = true)
-    public List<NotificationRetry> findRetryTargets() {
-        return notificationRetryRepository.findRetryTargets(LocalDateTime.now().minusMinutes(10));
+    public List<NotificationRetry> findRetryTargets(int size) {
+        return notificationRetryRepository.findRetryTargets(
+                LocalDateTime.now().minusMinutes(10),
+                PageRequest.of(0, size)
+        ).getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public NotificationRetry findById(Long notificationRetryId) {
+        return notificationRetryRepository.findById(notificationRetryId).orElseThrow(
+                () -> new BaseException(ErrorEnum.NOTIFICATION_RETRY_NOT_FOUND)
+        );
     }
 
     private long nextDelaySeconds(int retryCount) {

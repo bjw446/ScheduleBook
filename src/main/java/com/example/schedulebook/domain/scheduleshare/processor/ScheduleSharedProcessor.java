@@ -1,5 +1,7 @@
 package com.example.schedulebook.domain.scheduleshare.processor;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.processor.NotificationEventProcessor;
 import com.example.schedulebook.domain.notification.service.NotificationRetryService;
@@ -51,6 +53,8 @@ public class ScheduleSharedProcessor implements NotificationEventProcessor<Sched
 
         } catch (Exception ex) {
             log.error("일정 공유 알림 Retry 저장 실패", ex);
+
+            throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_SAVE_FAILED);
         }
     }
 }
