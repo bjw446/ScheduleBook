@@ -8,8 +8,8 @@ import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import com.example.schedulebook.domain.outbox.enums.ProcessedOutboxStatus;
 import com.example.schedulebook.domain.outbox.handler.OutboxEventHandler;
 import com.example.schedulebook.domain.outbox.publisher.OutboxPublisher;
-import com.example.schedulebook.domain.outbox.repository.ProcessedOutboxRepository;
 import com.example.schedulebook.domain.outbox.service.OutboxTransactionService;
+import com.example.schedulebook.domain.outbox.service.ProcessedOutboxTransactionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ public class OutboxProcessor {
     private final List<OutboxEventHandler<?>> handlers;
     private final Map<OutboxEventType, OutboxEventHandler<?>> handlerMap = new EnumMap<>(OutboxEventType.class);
     private final ObjectMapper objectMapper;
-    private final ProcessedOutboxRepository processedOutboxRepository;
+    private final ProcessedOutboxTransactionService processedOutboxTransactionService;
 
     @PostConstruct
     void init() {
@@ -57,13 +57,7 @@ public class OutboxProcessor {
                     continue;
                 }
 
-                OutboxEventHandler<?> outboxEventHandler = handlerMap.get(outbox.getEventType());
-
-                if (outboxEventHandler == null) {
-                    log.error("지원하지 않는 이벤트 : {}",outbox.getEventType());
-
-                    throw new BaseException(ErrorEnum.INVALID_OUTBOX_EVENT_TYPE);
-                }
+                OutboxEventHandler<?> outboxEventHandler = getHandler(outbox);
 
                 log.info("Outbox 처리 시작 outboxId = {}, eventType = {}", outboxId, outbox.getEventType());
 
@@ -75,17 +69,13 @@ public class OutboxProcessor {
 
                 log.info("Outbox Publisher 완료 outboxId = {}", outboxId);
 
-                markProcessedOutboxSuccess(outboxId);
-
-                outboxTransactionService.markSuccess(outboxId);
-
-                log.info("Outbox 최종 성공 outboxId = {}", outboxId);
+                completeOutbox(outboxId);
 
             } catch (Exception e) {
                 log.error("Outbox 실패 outboxId = {}", outboxId, e);
 
                 try {
-                    markProcessedOutboxFailed(outboxId);
+                    processedOutboxTransactionService.markProcessedOutboxFailed(outboxId);
 
                 } catch (Exception ex) {
                     log.error("ProcessedOutbox 상태 변경 실패", ex);
@@ -93,6 +83,7 @@ public class OutboxProcessor {
 
                 try {
                     outboxTransactionService.handleFailure(outboxId, e);
+
                 } catch (Exception ex) {
                     log.error("Outbox 실패 처리 실패", ex);
                 }
@@ -109,64 +100,48 @@ public class OutboxProcessor {
     }
 
     private ProcessedOutbox prepareProcessedOutbox(Long outboxId, Outbox outbox) {
-        ProcessedOutbox processedOutbox = processedOutboxRepository.findByOutboxId(outboxId).orElse(null);
+        ProcessedOutbox processedOutbox = processedOutboxTransactionService.findByOutboxId(outboxId);
 
         if (processedOutbox == null) {
-            processedOutbox = processedOutboxRepository.save(ProcessedOutbox.of(
+            return processedOutboxTransactionService.create(
                     outboxId,
                     outbox.getAggregateType(),
                     outbox.getEventType()
-            ));
-
-            return processedOutbox;
+            );
         }
 
         if (processedOutbox.getStatus() == ProcessedOutboxStatus.SUCCESS) {
+            log.debug("이미 처리된 Outbox {}", outboxId);
+
             return null;
         }
 
         if (processedOutbox.getStatus() == ProcessedOutboxStatus.FAILED) {
-            markProcessedOutboxRetry(outboxId);
+            processedOutboxTransactionService.markProcessedOutboxRetry(outboxId);
 
-            return processedOutbox;
+            return processedOutboxTransactionService.findByOutboxId(outboxId);
         }
 
         return processedOutbox;
     }
 
-    private void markProcessedOutboxFailed(Long outboxId) {
-        int updated = processedOutboxRepository.markFailed(outboxId);
+    private void completeOutbox(Long outboxId) {
+        processedOutboxTransactionService.markProcessedOutboxSuccess(outboxId);
 
-        if (updated != 1) {
-            log.warn("ProcessedOutbox 실패 상태 변경 실패 outboxId = {}", outboxId);
+        outboxTransactionService.markSuccess(outboxId);
 
-            throw new BaseException(ErrorEnum.PROCESSED_OUTBOX_STATUS_CHANGE_FAILED);
-        }
-
-        log.info("ProcessedOutbox 실패 상태 변경 outboxId = {}", outboxId);
+        log.info("Outbox 최종 성공 outboxId = {}", outboxId);
     }
 
-    private void markProcessedOutboxSuccess(Long outboxId) {
-        int updated = processedOutboxRepository.markSuccess(outboxId);
+    private OutboxEventHandler<?> getHandler(Outbox outbox) {
+        OutboxEventHandler<?> outboxEventHandler = handlerMap.get(outbox.getEventType());
 
-        if (updated != 1) {
-            log.warn("ProcessedOutbox 성공 상태 변경 실패 outboxId = {}", outboxId);
+        if (outboxEventHandler == null) {
+            log.error("지원하지 않는 이벤트 : {}",outbox.getEventType());
 
-            throw new BaseException(ErrorEnum.PROCESSED_OUTBOX_STATUS_CHANGE_FAILED);
+            throw new BaseException(ErrorEnum.INVALID_OUTBOX_EVENT_TYPE);
         }
 
-        log.info("ProcessedOutbox 성공 상태 변경 outboxId = {}", outboxId);
-    }
-
-    private void markProcessedOutboxRetry(Long outboxId) {
-        int updated = processedOutboxRepository.retry(outboxId);
-
-        if (updated != 1) {
-            log.warn("ProcessedOutbox 재시도 상태 변경 실패 outboxId = {}", outboxId);
-
-            throw new BaseException(ErrorEnum.PROCESSED_OUTBOX_STATUS_CHANGE_FAILED);
-        }
-
-        log.debug("실패 한 ProcessedOutbox 재시도 {}", outboxId);
+        return outboxEventHandler;
     }
 }
