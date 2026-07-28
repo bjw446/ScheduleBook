@@ -46,12 +46,10 @@ public class OutboxProcessor {
         List<Long> outboxIds = outboxTransactionService.claimOutboxes();
 
         for (Long outboxId : outboxIds) {
-            ProcessedOutbox processedOutbox = null;
-
             try {
                 Outbox outbox = outboxTransactionService.findById(outboxId);
 
-                processedOutbox = prepareProcessedOutbox(outboxId, outbox);
+                ProcessedOutbox processedOutbox = prepareProcessedOutbox(outboxId, outbox);
 
                 if (processedOutbox == null) {
                     outboxTransactionService.markSuccess(outboxId);
@@ -77,11 +75,7 @@ public class OutboxProcessor {
 
                 log.info("Outbox Publisher 완료 outboxId = {}", outboxId);
 
-                processedOutbox.success();
-
-                processedOutboxRepository.save(processedOutbox);
-
-                log.info("Outbox Processed 성공 상태 변경 outboxId = {}", outboxId);
+                markProcessedOutboxSuccess(outboxId);
 
                 outboxTransactionService.markSuccess(outboxId);
 
@@ -90,13 +84,18 @@ public class OutboxProcessor {
             } catch (Exception e) {
                 log.error("Outbox 실패 outboxId = {}", outboxId, e);
 
-                if (processedOutbox != null && processedOutbox.getStatus() != ProcessedOutboxStatus.SUCCESS) {
-                    processedOutbox.fail();
+                try {
+                    markProcessedOutboxFailed(outboxId);
 
-                    processedOutboxRepository.save(processedOutbox);
+                } catch (Exception ex) {
+                    log.error("ProcessedOutbox 상태 변경 실패", ex);
                 }
 
-                outboxTransactionService.handleFailure(outboxId, e);
+                try {
+                    outboxTransactionService.handleFailure(outboxId, e);
+                } catch (Exception ex) {
+                    log.error("Outbox 실패 처리 실패", ex);
+                }
             }
         }
     }
@@ -127,15 +126,47 @@ public class OutboxProcessor {
         }
 
         if (processedOutbox.getStatus() == ProcessedOutboxStatus.FAILED) {
-            processedOutbox.retry();
-
-            processedOutboxRepository.save(processedOutbox);
-
-            log.debug("실패 한 ProcessedOutbox 재시도 {}", outboxId);
+            markProcessedOutboxRetry(outboxId);
 
             return processedOutbox;
         }
 
         return processedOutbox;
+    }
+
+    private void markProcessedOutboxFailed(Long outboxId) {
+        int updated = processedOutboxRepository.markFailed(outboxId);
+
+        if (updated != 1) {
+            log.warn("ProcessedOutbox 실패 상태 변경 실패 outboxId = {}", outboxId);
+
+            throw new BaseException(ErrorEnum.PROCESSED_OUTBOX_STATUS_CHANGE_FAILED);
+        }
+
+        log.info("ProcessedOutbox 실패 상태 변경 outboxId = {}", outboxId);
+    }
+
+    private void markProcessedOutboxSuccess(Long outboxId) {
+        int updated = processedOutboxRepository.markSuccess(outboxId);
+
+        if (updated != 1) {
+            log.warn("ProcessedOutbox 성공 상태 변경 실패 outboxId = {}", outboxId);
+
+            throw new BaseException(ErrorEnum.PROCESSED_OUTBOX_STATUS_CHANGE_FAILED);
+        }
+
+        log.info("ProcessedOutbox 성공 상태 변경 outboxId = {}", outboxId);
+    }
+
+    private void markProcessedOutboxRetry(Long outboxId) {
+        int updated = processedOutboxRepository.retry(outboxId);
+
+        if (updated != 1) {
+            log.warn("ProcessedOutbox 재시도 상태 변경 실패 outboxId = {}", outboxId);
+
+            throw new BaseException(ErrorEnum.PROCESSED_OUTBOX_STATUS_CHANGE_FAILED);
+        }
+
+        log.debug("실패 한 ProcessedOutbox 재시도 {}", outboxId);
     }
 }
