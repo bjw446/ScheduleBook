@@ -18,6 +18,8 @@ public enum ErrorEnum {
     INVALID_ARGUMENT(400, "요청값이 올바르지 않습니다"),
     DATA_CONFLICT(409, "요청이 현재 데이터 상태와 충돌합니다."),
     REQUEST_BODY_TOO_LARGE(413, "요청 본문이 너무 큽니다."),
+    JSON_SERIALIZATION_FAILED(500, "JSON 직렬화에 실패했습니다."),
+    JSON_DESERIALIZATION_FAILED(500, "JSON 역직렬화에 실패했습니다."),
 
     // USER
     LOGIN_FAILED(401, "사용자 정보가 일치하지 않습니다."),
@@ -56,9 +58,13 @@ public enum ErrorEnum {
 
     // Notification
     NOTIFICATION_NOT_FOUND(404, "알림이 존재하지 않습니다"),
+    NOTIFICATION_RETRY_NOT_FOUND(404, "알림 재시도가 존재하지 않습니다"),
     NOTIFICATION_EVENT_NOT_FOUND(404, "알림 이벤트가 존재하지 않습니다"),
     NOTIFICATION_ALREADY_READ(409, "이미 읽은 알림입니다."),
     NOTIFICATION_FORBIDDEN(403, "해당 알림에 대한 접근 권한이 없습니다."),
+    INVALID_NOTIFICATION_TYPE(400, "잘못된 알림 타입 입니다."),
+    NOTIFICATION_RETRY_SAVE_FAILED(500, "알림 재시도 저장을 실패했습니다."),
+    NOTIFICATION_RETRY_FORBIDDEN(403, "해당 알림 재시도에 대한 권한이 없습니다."),
 
     // Schedule
     INVALID_SCHEDULE_TIME(400, "잘못된 일정 시간 입니다."),

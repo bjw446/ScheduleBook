@@ -1,14 +1,19 @@
 package com.example.schedulebook.domain.comment.processor;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.comment.entity.Comment;
 import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
+import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.processor.NotificationEventProcessor;
+import com.example.schedulebook.domain.notification.service.NotificationRetryService;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.scheduleparticipant.repository.ScheduleParticipantRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
@@ -16,11 +21,13 @@ import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class CommentCreatedProcessor implements NotificationEventProcessor<CommentCreatedEvent> {
     private final NotificationService notificationService;
     private final CommentRepository commentRepository;
     private final ScheduleRepository scheduleRepository;
     private final ScheduleParticipantRepository scheduleParticipantRepository;
+    private final NotificationRetryService notificationRetryService;
 
     @Override
     public Class<CommentCreatedEvent> supports() {
@@ -30,13 +37,13 @@ public class CommentCreatedProcessor implements NotificationEventProcessor<Comme
     @Override
     public void process(Long outboxId, CommentCreatedEvent event) {
         if (event.parentCommentId() == null) {
-            notifyScheduleParticipants(event);
+            notifyScheduleParticipants(outboxId, event);
         } else {
-            notifyParentWriter(event);
+            notifyParentWriter(outboxId, event);
         }
     }
 
-    private void notifyScheduleParticipants(CommentCreatedEvent event) {
+    private void notifyScheduleParticipants(Long outboxId, CommentCreatedEvent event) {
         Schedule schedule = scheduleRepository.findWithOwner(event.scheduleId()).orElseThrow();
 
         Set<Long> receivers = new HashSet<>();
@@ -48,11 +55,16 @@ public class CommentCreatedProcessor implements NotificationEventProcessor<Comme
         receivers.remove(event.writerId());
 
         for (Long receiverId : receivers) {
-            notificationService.createScheduleCommentNotification(receiverId, event.writerNickname(), schedule.getId());
+            try {
+                notificationService.createScheduleCommentNotification(receiverId, event.writerNickname(), schedule.getId());
+
+            } catch (Exception e) {
+                saveNotificationRetry(outboxId, receiverId, NotificationType.SCHEDULE_COMMENT, event, e);
+            }
         }
     }
 
-    private void notifyParentWriter(CommentCreatedEvent event) {
+    private void notifyParentWriter(Long outboxId, CommentCreatedEvent event) {
         Comment parent = commentRepository.findWithWriter(event.parentCommentId()).orElseThrow();
 
         Long receiverId = parent.getWriter().getId();
@@ -61,6 +73,36 @@ public class CommentCreatedProcessor implements NotificationEventProcessor<Comme
             return;
         }
 
-        notificationService.createCommentReplyNotification(receiverId, event.writerNickname(), event.scheduleId());
+        try {
+            notificationService.createCommentReplyNotification(receiverId, event.writerNickname(), event.scheduleId());
+
+        } catch (Exception e) {
+            saveNotificationRetry(outboxId, receiverId, NotificationType.COMMENT_REPLY, event, e);
+        }
+    }
+
+    private void saveNotificationRetry(
+            Long outboxId,
+            Long receiverId,
+            NotificationType notificationType,
+            Object event,
+            Exception e
+    ) {
+        try {
+            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, notificationType, e);
+
+            notificationRetryService.save(
+                    outboxId,
+                    receiverId,
+                    notificationType,
+                    event,
+                    e.getMessage()
+            );
+
+        } catch (Exception ex) {
+            log.error("일정 댓글 생성 Retry 저장 실패", ex);
+
+            throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_SAVE_FAILED);
+        }
     }
 }
