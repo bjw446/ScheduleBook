@@ -79,6 +79,8 @@ public class OutboxProcessor {
 
                 processedOutbox.success();
 
+                processedOutboxRepository.save(processedOutbox);
+
                 log.info("Outbox Processed 성공 상태 변경 outboxId = {}", outboxId);
 
                 outboxTransactionService.markSuccess(outboxId);
@@ -88,8 +90,10 @@ public class OutboxProcessor {
             } catch (Exception e) {
                 log.error("Outbox 실패 outboxId = {}", outboxId, e);
 
-                if (processedOutbox != null) {
+                if (processedOutbox != null && processedOutbox.getStatus() != ProcessedOutboxStatus.SUCCESS) {
                     processedOutbox.fail();
+
+                    processedOutboxRepository.save(processedOutbox);
                 }
 
                 outboxTransactionService.handleFailure(outboxId, e);
