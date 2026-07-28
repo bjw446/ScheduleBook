@@ -1,6 +1,5 @@
 package com.example.schedulebook.domain.notification.service;
 
-import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.domain.notification.dto.response.NotificationDetailResponse;
 import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
 import com.example.schedulebook.domain.notification.dto.response.NotificationSummaryResponse;
@@ -8,19 +7,19 @@ import com.example.schedulebook.domain.notification.dto.response.UnreadNotificat
 import com.example.schedulebook.domain.notification.entity.Notification;
 import com.example.schedulebook.domain.notification.enums.NotificationEventType;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
-import com.example.schedulebook.domain.notification.publisher.NotificationEventPublisher;
 import com.example.schedulebook.domain.notification.repository.NotificationRepository;
 import com.example.schedulebook.domain.notification.validator.NotificationValidator;
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
-import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
@@ -28,10 +27,9 @@ import java.util.function.Supplier;
 @Transactional
 public class NotificationService {
     private final NotificationRepository notificationRepository;
-    private final NotificationEventPublisher notificationEventPublisher;
-    private final AfterCommitExecutor afterCommitExecutor;
     private final UserValidator userValidator;
     private final NotificationValidator notificationValidator;
+    private final OutboxService outboxService;
 
     public void createFriendRequestNotification(Long receiverId, String requesterNickname, Long friendId) {
         createNotification(
@@ -74,13 +72,19 @@ public class NotificationService {
     }
 
     public void createScheduleCommentNotification(Long receiverId, String writerNickname, Long scheduleId) {
-        createNotification(
+        if (!notificationRepository.existsNotification(
                 receiverId,
-                NotificationType.SCHEDULE_COMMENT,
-                NotificationType.SCHEDULE_COMMENT.getTitle(),
-                writerNickname + NotificationType.SCHEDULE_COMMENT.getDefaultMessage(),
-                scheduleId
-        );
+                scheduleId,
+                NotificationType.SCHEDULE_COMMENT
+        )) {
+            createNotification(
+                    receiverId,
+                    NotificationType.SCHEDULE_COMMENT,
+                    NotificationType.SCHEDULE_COMMENT.getTitle(),
+                    writerNickname + NotificationType.SCHEDULE_COMMENT.getDefaultMessage(),
+                    scheduleId
+            );
+        }
     }
 
     public void createCommentReplyNotification(Long receiverId, String writerNickname, Long scheduleId) {
@@ -129,17 +133,22 @@ public class NotificationService {
 
         notification.read();
 
-        publishAfterCommit(() ->
-                new NotificationEventResponse(
-                        NotificationEventType.READ,
-                        currentUserId,
-                        notificationId,
-                        null,
-                        null,
-                        null,
-                        notificationRepository.countUnreadNotifications(currentUserId),
-                        System.currentTimeMillis()
-                )
+        NotificationEventResponse notificationEventResponse = new NotificationEventResponse(
+                NotificationEventType.READ,
+                currentUserId,
+                notificationId,
+                null,
+                null,
+                null,
+                notificationRepository.countUnreadNotifications(currentUserId),
+                System.currentTimeMillis()
+        );
+
+        outboxService.save(
+                OutboxAggregateType.NOTIFICATION,
+                currentUserId,
+                OutboxEventType.NOTIFICATION_EVENT,
+                notificationEventResponse
         );
     }
 
@@ -148,17 +157,22 @@ public class NotificationService {
 
         notificationRepository.readAllNotifications(currentUserId);
 
-        publishAfterCommit(() ->
-                new NotificationEventResponse(
-                        NotificationEventType.ALL_READ,
-                        currentUserId,
-                        null,
-                        null,
-                        null,
-                        null,
-                        notificationRepository.countUnreadNotifications(currentUserId),
-                        System.currentTimeMillis()
-                )
+        NotificationEventResponse notificationEventResponse = new NotificationEventResponse(
+                NotificationEventType.ALL_READ,
+                currentUserId,
+                null,
+                null,
+                null,
+                null,
+                notificationRepository.countUnreadNotifications(currentUserId),
+                System.currentTimeMillis()
+        );
+
+        outboxService.save(
+                OutboxAggregateType.NOTIFICATION,
+                currentUserId,
+                OutboxEventType.NOTIFICATION_EVENT,
+                notificationEventResponse
         );
     }
 
@@ -168,11 +182,13 @@ public class NotificationService {
 
     private Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
         User receiver = userValidator.validateActiveUser(receiverId);
+
         return saveNotification(receiver, notificationType, title, content, targetId);
     }
 
     private Notification createNotification(User receiver, NotificationType notificationType, String title, String content, Long targetId) {
         userValidator.validateUserStatus(receiver);
+
         return saveNotification(receiver, notificationType, title, content, targetId);
     }
 
@@ -185,22 +201,26 @@ public class NotificationService {
                 targetId
         );
 
-        return notificationRepository.save(notification);
-    }
+        notificationRepository.save(notification);
 
-    private void publishAfterCommit(Supplier<NotificationEventResponse> responseSupplier) {
-        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
-            notificationEventPublisher.publish(responseSupplier.get());
+        NotificationEventResponse notificationEventResponse = new NotificationEventResponse(
+                NotificationEventType.CREATED,
+                receiver.getId(),
+                notification.getId(),
+                notificationType.name(),
+                title,
+                content,
+                notificationRepository.countUnreadNotifications(receiver.getId()),
+                System.currentTimeMillis()
+        );
 
-            return;
-        }
+        outboxService.save(
+                OutboxAggregateType.NOTIFICATION,
+                notification.getId(),
+                OutboxEventType.NOTIFICATION_EVENT,
+                notificationEventResponse
+        );
 
-        afterCommitExecutor.execute(() -> {
-            try {
-                notificationEventPublisher.publish(responseSupplier.get());
-            } catch (Exception e) {
-                log.error("커밋 후 알림 이벤트 발행 실패", e);
-            }
-        });
+        return notification;
     }
 }

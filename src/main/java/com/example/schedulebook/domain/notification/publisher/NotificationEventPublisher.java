@@ -17,6 +17,7 @@ public class NotificationEventPublisher {
     public void publish(NotificationEventResponse response) {
         try {
             redisTemplate.convertAndSend(RedisConst.NOTIFICATION, response);
+
         } catch (Exception e) {
             log.error("Redis Pub/Sub 발행 실패 topic = {}, message = {}", RedisConst.NOTIFICATION, response, e);
 

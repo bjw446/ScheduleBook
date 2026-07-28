@@ -8,14 +8,11 @@ import com.example.schedulebook.domain.comment.dto.response.ScheduleCommentRespo
 import com.example.schedulebook.domain.comment.entity.Comment;
 import com.example.schedulebook.domain.comment.enums.CommentEventType;
 import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
-import com.example.schedulebook.domain.comment.event.CommentEvent;
-import com.example.schedulebook.domain.comment.publisher.CommentPublisher;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
 import com.example.schedulebook.domain.comment.validator.CommentValidator;
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
-import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
-import com.example.schedulebook.domain.outbox.service.OutboxPublishService;
+import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
@@ -36,11 +33,10 @@ import java.util.stream.Collectors;
 public class CommentService {
     private final CommentRepository commentRepository;
     private final ScheduleRepository scheduleRepository;
-    private final CommentPublisher commentPublisher;
     private final ScheduleValidator scheduleValidator;
     private final UserValidator userValidator;
     private final CommentValidator commentValidator;
-    private final OutboxPublishService outboxPublishService;
+    private final OutboxService outboxService;
 
     public void createComment(Long currentUserId, Long scheduleId, CreateScheduleCommentRequest request) {
         User user = userValidator.validateActiveUser(currentUserId);
@@ -57,7 +53,18 @@ public class CommentService {
 
         int commentCount = getCurrentCommentCount(scheduleId);
 
-        publishCommentEvent(savedComment, CommentEventType.CREATED, commentCount);
+        CommentEventResponse commentEventResponse = CommentEventResponse.from(
+                savedComment,
+                CommentEventType.CREATED,
+                commentCount
+        );
+
+        outboxService.save(
+                OutboxAggregateType.COMMENT,
+                savedComment.getId(),
+                OutboxEventType.COMMENT_EVENT,
+                commentEventResponse
+        );
 
         CommentCreatedEvent createdEvent = new CommentCreatedEvent(
                 scheduleId,
@@ -66,12 +73,12 @@ public class CommentService {
                 parent == null ? null : parent.getId()
         );
 
-        outboxPublishService.publish(new OutboxSaveEvent(
+        outboxService.save(
                 OutboxAggregateType.COMMENT,
                 savedComment.getId(),
                 OutboxEventType.COMMENT_CREATED,
                 createdEvent
-        ));
+        );
     }
 
     @Transactional(readOnly = true)
@@ -94,7 +101,18 @@ public class CommentService {
 
         comment.updateComment(request.content());
 
-        publishCommentEvent(comment, CommentEventType.UPDATED, comment.getSchedule().getCommentCount());
+        CommentEventResponse commentEventResponse = CommentEventResponse.from(
+                comment,
+                CommentEventType.UPDATED,
+                comment.getSchedule().getCommentCount()
+        );
+
+        outboxService.save(
+                OutboxAggregateType.COMMENT,
+                commentId,
+                OutboxEventType.COMMENT_EVENT,
+                commentEventResponse
+        );
     }
 
     public void deleteComment(Long currentUserId, Long commentId) {
@@ -108,7 +126,18 @@ public class CommentService {
 
         int commentCount = getCurrentCommentCount(comment.getSchedule().getId());
 
-        publishCommentEvent(comment, CommentEventType.DELETED, commentCount);
+        CommentEventResponse commentEventResponse = CommentEventResponse.from(
+                comment,
+                CommentEventType.DELETED,
+                commentCount
+        );
+
+        outboxService.save(
+                OutboxAggregateType.COMMENT,
+                commentId,
+                OutboxEventType.COMMENT_EVENT,
+                commentEventResponse
+        );
     }
 
     public void removeAllComments(Long userId) {
@@ -189,19 +218,6 @@ public class CommentService {
 
     private int getCurrentCommentCount(Long scheduleId) {
         return scheduleRepository.findCommentCount(scheduleId);
-    }
-
-    private void publishCommentEvent(Comment comment, CommentEventType commentEventType, int commentCount) {
-        CommentEvent event = new CommentEvent(
-                commentEventType,
-                CommentEventResponse.from(
-                        comment,
-                        commentEventType,
-                        commentCount
-                )
-        );
-
-        commentPublisher.publish(event);
     }
 
     private Comment findParentComment(Long scheduleId, Long parentId) {

@@ -35,6 +35,7 @@ public enum ErrorEnum {
     ACCOUNT_LOCKED(423, "계정이 잠겨 있습니다, 잠시 후 다시 시도해주세요."),
     SESSION_NOT_FOUND(404, "존재하지 않는 세션 입니다."),
     SESSION_LIMIT_EXCEEDED(429, "로그인 가능한 환경 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해주세요."),
+    USER_WITHDRAW_PROCESS_FAILED(500, "회원 탈퇴 후처리에 실패했습니다."),
 
     // Token
     TOKEN_EXPIRED(401, "만료된 토큰입니다."),
@@ -55,6 +56,7 @@ public enum ErrorEnum {
 
     // Notification
     NOTIFICATION_NOT_FOUND(404, "알림이 존재하지 않습니다"),
+    NOTIFICATION_EVENT_NOT_FOUND(404, "알림 이벤트가 존재하지 않습니다"),
     NOTIFICATION_ALREADY_READ(409, "이미 읽은 알림입니다."),
     NOTIFICATION_FORBIDDEN(403, "해당 알림에 대한 접근 권한이 없습니다."),
 
@@ -126,7 +128,9 @@ public enum ErrorEnum {
     // Outbox
     INVALID_OUTBOX_STATUS(400, "잘못된 아웃박스 상태 입니다."),
     INVALID_OUTBOX_EVENT_TYPE(400, "잘못된 아웃박스 이벤트 타입 입니다."),
+    INVALID_PROCESSED_OUTBOX_STAUS(400, "잘못된 프로세스 아웃박스 상태 입니다."),
     OUTBOX_PAYLOAD_SERIALIZATION_FAILED(500, "아웃박스 페이로드 직렬화에 실패했습니다."),
+    PROCESSED_OUTBOX_STATUS_CHANGE_FAILED(500, "프로세스 아웃박스 상태 변경에 실패했습니다."),
     OUTBOX_NOT_FOUND(404, "존재하지 않는 아웃박스 입니다.");
 
     private final int status;

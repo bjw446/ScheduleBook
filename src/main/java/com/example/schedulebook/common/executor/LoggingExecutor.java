@@ -6,17 +6,18 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class LoggingExecutor {
-    public void execute(String name, Runnable action) {
+    public boolean execute(Long outboxId, String name, Runnable action) {
         try {
             action.run();
 
-            log.info("{} 완료", name);
+            log.info("{} 완료 outboxId = {}", name, outboxId);
+
+            return true;
 
         } catch (Exception e) {
-            log.error("{} 실패 : {}", name, e.getMessage(), e);
+            log.error("{} 실패 : {}, outboxId = {}", name, e.getMessage(), outboxId, e);
 
-            // TODO Outbox 저장
-            // TODO Retry Queue 등록
+            return false;
         }
     }
 }

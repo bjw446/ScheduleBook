@@ -3,8 +3,7 @@ package com.example.schedulebook.domain.scheduleshare.service;
 import com.example.schedulebook.domain.friend.validator.FriendValidator;
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
-import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
-import com.example.schedulebook.domain.outbox.service.OutboxPublishService;
+import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
 import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleAttendanceResponse;
 import com.example.schedulebook.domain.scheduleparticipant.dto.response.ScheduleParticipantInfo;
@@ -50,7 +49,7 @@ public class ScheduleShareService {
     private final ScheduleShareValidator scheduleShareValidator;
     private final FriendValidator friendValidator;
     private final ScheduleParticipantValidator scheduleParticipantValidator;
-    private final OutboxPublishService outboxPublishService;
+    private final OutboxService outboxService;
 
     public ScheduleShareResponse shareSchedule(Long scheduleId, ScheduleShareRequest request, Long currentUserId) {
         userValidator.validateActiveUser(currentUserId);
@@ -192,12 +191,12 @@ public class ScheduleShareService {
                         scheduleShare.getSharedUser().getId()
         );
 
-        outboxPublishService.publish(new OutboxSaveEvent(
+        outboxService.save(
                 OutboxAggregateType.SCHEDULE,
                 scheduleShare.getSchedule().getId(),
                 OutboxEventType.SCHEDULE_CANCELED,
                 scheduleCanceledEvent
-        ));
+        );
     }
 
     public void deleteAllShared(Long userId) {
@@ -224,12 +223,12 @@ public class ScheduleShareService {
                         scheduleShare.getId()
         );
 
-        outboxPublishService.publish(new OutboxSaveEvent(
+        outboxService.save(
                 OutboxAggregateType.SCHEDULE,
                 schedule.getId(),
                 OutboxEventType.SCHEDULE_SHARED,
                 scheduleSharedEvent
-        ));
+        );
 
         return ScheduleShareResponse.from(scheduleShare);
     }

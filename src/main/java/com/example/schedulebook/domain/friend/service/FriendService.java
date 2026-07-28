@@ -16,8 +16,7 @@ import com.example.schedulebook.domain.friend.repository.FriendRepository;
 import com.example.schedulebook.domain.friend.validator.FriendValidator;
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
-import com.example.schedulebook.domain.outbox.event.OutboxSaveEvent;
-import com.example.schedulebook.domain.outbox.service.OutboxPublishService;
+import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +37,7 @@ public class FriendService {
     private final UserValidator userValidator;
     private final FriendValidator friendValidator;
     private final RedisPresenceService redisPresenceService;
-    private final OutboxPublishService outboxPublishService;
+    private final OutboxService outboxService;
 
     public FriendResponse requestFriend(FriendRequest request, Long currentUserId) {
         friendValidator.validateMyself(request.receiverId(), currentUserId);
@@ -139,12 +138,12 @@ public class FriendService {
                 friend.getId()
         );
 
-        outboxPublishService.publish(new OutboxSaveEvent(
+        outboxService.save(
                 OutboxAggregateType.FRIEND,
                 friend.getId(),
                 OutboxEventType.FRIEND_ACCEPTED,
                 friendAcceptedEvent
-        ));
+        );
 
         return FriendResponse.from(friend);
     }
@@ -194,12 +193,12 @@ public class FriendService {
                 friend.getId()
         );
 
-        outboxPublishService.publish(new OutboxSaveEvent(
+        outboxService.save(
                 OutboxAggregateType.FRIEND,
                 friend.getId(),
                 OutboxEventType.FRIEND_REQUESTED,
                 friendRequestedEvent
-        ));
+        );
 
         return FriendResponse.from(friend);
     }
