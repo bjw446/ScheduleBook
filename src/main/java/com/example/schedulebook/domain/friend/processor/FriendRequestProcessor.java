@@ -39,7 +39,7 @@ public class FriendRequestProcessor implements NotificationEventProcessor<Friend
             Exception e
     ) {
         try {
-            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, NotificationType.FRIEND_ACCEPTED, e);
+            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, NotificationType.FRIEND_REQUEST, e);
 
             notificationRetryService.save(
                     outboxId,

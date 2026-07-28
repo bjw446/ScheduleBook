@@ -30,21 +30,33 @@ public class NotificationRetryScheduler {
             try {
                 notificationRetryProcessor.dispatch(notificationRetry);
 
-                notificationRetryService.markSuccess(notificationRetry.getId());
+                try {
+                    notificationRetryService.markSuccess(notificationRetry.getId());
+
+                } catch (Exception ex) {
+                    log.error("알림 재시도 성공 상태 변경 실패 notificationRetryId = {}", notificationRetry.getId(), ex);
+                }
 
             } catch (Exception e) {
-                if ((notificationRetry.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
-                    notificationRetryService.markFailed(
-                            notificationRetry.getId(),
-                            e.getMessage()
-                    );
+                log.warn("알림 재시도 처리 실패 notificationRetryId = {}", notificationRetry.getId(), e);
 
-                } else {
-                    notificationRetryService.markRetry(
-                            notificationRetry.getId(),
-                            e.getMessage(),
-                            notificationRetry.getRetryCount()
-                    );
+                try {
+                    if ((notificationRetry.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
+                        notificationRetryService.markFailed(
+                                notificationRetry.getId(),
+                                e.getMessage()
+                        );
+
+                    } else {
+                        notificationRetryService.markRetry(
+                                notificationRetry.getId(),
+                                e.getMessage(),
+                                notificationRetry.getRetryCount()
+                        );
+                    }
+
+                } catch (Exception exception) {
+                    log.error("알림 재시도 상태 갱신 실패 notificationRetryId = {}", notificationRetry.getId(), exception);
                 }
             }
         }

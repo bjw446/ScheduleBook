@@ -8,6 +8,7 @@ import com.example.schedulebook.domain.notification.repository.NotificationRetry
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationRetryService {
     private final NotificationRetryRepository notificationRetryRepository;
     private final ObjectMapper objectMapper;
@@ -35,6 +37,7 @@ public class NotificationRetryService {
             ));
 
         }  catch (JsonProcessingException exception) {
+            log.error("알림 재시도 payload 직렬화 실패", exception);
             throw new BaseException(ErrorEnum.JSON_SERIALIZATION_FAILED);
         }
     }
@@ -55,7 +58,7 @@ public class NotificationRetryService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean markProcessing(Long notificationRetryId) {
-        return notificationRetryRepository.markProcessing(notificationRetryId) == 1;
+        return notificationRetryRepository.markProcessing(notificationRetryId, LocalDateTime.now().minusMinutes(10)) == 1;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

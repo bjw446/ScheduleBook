@@ -9,10 +9,12 @@ import com.example.schedulebook.domain.scheduleshare.event.ScheduleSharedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ScheduleRetryProcessor {
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
@@ -45,6 +47,8 @@ public class ScheduleRetryProcessor {
             }
 
         } catch (JsonProcessingException e) {
+            log.error("알림 재시도 payload 역직렬화 실패", e);
+
             throw new BaseException(ErrorEnum.JSON_DESERIALIZATION_FAILED);
         }
     }

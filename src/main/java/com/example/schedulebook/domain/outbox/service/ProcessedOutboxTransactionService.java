@@ -73,7 +73,7 @@ public class ProcessedOutboxTransactionService {
     }
 
     public boolean isAlreadyProcessed(Long outboxId) {
-        ProcessedOutbox processedOutbox = processedOutboxRepository.findByOutboxId(outboxId).orElse(null);
+        ProcessedOutbox processedOutbox = findByOutboxId(outboxId);
 
         if (processedOutbox == null) {
             return false;

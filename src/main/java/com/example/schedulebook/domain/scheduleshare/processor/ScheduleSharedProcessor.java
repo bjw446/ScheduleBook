@@ -39,7 +39,7 @@ public class ScheduleSharedProcessor implements NotificationEventProcessor<Sched
             Exception e
     ) {
         try {
-            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, NotificationType.FRIEND_ACCEPTED, e);
+            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, NotificationType.SCHEDULE_SHARED, e);
 
             notificationRetryService.save(
                     outboxId,
