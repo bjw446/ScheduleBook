@@ -5,6 +5,7 @@ import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.outbox.entity.ProcessedOutbox;
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.enums.ProcessedOutboxStatus;
 import com.example.schedulebook.domain.outbox.repository.ProcessedOutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,5 +70,15 @@ public class ProcessedOutboxTransactionService {
         }
 
         log.debug("실패 한 ProcessedOutbox 재시도 {}", outboxId);
+    }
+
+    public boolean isAlreadyProcessed(Long outboxId) {
+        ProcessedOutbox processedOutbox = processedOutboxRepository.findByOutboxId(outboxId).orElse(null);
+
+        if (processedOutbox == null) {
+            return false;
+        }
+
+        return processedOutbox.getStatus() == ProcessedOutboxStatus.SUCCESS;
     }
 }
