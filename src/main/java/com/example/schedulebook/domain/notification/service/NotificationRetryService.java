@@ -100,6 +100,8 @@ public class NotificationRetryService {
     }
 
     private long nextDelaySeconds(int retryCount) {
-        return Math.min(30L * (1L << retryCount), 3600L);
+        int safeRetry = Math.max(0, Math.min(retryCount, 10));
+
+        return Math.min(30L * (1L << safeRetry), 3600L);
     }
 }

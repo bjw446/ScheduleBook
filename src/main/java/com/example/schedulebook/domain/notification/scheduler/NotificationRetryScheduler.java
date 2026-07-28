@@ -20,7 +20,7 @@ public class NotificationRetryScheduler {
 
     @Scheduled(fixedDelay = 30_000)
     public void process() {
-        while (true) {
+        for (int batch = 0; batch < CommonConst.MAX_BATCHES_PER_RUN; batch++) {
             List<NotificationRetry> notificationRetries = notificationRetryService.findRetryTargets(CommonConst.BATCH_SIZE);
 
             if (notificationRetries.isEmpty()) {
