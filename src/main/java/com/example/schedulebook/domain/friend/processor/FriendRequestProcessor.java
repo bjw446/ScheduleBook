@@ -5,7 +5,7 @@ import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.friend.event.FriendRequestedEvent;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.processor.NotificationEventProcessor;
-import com.example.schedulebook.domain.notification.service.NotificationRetryService;
+import com.example.schedulebook.domain.notificationretry.service.NotificationRetryService;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

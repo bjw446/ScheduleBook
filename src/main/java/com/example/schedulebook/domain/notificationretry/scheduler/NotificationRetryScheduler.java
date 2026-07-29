@@ -1,9 +1,10 @@
-package com.example.schedulebook.domain.notification.scheduler;
+package com.example.schedulebook.domain.notificationretry.scheduler;
 
 import com.example.schedulebook.common.consts.CommonConst;
-import com.example.schedulebook.domain.notification.entity.NotificationRetry;
-import com.example.schedulebook.domain.notification.processor.NotificationRetryProcessor;
-import com.example.schedulebook.domain.notification.service.NotificationRetryService;
+import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
+import com.example.schedulebook.domain.notificationretry.processor.NotificationRetryProcessor;
+import com.example.schedulebook.domain.notificationretry.service.NotificationRetryService;
+import com.example.schedulebook.domain.notificationretry.service.ProcessedNotificationRetryTransactionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,6 +18,7 @@ import java.util.List;
 public class NotificationRetryScheduler {
     private final NotificationRetryProcessor notificationRetryProcessor;
     private final NotificationRetryService notificationRetryService;
+    private final ProcessedNotificationRetryTransactionService processedNotificationRetryTransactionService;
 
     @Scheduled(fixedDelay = 30_000)
     public void process() {
@@ -48,6 +50,11 @@ public class NotificationRetryScheduler {
                                     notificationRetry.getId(),
                                     e.getMessage(),
                                     claimToken
+                            );
+
+                            processedNotificationRetryTransactionService.markFailed(
+                                    notificationRetry.getOutboxId(),
+                                    notificationRetry.getReceiverId()
                             );
 
                         } else {
