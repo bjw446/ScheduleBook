@@ -13,10 +13,11 @@ public class ProcessedNotificationRetryCreateService {
     private final ProcessedNotificationRetryRepository processedNotificationRetryRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public ProcessedNotificationRetry create(Long outboxId, Long receiverId) {
+    public ProcessedNotificationRetry create(Long outboxId, Long receiverId, String owner) {
         return processedNotificationRetryRepository.save(ProcessedNotificationRetry.create(
                 outboxId,
-                receiverId
+                receiverId,
+                owner
         ));
     }
 }

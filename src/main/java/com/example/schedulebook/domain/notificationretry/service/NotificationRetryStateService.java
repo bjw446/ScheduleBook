@@ -15,13 +15,21 @@ public class NotificationRetryStateService {
     public void completeFailure(NotificationRetry notificationRetry, String reason, String claimToken) {
         notificationRetryService.markFailed(notificationRetry.getId(), reason, claimToken);
 
-        processedNotificationRetryService.markFailed(notificationRetry.getOutboxId(), notificationRetry.getReceiverId());
+        processedNotificationRetryService.markFailed(
+                notificationRetry.getOutboxId(),
+                notificationRetry.getReceiverId(),
+                claimToken
+        );
     }
 
     @Transactional
     public void completeSuccess(NotificationRetry notificationRetry, String claimToken) {
         notificationRetryService.markSuccess(notificationRetry.getId(), claimToken);
 
-        processedNotificationRetryService.markSuccess(notificationRetry.getOutboxId(), notificationRetry.getReceiverId());
+        processedNotificationRetryService.markSuccess(
+                notificationRetry.getOutboxId(),
+                notificationRetry.getReceiverId(),
+                claimToken
+        );
     }
 }

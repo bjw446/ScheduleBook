@@ -34,12 +34,16 @@ public class ProcessedNotificationRetry extends ModifyEntity {
     @Column(nullable=false)
     private ProcessedNotificationRetryStatus status;
 
-    public static ProcessedNotificationRetry create(Long outboxId, Long receiverId) {
+    @Column(name = "processing_owner", length = 36)
+    private String processingOwner;
+
+    public static ProcessedNotificationRetry create(Long outboxId, Long receiverId, String processingOwner) {
         ProcessedNotificationRetry processedNotificationRetry = new ProcessedNotificationRetry();
 
         processedNotificationRetry.outboxId = outboxId;
         processedNotificationRetry.receiverId = receiverId;
         processedNotificationRetry.status = ProcessedNotificationRetryStatus.PROCESSING;
+        processedNotificationRetry.processingOwner = processingOwner;
 
         return processedNotificationRetry;
     }

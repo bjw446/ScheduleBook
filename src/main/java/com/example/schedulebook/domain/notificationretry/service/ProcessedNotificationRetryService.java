@@ -13,6 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -26,8 +29,8 @@ public class ProcessedNotificationRetryService {
     }
 
     @Transactional
-    public void markFailed(Long outboxId, Long receiverId) {
-        int updated = processedNotificationRetryRepository.markFailed(outboxId, receiverId);
+    public void markFailed(Long outboxId, Long receiverId, String owner) {
+        int updated = processedNotificationRetryRepository.markFailed(outboxId, receiverId, owner);
 
         if (updated != 1) {
             log.warn("ProcessedNotificationRetry 실패 상태 변경 실패 outboxId = {}, receiverId = {}", outboxId, receiverId);
@@ -39,8 +42,8 @@ public class ProcessedNotificationRetryService {
     }
 
     @Transactional
-    public void markSuccess(Long outboxId, Long receiverId) {
-        int updated = processedNotificationRetryRepository.markSuccess(outboxId, receiverId);
+    public void markSuccess(Long outboxId, Long receiverId, String owner) {
+        int updated = processedNotificationRetryRepository.markSuccess(outboxId, receiverId, owner);
 
         if (updated != 1) {
             log.warn("ProcessedNotificationRetry 이미 성공 상태 outboxId = {}, receiverId = {}", outboxId, receiverId);
@@ -52,8 +55,8 @@ public class ProcessedNotificationRetryService {
     }
 
     @Transactional
-    public void markRetry(Long outboxId, Long receiverId) {
-        int updated = processedNotificationRetryRepository.markRetry(outboxId, receiverId);
+    public int markRetry(Long outboxId, Long receiverId, String owner) {
+        int updated = processedNotificationRetryRepository.markRetry(outboxId, receiverId, owner);
 
         if (updated != 1) {
             log.warn("ProcessedNotificationRetry 재시도 상태 변경 실패 outboxId = {}, receiverId = {}", outboxId, receiverId);
@@ -62,6 +65,8 @@ public class ProcessedNotificationRetryService {
         }
 
         log.debug("실패 한 ProcessedNotificationRetry 재시도 outboxId = {}, receiverId = {}", outboxId, receiverId);
+
+        return updated;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -75,7 +80,8 @@ public class ProcessedNotificationRetryService {
             try {
                 processedNotificationRetry = processedNotificationRetryCreateService.create(
                         notificationRetry.getOutboxId(),
-                        notificationRetry.getReceiverId()
+                        notificationRetry.getReceiverId(),
+                        notificationRetry.getClaimToken()
                 );
 
             } catch (DataIntegrityViolationException e) {
@@ -97,7 +103,24 @@ public class ProcessedNotificationRetryService {
         }
 
         if (processedNotificationRetry.getStatus() == ProcessedNotificationRetryStatus.FAILED) {
-            markRetry(notificationRetry.getOutboxId(), notificationRetry.getReceiverId());
+            int updated = markRetry(
+                    notificationRetry.getOutboxId(),
+                    notificationRetry.getReceiverId(),
+                    notificationRetry.getClaimToken()
+            );
+
+            if (updated != 1) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (processedNotificationRetry.getStatus() == ProcessedNotificationRetryStatus.PROCESSING) {
+            if (!Objects.equals(processedNotificationRetry.getProcessingOwner(), notificationRetry.getClaimToken())) {
+                return true;
+            }
+
             return false;
         }
 
