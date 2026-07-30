@@ -14,16 +14,15 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional(readOnly = true)
 public class ProcessedNotificationRetryService {
     private final ProcessedNotificationRetryRepository processedNotificationRetryRepository;
     private final ProcessedNotificationRetryCreateService processedNotificationRetryCreateService;
 
+    @Transactional(readOnly = true)
     public ProcessedNotificationRetry findByOutboxIdAndReceiverId(Long outboxId, Long receiverId) {
         return processedNotificationRetryRepository.findByOutboxIdAndReceiverId(outboxId, receiverId).orElse(null);
     }
@@ -46,9 +45,7 @@ public class ProcessedNotificationRetryService {
         int updated = processedNotificationRetryRepository.markSuccess(outboxId, receiverId, owner);
 
         if (updated != 1) {
-            log.warn("ProcessedNotificationRetry 이미 성공 상태 outboxId = {}, receiverId = {}", outboxId, receiverId);
-
-            return;
+            throw new BaseException(ErrorEnum.PROCESSED_NOTIFICATION_RETRY_STATUS_CHANGE_FAILED);
         }
 
         log.debug("ProcessedNotificationRetry 성공 상태 변경 outboxId = {}, receiverId = {}", outboxId, receiverId);
@@ -61,7 +58,7 @@ public class ProcessedNotificationRetryService {
         if (updated != 1) {
             log.warn("ProcessedNotificationRetry 재시도 상태 변경 실패 outboxId = {}, receiverId = {}", outboxId, receiverId);
 
-            throw new BaseException(ErrorEnum.PROCESSED_NOTIFICATION_RETRY_STATUS_CHANGE_FAILED);
+            return updated;
         }
 
         log.debug("실패 한 ProcessedNotificationRetry 재시도 outboxId = {}, receiverId = {}", outboxId, receiverId);
