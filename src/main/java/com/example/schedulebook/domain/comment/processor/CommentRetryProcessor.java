@@ -5,7 +5,7 @@ import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
 import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
 import com.example.schedulebook.domain.notification.service.NotificationService;
-import com.example.schedulebook.domain.notificationretry.service.ProcessedNotificationRetryTransactionService;
+import com.example.schedulebook.domain.notificationretry.service.ProcessedNotificationRetryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -18,10 +18,10 @@ import org.springframework.stereotype.Component;
 public class CommentRetryProcessor {
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
-    private final ProcessedNotificationRetryTransactionService processedNotificationRetryTransactionService;
+    private final ProcessedNotificationRetryService processedNotificationRetryService;
 
     public void process(NotificationRetry notificationRetry) {
-        if (processedNotificationRetryTransactionService.prepareProcessedNotificationRetry(notificationRetry)) {
+        if (processedNotificationRetryService.prepareProcessedNotificationRetry(notificationRetry)) {
             return;
         }
 
@@ -35,11 +35,6 @@ public class CommentRetryProcessor {
                             event.writerNickname(),
                             event.scheduleId()
                     );
-
-                    processedNotificationRetryTransactionService.markSuccess(
-                            notificationRetry.getOutboxId(),
-                            notificationRetry.getReceiverId()
-                    );
                 }
 
                 case COMMENT_REPLY -> {
@@ -47,11 +42,6 @@ public class CommentRetryProcessor {
                             notificationRetry.getReceiverId(),
                             event.writerNickname(),
                             event.scheduleId()
-                    );
-
-                    processedNotificationRetryTransactionService.markSuccess(
-                            notificationRetry.getOutboxId(),
-                            notificationRetry.getReceiverId()
                     );
                 }
 

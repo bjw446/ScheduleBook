@@ -44,14 +44,14 @@ public class NotificationRetryService {
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markSuccess(Long notificationRetryId, String claimToken) {
         if (notificationRetryRepository.markSuccess(notificationRetryId, claimToken) != 1) {
             throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_NOT_FOUND);
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markFailed(Long notificationRetryId, String reason, String claimToken) {
         if (notificationRetryRepository.markFailed(notificationRetryId, reason, claimToken) != 1) {
             throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_NOT_FOUND);

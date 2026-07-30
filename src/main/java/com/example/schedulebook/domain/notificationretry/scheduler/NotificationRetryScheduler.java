@@ -4,7 +4,7 @@ import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
 import com.example.schedulebook.domain.notificationretry.processor.NotificationRetryProcessor;
 import com.example.schedulebook.domain.notificationretry.service.NotificationRetryService;
-import com.example.schedulebook.domain.notificationretry.service.ProcessedNotificationRetryTransactionService;
+import com.example.schedulebook.domain.notificationretry.service.NotificationRetryStateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,7 +18,7 @@ import java.util.List;
 public class NotificationRetryScheduler {
     private final NotificationRetryProcessor notificationRetryProcessor;
     private final NotificationRetryService notificationRetryService;
-    private final ProcessedNotificationRetryTransactionService processedNotificationRetryTransactionService;
+    private final NotificationRetryStateService notificationRetryStateService;
 
     @Scheduled(fixedDelay = 30_000)
     public void process() {
@@ -39,23 +39,14 @@ public class NotificationRetryScheduler {
                 try {
                     notificationRetryProcessor.dispatch(notificationRetry.getId());
 
-                    notificationRetryService.markSuccess(notificationRetry.getId(), claimToken);
+                    notificationRetryStateService.completeSuccess(notificationRetry, claimToken);
 
                 } catch (Exception e) {
                     log.warn("알림 재시도 처리 실패 notificationRetryId = {}", notificationRetry.getId(), e);
 
                     try {
                         if ((notificationRetry.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
-                            notificationRetryService.markFailed(
-                                    notificationRetry.getId(),
-                                    e.getMessage(),
-                                    claimToken
-                            );
-
-                            processedNotificationRetryTransactionService.markFailed(
-                                    notificationRetry.getOutboxId(),
-                                    notificationRetry.getReceiverId()
-                            );
+                            notificationRetryStateService.completeFailure(notificationRetry, e.getMessage(), claimToken);
 
                         } else {
                             notificationRetryService.markRetry(

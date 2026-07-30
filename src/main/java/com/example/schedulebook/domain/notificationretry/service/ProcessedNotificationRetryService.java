@@ -17,22 +17,15 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 @Transactional(readOnly = true)
-public class ProcessedNotificationRetryTransactionService {
+public class ProcessedNotificationRetryService {
     private final ProcessedNotificationRetryRepository processedNotificationRetryRepository;
+    private final ProcessedNotificationRetryCreateService processedNotificationRetryCreateService;
 
     public ProcessedNotificationRetry findByOutboxIdAndReceiverId(Long outboxId, Long receiverId) {
         return processedNotificationRetryRepository.findByOutboxIdAndReceiverId(outboxId, receiverId).orElse(null);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public ProcessedNotificationRetry create(Long outboxId, Long receiverId) {
-        return processedNotificationRetryRepository.save(ProcessedNotificationRetry.create(
-                outboxId,
-                receiverId
-        ));
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markFailed(Long outboxId, Long receiverId) {
         int updated = processedNotificationRetryRepository.markFailed(outboxId, receiverId);
 
@@ -45,7 +38,7 @@ public class ProcessedNotificationRetryTransactionService {
         log.debug("ProcessedNotificationRetry 실패 상태 변경 outboxId = {}, receiverId = {}", outboxId, receiverId);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markSuccess(Long outboxId, Long receiverId) {
         int updated = processedNotificationRetryRepository.markSuccess(outboxId, receiverId);
 
@@ -58,7 +51,7 @@ public class ProcessedNotificationRetryTransactionService {
         log.debug("ProcessedNotificationRetry 성공 상태 변경 outboxId = {}, receiverId = {}", outboxId, receiverId);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markRetry(Long outboxId, Long receiverId) {
         int updated = processedNotificationRetryRepository.markRetry(outboxId, receiverId);
 
@@ -80,7 +73,10 @@ public class ProcessedNotificationRetryTransactionService {
 
         if (processedNotificationRetry == null) {
             try {
-                processedNotificationRetry = create(notificationRetry.getOutboxId(), notificationRetry.getReceiverId());
+                processedNotificationRetry = processedNotificationRetryCreateService.create(
+                        notificationRetry.getOutboxId(),
+                        notificationRetry.getReceiverId()
+                );
 
             } catch (DataIntegrityViolationException e) {
                 processedNotificationRetry = findByOutboxIdAndReceiverId(notificationRetry.getOutboxId(), notificationRetry.getReceiverId());

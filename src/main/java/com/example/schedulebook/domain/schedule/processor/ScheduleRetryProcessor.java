@@ -4,7 +4,7 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
 import com.example.schedulebook.domain.notification.service.NotificationService;
-import com.example.schedulebook.domain.notificationretry.service.ProcessedNotificationRetryTransactionService;
+import com.example.schedulebook.domain.notificationretry.service.ProcessedNotificationRetryService;
 import com.example.schedulebook.domain.scheduleshare.event.ScheduleSharedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,10 +18,10 @@ import org.springframework.stereotype.Component;
 public class ScheduleRetryProcessor {
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
-    private final ProcessedNotificationRetryTransactionService processedNotificationRetryTransactionService;
+    private final ProcessedNotificationRetryService processedNotificationRetryService;
 
     public void process(NotificationRetry notificationRetry) {
-        if (processedNotificationRetryTransactionService.prepareProcessedNotificationRetry(notificationRetry)) {
+        if (processedNotificationRetryService.prepareProcessedNotificationRetry(notificationRetry)) {
             return;
         }
 
@@ -37,11 +37,6 @@ public class ScheduleRetryProcessor {
                             notificationRetry.getReceiverId(),
                             event.ownerNickname(),
                             event.shareId()
-                    );
-
-                    processedNotificationRetryTransactionService.markSuccess(
-                            notificationRetry.getOutboxId(),
-                            notificationRetry.getReceiverId()
                     );
                 }
 

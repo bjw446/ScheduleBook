@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface ProcessedNotificationRetryRepository extends JpaRepository<ProcessedNotificationRetry, Long> {
@@ -31,4 +32,11 @@ public interface ProcessedNotificationRetryRepository extends JpaRepository<Proc
             "WHERE p.outboxId = :outboxId AND p.receiverId = :receiverId AND p.status = " +
             "com.example.schedulebook.domain.notificationretry.enums.ProcessedNotificationRetryStatus.PROCESSING")
     int markFailed(@Param("outboxId") Long outboxId, @Param("receiverId") Long receiverId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE ProcessedNotificationRetry p SET p.status = " +
+            "com.example.schedulebook.domain.notificationretry.enums.ProcessedNotificationRetryStatus.FAILED " +
+            "WHERE p.status = com.example.schedulebook.domain.notificationretry.enums.ProcessedNotificationRetryStatus.PROCESSING " +
+            "AND p.updatedAt < :time")
+    int recoverTimeoutProcessing(@Param("time") LocalDateTime time);
 }
