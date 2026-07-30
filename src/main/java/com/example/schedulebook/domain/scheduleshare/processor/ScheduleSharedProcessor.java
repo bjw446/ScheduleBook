@@ -4,7 +4,7 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.processor.NotificationEventProcessor;
-import com.example.schedulebook.domain.notification.service.NotificationRetryService;
+import com.example.schedulebook.domain.notificationretry.service.NotificationRetryService;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.scheduleshare.event.ScheduleSharedEvent;
 import lombok.RequiredArgsConstructor;

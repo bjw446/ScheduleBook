@@ -1,8 +1,8 @@
-package com.example.schedulebook.domain.notification.entity;
+package com.example.schedulebook.domain.notificationretry.entity;
 
 import com.example.schedulebook.common.entity.ModifyEntity;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
-import com.example.schedulebook.domain.notification.enums.RetryStatus;
+import com.example.schedulebook.domain.notificationretry.enums.NotificationRetryStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -37,7 +37,7 @@ public class NotificationRetry extends ModifyEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "retry_status", nullable = false)
-    private RetryStatus retryStatus;
+    private NotificationRetryStatus notificationRetryStatus;
 
     @Column(name = "reason", columnDefinition = "TEXT")
     private String reason;
@@ -62,7 +62,7 @@ public class NotificationRetry extends ModifyEntity {
         notificationRetry.notificationType = notificationType;
         notificationRetry.payload = payload;
         notificationRetry.retryCount = 0;
-        notificationRetry.retryStatus = RetryStatus.PENDING;
+        notificationRetry.notificationRetryStatus = NotificationRetryStatus.PENDING;
         notificationRetry.reason = reason;
         notificationRetry.nextRetryAt = LocalDateTime.now().plusSeconds(30);
 

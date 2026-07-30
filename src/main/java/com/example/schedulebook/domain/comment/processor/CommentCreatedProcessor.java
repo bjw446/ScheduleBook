@@ -7,7 +7,7 @@ import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.processor.NotificationEventProcessor;
-import com.example.schedulebook.domain.notification.service.NotificationRetryService;
+import com.example.schedulebook.domain.notificationretry.service.NotificationRetryService;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;

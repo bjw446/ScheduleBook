@@ -14,4 +14,5 @@ public final class CommonConst {
     public static final int BATCH_SIZE = 100;
     public static final int MAX_RETRY = 5;
     public static final int MAX_BATCHES_PER_RUN = 5;
+    public static final long PROCESSING_TIMEOUT_MINUTES = 10;
 }

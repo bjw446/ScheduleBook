@@ -1,10 +1,10 @@
-package com.example.schedulebook.domain.notification.service;
+package com.example.schedulebook.domain.notificationretry.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.domain.notification.entity.NotificationRetry;
+import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
-import com.example.schedulebook.domain.notification.repository.NotificationRetryRepository;
+import com.example.schedulebook.domain.notificationretry.repository.NotificationRetryRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -44,14 +44,14 @@ public class NotificationRetryService {
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markSuccess(Long notificationRetryId, String claimToken) {
         if (notificationRetryRepository.markSuccess(notificationRetryId, claimToken) != 1) {
             throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_NOT_FOUND);
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markFailed(Long notificationRetryId, String reason, String claimToken) {
         if (notificationRetryRepository.markFailed(notificationRetryId, reason, claimToken) != 1) {
             throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_NOT_FOUND);

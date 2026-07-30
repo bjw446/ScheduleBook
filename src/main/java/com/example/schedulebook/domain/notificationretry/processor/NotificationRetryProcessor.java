@@ -1,11 +1,11 @@
-package com.example.schedulebook.domain.notification.processor;
+package com.example.schedulebook.domain.notificationretry.processor;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.comment.processor.CommentRetryProcessor;
 import com.example.schedulebook.domain.friend.processor.FriendRetryProcessor;
-import com.example.schedulebook.domain.notification.entity.NotificationRetry;
-import com.example.schedulebook.domain.notification.service.NotificationRetryService;
+import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
+import com.example.schedulebook.domain.notificationretry.service.NotificationRetryService;
 import com.example.schedulebook.domain.schedule.processor.ScheduleRetryProcessor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
