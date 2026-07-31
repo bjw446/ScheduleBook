@@ -41,6 +41,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final SessionLimitService sessionLimitService;
     private final OutboxService outboxService;
+    private final AuditEventOutboxService auditEventOutboxService;
 
     public SignupResponse signup(SignupRequest request) {
         userValidator.validateDuplicateUser(
@@ -103,7 +104,7 @@ public class AuthService {
                             user.getId(),
                             null,
                             user.getLoginId(),
-                            AuditEventType.LOGIN_SUCCESS,
+                            AuditEventType.SESSION_LOGOUT,
                             ip,
                             userAgent
                     )
@@ -165,19 +166,7 @@ public class AuthService {
 
                 User user = userValidator.validateActiveUser(userId);
 
-                outboxService.save(
-                        OutboxAggregateType.USER,
-                        user.getId(),
-                        OutboxEventType.AUDIT_EVENT,
-                        new AuditEvent(
-                                user.getId(),
-                                null,
-                                user.getLoginId(),
-                                AuditEventType.REFRESH_REPLAY,
-                                ip,
-                                userAgent
-                        )
-                );
+                auditEventOutboxService.saveReplayEvent(user.getId(), user.getLoginId(), ip, userAgent);
             }
 
             throw e;

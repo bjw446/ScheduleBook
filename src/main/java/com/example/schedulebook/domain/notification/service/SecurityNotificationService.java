@@ -15,6 +15,7 @@ import com.example.schedulebook.domain.user.repository.UserRepository;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -26,12 +27,14 @@ public class SecurityNotificationService {
     private final OutboxService outboxService;
     private final UserRepository userRepository;
 
+    @Transactional
     public void notifyUser(AuditEvent event) {
         User receiver = userValidator.validateActiveUser(event.userId());
 
         createAndPublishNotification(receiver, NotificationType.REFRESH_REPLAY_USER, event);
     }
 
+    @Transactional
     public void notifyAdmins(AuditEvent event) {
         List<User> admins = userRepository.findAllActiveAdmins(UserRole.SUPER_ADMIN);
 

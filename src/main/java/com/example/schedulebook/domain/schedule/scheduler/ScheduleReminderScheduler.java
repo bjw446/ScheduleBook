@@ -52,8 +52,6 @@ public class ScheduleReminderScheduler {
                     );
                 }
             }
-
-            scheduleReminderRepository.saveAll(reminders);
         }
     }
 }

@@ -19,7 +19,7 @@ public class AuditLogRetryProcessor  {
             auditLogService.save(event);
 
             if (event.eventType() == AuditEventType.REFRESH_REPLAY) {
-                refreshReplayDetectedProcessor.process(event);
+                refreshReplayDetectedProcessor.process(outboxId, event);
             }
 
         } catch (Exception e) {
