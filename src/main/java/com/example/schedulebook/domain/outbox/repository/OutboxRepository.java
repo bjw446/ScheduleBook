@@ -70,7 +70,7 @@ public interface OutboxRepository extends JpaRepository<Outbox, Long> {
     @Query("UPDATE Outbox o SET o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.DEAD, " +
             "o.nextRetryAt = NULL WHERE o.aggregateType = :aggregateType AND o.aggregateId = :aggregateId " +
             "AND o.eventType = :eventType AND o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.PENDING")
-    int updateStatusToDeadIfPending(@Param("aggregateType") OutboxAggregateType aggregateType,
+    void updateStatusToDeadIfPending(@Param("aggregateType") OutboxAggregateType aggregateType,
                                     @Param("aggregateId") Long aggregateId,
                                     @Param("eventType") OutboxEventType eventType);
 }

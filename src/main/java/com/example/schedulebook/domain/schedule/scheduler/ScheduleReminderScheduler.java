@@ -42,8 +42,6 @@ public class ScheduleReminderScheduler {
 
             for (ScheduleReminder reminder : reminders) {
                 try {
-                    reminder.markSent();
-
                     ScheduleReminderEvent reminderEvent = new ScheduleReminderEvent(
                             reminder.getSchedule().getId(),
                             reminder.getSchedule().getUser().getId(),
@@ -57,6 +55,8 @@ public class ScheduleReminderScheduler {
                             OutboxEventType.SCHEDULE_REMINDER,
                             reminderEvent
                     );
+
+                    reminder.markSent();
 
                     log.debug("알림 Outbox 이벤트 생성 완료 scheduleId = {}, reminderTime = {}",
                             reminder.getSchedule().getId(),

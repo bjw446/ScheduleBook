@@ -1,14 +1,11 @@
 package com.example.schedulebook.domain.schedule.service;
 
-import com.example.schedulebook.common.enums.ErrorEnum;
-import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.entity.ScheduleReminder;
 import com.example.schedulebook.domain.schedule.repository.ScheduleReminderRepository;
-import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,22 +17,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 @Slf4j
 public class ScheduleReminderService {
-    private final ScheduleRepository scheduleRepository;
     private final ScheduleReminderRepository scheduleReminderRepository;
     private final OutboxService outboxService;
-
-    @Transactional
-    public void process(Long scheduleId) {
-        Schedule schedule = scheduleRepository.findWithOwner(scheduleId).orElseThrow(
-                () -> new BaseException(ErrorEnum.SCHEDULE_NOT_FOUND)
-        );
-
-        int updated = scheduleRepository.markReminderSent(schedule.getId());
-
-        if (updated != 1) {
-            log.warn("이미 처리된 일정 알림 scheduleId = {}", schedule.getId());
-        }
-    }
 
     @Transactional
     public void save(Schedule schedule) {

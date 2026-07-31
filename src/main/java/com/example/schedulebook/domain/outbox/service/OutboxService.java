@@ -45,14 +45,10 @@ public class OutboxService {
     }
 
     public void cancelPending(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType) {
-        int updated = outboxRepository.updateStatusToDeadIfPending(
+        outboxRepository.updateStatusToDeadIfPending(
                 aggregateType,
                 aggregateId,
                 eventType
         );
-
-        if (updated < 1) {
-            throw new BaseException(ErrorEnum.OUTBOX_STATUS_CHANGE_FAILED);
-        }
     }
 }
