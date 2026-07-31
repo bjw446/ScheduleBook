@@ -7,5 +7,6 @@ public enum OutboxAggregateType {
     CHAT,
     FRIEND,
     NOTIFICATION,
-    REWARD
+    REWARD,
+    SECURITY
 }

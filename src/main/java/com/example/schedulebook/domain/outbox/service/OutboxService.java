@@ -15,12 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 @Slf4j
 public class OutboxService {
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
 
+    @Transactional
     public void save(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType, Object payload) {
         try {
             String json = objectMapper.writeValueAsString(payload);
@@ -44,6 +44,7 @@ public class OutboxService {
         }
     }
 
+    @Transactional
     public void cancelPending(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType) {
         outboxRepository.updateStatusToDeadIfPending(
                 aggregateType,

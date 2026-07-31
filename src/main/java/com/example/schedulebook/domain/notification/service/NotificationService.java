@@ -41,12 +41,12 @@ public class NotificationService {
         );
     }
 
-    public void createFriendAcceptedNotification(Long requesterId, String accepterNickname, Long friendId) {
+    public void createFriendAcceptedNotification(Long requesterId, String acceptedNickname, Long friendId) {
         createNotification(
                 requesterId,
                 NotificationType.FRIEND_ACCEPTED,
                 NotificationType.FRIEND_ACCEPTED.getTitle(),
-                accepterNickname + NotificationType.FRIEND_ACCEPTED.getDefaultMessage(),
+                acceptedNickname + NotificationType.FRIEND_ACCEPTED.getDefaultMessage(),
                 friendId
         );
     }

@@ -33,7 +33,7 @@ public class Outbox extends ModifyEntity {
     @Column(name = "aggregate_type", nullable = false)
     private OutboxAggregateType aggregateType;
 
-    @Column(name = "aggregate_id", nullable = false)
+    @Column(name = "aggregate_id")
     private Long aggregateId;
 
     @Enumerated(EnumType.STRING)

@@ -9,7 +9,15 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "audit_logs")
+@Table(
+        name = "audit_logs",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uq_audit_outbox",
+                        columnNames = {"outbox_id"}
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AuditLog extends CreateEntity {
     @Id
@@ -37,6 +45,9 @@ public class AuditLog extends CreateEntity {
     @Column(nullable = false, name = "user_agent")
     private String userAgent;
 
+    @Column(name = "outbox_id", nullable = false)
+    private Long outboxId;
+
     public static AuditLog create(
             Long userId,
             Long adminId,
@@ -44,7 +55,8 @@ public class AuditLog extends CreateEntity {
             AuditEventType auditEventType,
             String description,
             String ip,
-            String userAgent
+            String userAgent,
+            Long outboxId
     ) {
         AuditLog auditLog = new AuditLog();
 
@@ -55,6 +67,7 @@ public class AuditLog extends CreateEntity {
         auditLog.description = description;
         auditLog.ip = ip;
         auditLog.userAgent = userAgent;
+        auditLog.outboxId = outboxId;
 
         return auditLog;
     }

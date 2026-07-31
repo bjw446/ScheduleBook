@@ -1,9 +1,10 @@
-package com.example.schedulebook.domain.auth.service;
+package com.example.schedulebook.domain.auth.handler;
 
 import com.example.schedulebook.common.consts.WebSocketDestination;
 import com.example.schedulebook.common.redis.service.RedisPresenceService;
 import com.example.schedulebook.domain.auth.dto.response.ForceLogoutResponse;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
+import com.example.schedulebook.domain.auth.service.SessionBlockStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;

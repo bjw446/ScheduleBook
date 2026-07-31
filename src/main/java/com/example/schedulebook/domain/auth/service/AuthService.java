@@ -3,23 +3,23 @@ package com.example.schedulebook.domain.auth.service;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.exception.SessionLimitException;
-import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.common.security.JwtProvider;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
 import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
 import com.example.schedulebook.domain.auth.dto.response.*;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
-import com.example.schedulebook.domain.auth.event.LogoutEvent;
-import com.example.schedulebook.domain.auth.event.RefreshReplayDetectedEvent;
-import com.example.schedulebook.domain.auth.event.LogoutSessionEvent;
+import com.example.schedulebook.domain.auth.enums.AuditEventType;
+import com.example.schedulebook.domain.auth.event.AuditEvent;
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -39,9 +39,9 @@ public class AuthService {
     private final LoginSuccessService loginSuccessService;
     private final SessionService sessionService;
     private final JwtProvider jwtProvider;
-    private final ApplicationEventPublisher applicationEventPublisher;
     private final SessionLimitService sessionLimitService;
-    private final AfterCommitExecutor afterCommitExecutor;
+    private final OutboxService outboxService;
+    private final AuditEventOutboxService auditEventOutboxService;
 
     public SignupResponse signup(SignupRequest request) {
         userValidator.validateDuplicateUser(
@@ -96,7 +96,19 @@ public class AuthService {
 
             sessionService.logoutSession(user.getId(), request.replaceSessionId());
 
-            afterCommit(new LogoutSessionEvent(user.getId(), ip, userAgent));
+            outboxService.save(
+                    OutboxAggregateType.USER,
+                    user.getId(),
+                    OutboxEventType.AUDIT_EVENT,
+                    new AuditEvent(
+                            user.getId(),
+                            null,
+                            user.getLoginId(),
+                            AuditEventType.SESSION_LOGOUT,
+                            ip,
+                            userAgent
+                    )
+            );
 
         } else {
             SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
@@ -120,7 +132,19 @@ public class AuthService {
 
         LoginToken token = sessionService.logout(accessToken);
 
-        afterCommit(new LogoutEvent(token.userId(), ip, userAgent));
+        outboxService.save(
+                OutboxAggregateType.USER,
+                token.userId(),
+                OutboxEventType.AUDIT_EVENT,
+                new AuditEvent(
+                        token.userId(),
+                        null,
+                        null,
+                        AuditEventType.LOGOUT,
+                        ip,
+                        userAgent
+                )
+        );
     }
 
     public LoginResponse refresh(RefreshRequest request, HttpServletRequest servletRequest) {
@@ -142,14 +166,9 @@ public class AuthService {
 
                 User user = userValidator.validateActiveUser(userId);
 
-                applicationEventPublisher.publishEvent(
-                        new RefreshReplayDetectedEvent(
-                                userId,
-                                user.getLoginId(),
-                                ip,
-                                userAgent
-                        )
-                );
+                auditEventOutboxService.saveReplayEvent(user.getId(), user.getLoginId(), ip, userAgent);
+
+                throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID);
             }
 
             throw e;
@@ -172,7 +191,19 @@ public class AuthService {
 
         sessionService.logoutSession(currentUserId, sessionId);
 
-        afterCommit(new LogoutSessionEvent(currentUserId, ip, userAgent));
+        outboxService.save(
+                OutboxAggregateType.USER,
+                currentUserId,
+                OutboxEventType.AUDIT_EVENT,
+                new AuditEvent(
+                        currentUserId,
+                        null,
+                        null,
+                        AuditEventType.SESSION_LOGOUT,
+                        ip,
+                        userAgent
+                )
+        );
     }
 
     private void processLogin(User user, String ip, String userAgent) {
@@ -202,16 +233,5 @@ public class AuthService {
         }
 
         return ip;
-    }
-
-    private void afterCommit(Object object) {
-        afterCommitExecutor.execute(() -> {
-            try {
-                applicationEventPublisher.publishEvent(object);
-
-            } catch (Exception e) {
-                log.error("커밋 후 이벤트 발행 실패 : {}", e.getMessage(), e);
-            }
-        });
     }
 }

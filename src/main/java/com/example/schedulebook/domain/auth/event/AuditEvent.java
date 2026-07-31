@@ -2,10 +2,11 @@ package com.example.schedulebook.domain.auth.event;
 
 import com.example.schedulebook.domain.auth.enums.AuditEventType;
 
-public record ForceLogoutAuditEvent(
-        Long adminId,
+public record AuditEvent(
         Long userId,
-        AuditEventType auditEventType,
+        Long adminId,
+        String loginId,
+        AuditEventType eventType,
         String ip,
         String userAgent
 ) {
