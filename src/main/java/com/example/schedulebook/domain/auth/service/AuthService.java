@@ -3,7 +3,6 @@ package com.example.schedulebook.domain.auth.service;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.exception.SessionLimitException;
-import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.common.security.JwtProvider;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
@@ -13,6 +12,9 @@ import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.event.LogoutEvent;
 import com.example.schedulebook.domain.auth.event.RefreshReplayDetectedEvent;
 import com.example.schedulebook.domain.auth.event.LogoutSessionEvent;
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import com.example.schedulebook.domain.user.validator.UserValidator;
@@ -41,7 +43,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final SessionLimitService sessionLimitService;
-    private final AfterCommitExecutor afterCommitExecutor;
+    private final OutboxService outboxService;
 
     public SignupResponse signup(SignupRequest request) {
         userValidator.validateDuplicateUser(
@@ -96,7 +98,12 @@ public class AuthService {
 
             sessionService.logoutSession(user.getId(), request.replaceSessionId());
 
-            afterCommit(new LogoutSessionEvent(user.getId(), ip, userAgent));
+            outboxService.save(
+                    OutboxAggregateType.USER,
+                    user.getId(),
+                    OutboxEventType.AUDIT_EVENT,
+                    new LogoutSessionEvent(user.getId(), ip, userAgent)
+            );
 
         } else {
             SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
@@ -120,7 +127,12 @@ public class AuthService {
 
         LoginToken token = sessionService.logout(accessToken);
 
-        afterCommit(new LogoutEvent(token.userId(), ip, userAgent));
+        outboxService.save(
+                OutboxAggregateType.USER,
+                token.userId(),
+                OutboxEventType.AUDIT_EVENT,
+                new LogoutEvent(token.userId(), ip, userAgent)
+        );
     }
 
     public LoginResponse refresh(RefreshRequest request, HttpServletRequest servletRequest) {
@@ -172,7 +184,12 @@ public class AuthService {
 
         sessionService.logoutSession(currentUserId, sessionId);
 
-        afterCommit(new LogoutSessionEvent(currentUserId, ip, userAgent));
+        outboxService.save(
+                OutboxAggregateType.USER,
+                currentUserId,
+                OutboxEventType.AUDIT_EVENT,
+                new LogoutSessionEvent(currentUserId, ip, userAgent)
+        );
     }
 
     private void processLogin(User user, String ip, String userAgent) {
@@ -202,16 +219,5 @@ public class AuthService {
         }
 
         return ip;
-    }
-
-    private void afterCommit(Object object) {
-        afterCommitExecutor.execute(() -> {
-            try {
-                applicationEventPublisher.publishEvent(object);
-
-            } catch (Exception e) {
-                log.error("커밋 후 이벤트 발행 실패 : {}", e.getMessage(), e);
-            }
-        });
     }
 }

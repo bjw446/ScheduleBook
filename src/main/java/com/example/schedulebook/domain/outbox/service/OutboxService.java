@@ -11,16 +11,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 @Slf4j
 public class OutboxService {
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void save(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType, Object payload) {
         try {
             String json = objectMapper.writeValueAsString(payload);
@@ -44,6 +45,7 @@ public class OutboxService {
         }
     }
 
+    @Transactional
     public void cancelPending(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType) {
         outboxRepository.updateStatusToDeadIfPending(
                 aggregateType,

@@ -2,7 +2,7 @@ package com.example.schedulebook.common.redis.subscriber;
 
 import com.example.schedulebook.common.redis.service.RedisPresenceService;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
-import com.example.schedulebook.domain.auth.service.ForceLogoutHandler;
+import com.example.schedulebook.domain.auth.handler.ForceLogoutHandler;
 import com.example.schedulebook.domain.comment.event.CommentEvent;
 import com.example.schedulebook.domain.comment.subscriber.CommentSubscriber;
 import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;

@@ -44,6 +44,20 @@ public class AuditLogService {
         save(event.userId(), event.adminId(), null, event.auditEventType(), event.ip(), event.userAgent());
     }
 
+    public void save(AuditEvent event) {
+        AuditLog auditLog = AuditLog.create(
+                event.userId(),
+                event.adminId(),
+                event.loginId(),
+                event.eventType(),
+                event.eventType().getDescription(),
+                event.ip(),
+                event.userAgent()
+        );
+
+        auditLogRepository.save(auditLog);
+    }
+
     private void save(Long userId, Long adminId, String loginId, AuditEventType auditEventType, String ip, String userAgent) {
         AuditLog auditLog = AuditLog.create(
                 userId,
