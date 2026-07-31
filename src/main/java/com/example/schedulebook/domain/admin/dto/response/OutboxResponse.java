@@ -7,7 +7,7 @@ import com.example.schedulebook.domain.outbox.enums.OutboxStatus;
 
 import java.time.LocalDateTime;
 
-public record DeadOutboxResponse(
+public record OutboxResponse(
         Long id,
         OutboxAggregateType aggregateType,
         Long aggregateId,
@@ -19,14 +19,14 @@ public record DeadOutboxResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public static DeadOutboxResponse from(Outbox outbox) {
+    public static OutboxResponse from(Outbox outbox) {
         String preview = outbox.getPayload() == null
                 ? null
                 : outbox.getPayload().length() > 200
                 ? outbox.getPayload().substring(0, 200)
                 : outbox.getPayload();
 
-        return new DeadOutboxResponse(
+        return new OutboxResponse(
                 outbox.getId(),
                 outbox.getAggregateType(),
                 outbox.getAggregateId(),

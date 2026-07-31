@@ -4,7 +4,7 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.response.PageResponse;
 import com.example.schedulebook.domain.admin.dto.response.CleanupOutboxResponse;
-import com.example.schedulebook.domain.admin.dto.response.DeadOutboxResponse;
+import com.example.schedulebook.domain.admin.dto.response.OutboxResponse;
 import com.example.schedulebook.domain.admin.dto.response.OutboxStatsResponse;
 import com.example.schedulebook.domain.outbox.entity.Outbox;
 import com.example.schedulebook.domain.outbox.enums.OutboxStatus;
@@ -29,15 +29,15 @@ public class AdminOutboxService {
     private final OutboxCleanupService outboxCleanupService;
 
     @Transactional(readOnly = true)
-    public PageResponse<DeadOutboxResponse> findAllDeadOutboxes(Long currentUserId, Pageable pageable) {
+    public PageResponse<OutboxResponse> findAllDeadOutboxes(Long currentUserId, Pageable pageable) {
         userValidator.validateActiveAdmin(currentUserId);
 
         Page<Outbox> outboxPage = outboxRepository.findAllByStatus(OutboxStatus.DEAD, pageable);
 
-        return PageResponse.register(outboxPage.map(DeadOutboxResponse::from));
+        return PageResponse.register(outboxPage.map(OutboxResponse::from));
     }
 
-    public void retryDeadOutbox(Long currentUserId, Long outboxId) {
+    public void retryOutbox(Long currentUserId, Long outboxId) {
         userValidator.validateActiveAdmin(currentUserId);
 
         Outbox outbox = outboxRepository.findById(outboxId).orElseThrow(
@@ -72,6 +72,15 @@ public class AdminOutboxService {
                 toLong(result[3]),
                 toLong(result[4])
         );
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<OutboxResponse> findAllFailedOutboxes(Long currentUserId, Pageable pageable) {
+        userValidator.validateActiveAdmin(currentUserId);
+
+        Page<Outbox> outboxPage = outboxRepository.findAllByStatus(OutboxStatus.FAILED, pageable);
+
+        return PageResponse.register(outboxPage.map(OutboxResponse::from));
     }
 
     private long toLong(Object value) {

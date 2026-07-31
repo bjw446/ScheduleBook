@@ -61,9 +61,9 @@ public class NotificationService {
         );
     }
 
-    public void createScheduleReminderNotification(User receiver, Long scheduleId, String scheduleTitle) {
+    public void createScheduleReminderNotification(Long receiverId, Long scheduleId, String scheduleTitle) {
         createNotification(
-                receiver,
+                receiverId,
                 NotificationType.SCHEDULE_REMINDER,
                 NotificationType.SCHEDULE_REMINDER.getTitle(),
                 scheduleTitle + NotificationType.SCHEDULE_REMINDER.getDefaultMessage(),
@@ -182,12 +182,6 @@ public class NotificationService {
 
     private Notification createNotification(Long receiverId, NotificationType notificationType, String title, String content, Long targetId) {
         User receiver = userValidator.validateActiveUser(receiverId);
-
-        return saveNotification(receiver, notificationType, title, content, targetId);
-    }
-
-    private Notification createNotification(User receiver, NotificationType notificationType, String title, String content, Long targetId) {
-        userValidator.validateUserStatus(receiver);
 
         return saveNotification(receiver, notificationType, title, content, targetId);
     }

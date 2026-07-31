@@ -28,7 +28,7 @@ public class NotificationRetryProcessor {
             case FRIEND_REQUEST, FRIEND_ACCEPTED ->
                     friendRetryProcessor.process(notificationRetry);
 
-            case SCHEDULE_SHARED ->
+            case SCHEDULE_SHARED, SCHEDULE_REMINDER ->
                     scheduleRetryProcessor.process(notificationRetry);
 
             default ->

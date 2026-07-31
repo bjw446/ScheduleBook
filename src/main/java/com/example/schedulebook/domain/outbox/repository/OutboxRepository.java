@@ -1,6 +1,8 @@
 package com.example.schedulebook.domain.outbox.repository;
 
 import com.example.schedulebook.domain.outbox.entity.Outbox;
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import com.example.schedulebook.domain.outbox.enums.OutboxStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -63,4 +65,12 @@ public interface OutboxRepository extends JpaRepository<Outbox, Long> {
             "SUM(CASE WHEN o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.SUCCESS THEN 1 ELSE 0 END) " +
             "FROM Outbox o")
     Object[] countStats();
+
+    @Modifying
+    @Query("UPDATE Outbox o SET o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.DEAD, " +
+            "o.nextRetryAt = NULL WHERE o.aggregateType = :aggregateType AND o.aggregateId = :aggregateId " +
+            "AND o.eventType = :eventType AND o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.PENDING")
+    void updateStatusToDeadIfPending(@Param("aggregateType") OutboxAggregateType aggregateType,
+                                    @Param("aggregateId") Long aggregateId,
+                                    @Param("eventType") OutboxEventType eventType);
 }

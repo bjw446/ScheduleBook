@@ -1,28 +1,63 @@
 package com.example.schedulebook.domain.schedule.processor;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.notification.enums.NotificationType;
+import com.example.schedulebook.domain.notification.processor.NotificationEventProcessor;
 import com.example.schedulebook.domain.notification.service.NotificationService;
-import com.example.schedulebook.domain.schedule.entity.Schedule;
-import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
+import com.example.schedulebook.domain.notificationretry.service.NotificationRetryService;
+import com.example.schedulebook.domain.schedule.event.ScheduleReminderEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
-public class ScheduleReminderProcessor {
+@Slf4j
+public class ScheduleReminderProcessor implements NotificationEventProcessor<ScheduleReminderEvent> {
     private final NotificationService notificationService;
-    private final ScheduleRepository scheduleRepository;
+    private final NotificationRetryService notificationRetryService;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void executeReminderAndMarkSent(Schedule schedule) {
-        notificationService.createScheduleReminderNotification(
-                schedule.getUser(),
-                schedule.getId(),
-                schedule.getTitle()
-        );
+    @Override
+    public Class<ScheduleReminderEvent> supports() {
+        return ScheduleReminderEvent.class;
+    }
 
-        schedule.markReminderSent();
-        scheduleRepository.save(schedule);
+    @Override
+    public void process(Long outboxId, ScheduleReminderEvent event) {
+        try {
+            notificationService.createScheduleReminderNotification(
+                    event.receiverId(),
+                    event.scheduleId(),
+                    event.title()
+            );
+
+        } catch (Exception e) {
+            saveNotificationRetry(outboxId, event.receiverId(), event, e);
+        }
+    }
+
+    private void saveNotificationRetry(
+            Long outboxId,
+            Long receiverId,
+            Object event,
+            Exception e
+    ) {
+        try {
+            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, NotificationType.SCHEDULE_REMINDER, e);
+
+            notificationRetryService.save(
+                    outboxId,
+                    receiverId,
+                    NotificationType.SCHEDULE_REMINDER,
+                    event,
+                    e.getMessage()
+            );
+
+        } catch (Exception ex) {
+            log.error("일정 알림 Retry 저장 실패", ex);
+
+            throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_SAVE_FAILED);
+        }
     }
 }

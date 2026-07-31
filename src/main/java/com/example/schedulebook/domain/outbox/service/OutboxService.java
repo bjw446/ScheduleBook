@@ -43,4 +43,12 @@ public class OutboxService {
             throw e;
         }
     }
+
+    public void cancelPending(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType) {
+        outboxRepository.updateStatusToDeadIfPending(
+                aggregateType,
+                aggregateId,
+                eventType
+        );
+    }
 }
