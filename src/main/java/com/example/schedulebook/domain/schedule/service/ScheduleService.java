@@ -35,6 +35,7 @@ public class ScheduleService {
     private final UserValidator userValidator;
     private final ScheduleValidator scheduleValidator;
     private final OutboxService outboxService;
+    private final ScheduleReminderService scheduleReminderService;
 
     public ScheduleSummaryResponse createSchedule(CreateScheduleRequest request, Long currentUserId) {
         User user = userValidator.validateActiveUser(currentUserId);
@@ -55,6 +56,8 @@ public class ScheduleService {
         scheduleParticipantRepository.save(ownerParticipant);
 
         user.increaseScheduleCount();
+
+        scheduleReminderService.save(savedSchedule);
 
         return ScheduleSummaryResponse.from(savedSchedule);
     }
@@ -110,6 +113,8 @@ public class ScheduleService {
                 request.startTime(),
                 request.endTime()
         );
+
+        scheduleReminderService.refresh(schedule);
 
         ScheduleUpdatedEvent scheduleUpdatedEvent = new ScheduleUpdatedEvent(schedule.getId());
 

@@ -20,9 +20,9 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     List<Schedule> findByUser_IdAndScheduleDate(Long userId, LocalDate scheduleDate);
 
-    @Query("SELECT s FROM Schedule s JOIN FETCH s.user WHERE s.scheduleDate = :date " +
+    @Query("SELECT s.id FROM Schedule s WHERE s.scheduleDate = :date " +
             "AND s.startTime = :time AND s.reminderSent = false")
-    List<Schedule> findSchedulesForReminder(@Param("date") LocalDate date, @Param("time") LocalTime time);
+    List<Long> findReminderTargetIds(@Param("date") LocalDate date, @Param("time") LocalTime time);
 
     @Modifying
     @Query("UPDATE Schedule s SET s.commentCount = s.commentCount + 1 WHERE s.id = :scheduleId")
@@ -44,4 +44,8 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     @Query("UPDATE Schedule s SET s.deletedAt = CURRENT TIMESTAMP, s.deleted = TRUE " +
             "WHERE s.user.id = :userId AND s.deleted = FALSE")
     void softDeleteAllByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("UPDATE Schedule s SET s.reminderSent = TRUE WHERE s.id = :scheduleId AND s.reminderSent = FALSE AND s.deleted = FALSE")
+    int markReminderSent(@Param("scheduleId") Long scheduleId);
 }

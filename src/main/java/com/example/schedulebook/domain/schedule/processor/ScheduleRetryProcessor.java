@@ -5,6 +5,7 @@ import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
 import com.example.schedulebook.domain.notification.service.NotificationService;
 import com.example.schedulebook.domain.notificationretry.service.ProcessedNotificationRetryService;
+import com.example.schedulebook.domain.schedule.event.ScheduleReminderEvent;
 import com.example.schedulebook.domain.scheduleshare.event.ScheduleSharedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,17 +27,30 @@ public class ScheduleRetryProcessor {
         }
 
         try {
-            ScheduleSharedEvent event = objectMapper.readValue(
-                    notificationRetry.getPayload(),
-                    ScheduleSharedEvent.class
-            );
-
             switch (notificationRetry.getNotificationType()) {
                 case SCHEDULE_SHARED -> {
+                    ScheduleSharedEvent event = objectMapper.readValue(
+                            notificationRetry.getPayload(),
+                            ScheduleSharedEvent.class
+                    );
+
                     notificationService.createScheduleSharedNotification(
                             notificationRetry.getReceiverId(),
                             event.ownerNickname(),
                             event.shareId()
+                    );
+                }
+
+                case SCHEDULE_REMINDER -> {
+                    ScheduleReminderEvent event = objectMapper.readValue(
+                            notificationRetry.getPayload(),
+                            ScheduleReminderEvent.class
+                    );
+
+                    notificationService.createScheduleReminderNotification(
+                            notificationRetry.getReceiverId(),
+                            event.scheduleId(),
+                            event.title()
                     );
                 }
 

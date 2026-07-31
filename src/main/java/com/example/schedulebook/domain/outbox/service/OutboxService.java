@@ -43,4 +43,12 @@ public class OutboxService {
             throw e;
         }
     }
+
+    public void delete(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType) {
+        outboxRepository.deleteByAggregateTypeAndAggregateIdAndEventType(
+                aggregateType,
+                aggregateId,
+                eventType
+        );
+    }
 }

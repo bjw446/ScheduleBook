@@ -7,7 +7,7 @@ import com.example.schedulebook.common.response.ApiResponse;
 import com.example.schedulebook.common.response.PageResponse;
 import com.example.schedulebook.common.security.SecurityUtils;
 import com.example.schedulebook.domain.admin.dto.response.CleanupOutboxResponse;
-import com.example.schedulebook.domain.admin.dto.response.DeadOutboxResponse;
+import com.example.schedulebook.domain.admin.dto.response.OutboxResponse;
 import com.example.schedulebook.domain.admin.dto.response.OutboxStatsResponse;
 import com.example.schedulebook.domain.admin.service.AdminOutboxService;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ public class AdminOutboxController {
     private final AdminOutboxService adminOutboxService;
 
     @GetMapping("/dead")
-    public ResponseEntity<ApiResponse<PageResponse<DeadOutboxResponse>>> findAllDeadOutboxes(
+    public ResponseEntity<ApiResponse<PageResponse<OutboxResponse>>> findAllDeadOutboxes(
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return ResponseEntity.status(HttpStatus.OK).body(
@@ -38,8 +38,8 @@ public class AdminOutboxController {
     }
 
     @PatchMapping("/{outboxId}/retry")
-    public ResponseEntity<ApiResponse<Void>> retryDeadOutbox(@PathVariable Long outboxId) {
-        adminOutboxService.retryDeadOutbox(SecurityUtils.getCurrentUserId(), outboxId);
+    public ResponseEntity<ApiResponse<Void>> retryOutbox(@PathVariable Long outboxId) {
+        adminOutboxService.retryOutbox(SecurityUtils.getCurrentUserId(), outboxId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
@@ -69,6 +69,18 @@ public class AdminOutboxController {
                 ApiResponse.success(
                         SuccessEnum.READ_SUCCESS,
                         adminOutboxService.getStats(SecurityUtils.getCurrentUserId())
+                )
+        );
+    }
+
+    @GetMapping("/failed")
+    public ResponseEntity<ApiResponse<PageResponse<OutboxResponse>>> findAllFailedOutboxes(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.success(
+                        SuccessEnum.READ_SUCCESS,
+                        adminOutboxService.findAllFailedOutboxes(SecurityUtils.getCurrentUserId(), pageable)
                 )
         );
     }

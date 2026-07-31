@@ -104,10 +104,6 @@ public class Schedule extends DeleteEntity {
         scheduleVersion++;
     }
 
-    public void markReminderSent() {
-        this.reminderSent = true;
-    }
-
     public void handleReminderReset(boolean reminderChanged) {
         if (!reminderChanged) {
             return;
