@@ -35,15 +35,20 @@ public class SecurityNotificationService {
     }
 
     @Transactional
-    public void notifyAdmins(AuditEvent event) {
-        List<User> admins = userRepository.findAllActiveAdmins(UserRole.SUPER_ADMIN);
+    public void notifyAdmin(User admin, AuditEvent event) {
+        createAndPublishNotification(admin, NotificationType.REFRESH_REPLAY_ADMIN, event);
+    }
 
-        for (User admin : admins) {
-            createAndPublishNotification(admin, NotificationType.REFRESH_REPLAY_ADMIN, event);
-        }
+    @Transactional(readOnly = true)
+    public List<User> getActiveAdmins() {
+        return userRepository.findAllActiveAdmins(UserRole.SUPER_ADMIN);
     }
 
     private void createAndPublishNotification(User user, NotificationType notificationType, AuditEvent event) {
+        if (notificationRepository.existsNotification(user.getId(), event.userId(), notificationType)) {
+            return;
+        }
+
         String message;
 
         String loginId = event.loginId() == null ? "UNKNOWN" : event.loginId();

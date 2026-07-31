@@ -14,7 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuditLogService {
     private final AuditLogRepository auditLogRepository;
 
-    public void save(AuditEvent event) {
+    public void save(Long outboxId, AuditEvent event) {
+        if (auditLogRepository.existsByOutboxId(outboxId)) {
+            return;
+        }
+
         AuditLog auditLog = AuditLog.create(
                 event.userId(),
                 event.adminId(),
@@ -22,7 +26,8 @@ public class AuditLogService {
                 event.eventType(),
                 event.eventType().getDescription(),
                 event.ip(),
-                event.userAgent()
+                event.userAgent(),
+                outboxId
         );
 
         auditLogRepository.save(auditLog);

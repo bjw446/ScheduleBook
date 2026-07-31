@@ -167,6 +167,8 @@ public class AuthService {
                 User user = userValidator.validateActiveUser(userId);
 
                 auditEventOutboxService.saveReplayEvent(user.getId(), user.getLoginId(), ip, userAgent);
+
+                throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID);
             }
 
             throw e;

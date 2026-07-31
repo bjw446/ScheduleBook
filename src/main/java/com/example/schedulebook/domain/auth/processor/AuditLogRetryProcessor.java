@@ -16,7 +16,7 @@ public class AuditLogRetryProcessor  {
 
     public void process(Long outboxId, AuditEvent event) {
         try {
-            auditLogService.save(event);
+            auditLogService.save(outboxId, event);
 
             if (event.eventType() == AuditEventType.REFRESH_REPLAY) {
                 refreshReplayDetectedProcessor.process(outboxId, event);

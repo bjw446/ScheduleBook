@@ -6,9 +6,12 @@ import com.example.schedulebook.domain.auth.event.AuditEvent;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notification.service.SecurityNotificationService;
 import com.example.schedulebook.domain.notificationretry.service.NotificationRetryService;
+import com.example.schedulebook.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 
 @Component
@@ -28,13 +31,17 @@ public class RefreshReplayDetectedProcessor {
             saveNotificationRetry(outboxId, event.userId(), NotificationType.REFRESH_REPLAY_USER, event, e);
         }
 
-        try {
-            securityNotificationService.notifyAdmins(event);
+        List<User> admins = securityNotificationService.getActiveAdmins();
 
-        } catch (Exception e) {
-            log.error("리프레시 재사용 감시 운영자 전달 실패 : {}", e.getMessage(), e);
+        for (User admin : admins) {
+            try {
+                securityNotificationService.notifyAdmin(admin, event);
 
-            saveNotificationRetry(outboxId, event.userId(), NotificationType.REFRESH_REPLAY_ADMIN, event, e);
+            } catch (Exception e) {
+                log.error("리프레시 재사용 감시 운영자 전달 실패 : {}", e.getMessage(), e);
+
+                saveNotificationRetry(outboxId, admin.getId(), NotificationType.REFRESH_REPLAY_ADMIN, event, e);
+            }
         }
     }
 
@@ -42,7 +49,7 @@ public class RefreshReplayDetectedProcessor {
             Long outboxId,
             Long receiverId,
             NotificationType notificationType,
-            Object event,
+            AuditEvent event,
             Exception e
     ) {
         try {
@@ -62,7 +69,7 @@ public class RefreshReplayDetectedProcessor {
             );
 
         } catch (Exception ex) {
-            log.error("일정 알림 Retry 저장 실패", ex);
+            log.error("보안 알림 Retry 저장 실패", ex);
 
             throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_SAVE_FAILED);
         }
