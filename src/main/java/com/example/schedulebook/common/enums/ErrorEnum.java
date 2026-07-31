@@ -139,6 +139,7 @@ public enum ErrorEnum {
     INVALID_PROCESSED_OUTBOX_STAUS(400, "잘못된 프로세스 아웃박스 상태 입니다."),
     OUTBOX_PAYLOAD_SERIALIZATION_FAILED(500, "아웃박스 페이로드 직렬화에 실패했습니다."),
     PROCESSED_OUTBOX_STATUS_CHANGE_FAILED(500, "프로세스 아웃박스 상태 변경에 실패했습니다."),
+    OUTBOX_STATUS_CHANGE_FAILED(500, "아웃박스 상태 변경에 실패했습니다."),
     OUTBOX_NOT_FOUND(404, "존재하지 않는 아웃박스 입니다.");
 
     private final int status;

@@ -44,11 +44,15 @@ public class OutboxService {
         }
     }
 
-    public void delete(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType) {
-        outboxRepository.deleteByAggregateTypeAndAggregateIdAndEventType(
+    public void cancelPending(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType) {
+        int updated = outboxRepository.updateStatusToDeadIfPending(
                 aggregateType,
                 aggregateId,
                 eventType
         );
+
+        if (updated < 1) {
+            throw new BaseException(ErrorEnum.OUTBOX_STATUS_CHANGE_FAILED);
+        }
     }
 }

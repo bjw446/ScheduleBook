@@ -10,7 +10,13 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "schedule_reminders")
+@Table(
+        name = "schedule_reminders",
+        indexes = @Index(
+                name = "idx_schedule_reminders_reminder_time_sent",
+                columnList = "reminder_time, sent"
+        )
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ScheduleReminder extends ModifyEntity {
     @Id

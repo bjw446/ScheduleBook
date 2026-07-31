@@ -7,7 +7,6 @@ import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.entity.ScheduleReminder;
-import com.example.schedulebook.domain.schedule.event.ScheduleReminderEvent;
 import com.example.schedulebook.domain.schedule.repository.ScheduleReminderRepository;
 import com.example.schedulebook.domain.schedule.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
@@ -57,55 +56,13 @@ public class ScheduleReminderService {
         scheduleReminderRepository.save(scheduleReminderBeforeTenMin);
 
         scheduleReminderRepository.save(scheduleReminderBeforeDay);
-
-        ScheduleReminderEvent reminderEvent = new ScheduleReminderEvent(
-                schedule.getId(),
-                schedule.getUser().getId(),
-                schedule.getTitle(),
-                reminderTime
-        );
-
-        outboxService.save(
-                OutboxAggregateType.SCHEDULE,
-                schedule.getId(),
-                OutboxEventType.SCHEDULE_REMINDER,
-                reminderEvent
-        );
-
-        ScheduleReminderEvent reminderBeforeTenMinEvent = new ScheduleReminderEvent(
-                schedule.getId(),
-                schedule.getUser().getId(),
-                schedule.getTitle(),
-                reminderBeforeTenMin
-        );
-
-        outboxService.save(
-                OutboxAggregateType.SCHEDULE,
-                schedule.getId(),
-                OutboxEventType.SCHEDULE_REMINDER,
-                reminderBeforeTenMinEvent
-        );
-
-        ScheduleReminderEvent reminderBeforeDayEvent = new ScheduleReminderEvent(
-                schedule.getId(),
-                schedule.getUser().getId(),
-                schedule.getTitle(),
-                reminderBeforeDay
-        );
-
-        outboxService.save(
-                OutboxAggregateType.SCHEDULE,
-                schedule.getId(),
-                OutboxEventType.SCHEDULE_REMINDER,
-                reminderBeforeDayEvent
-        );
     }
 
     @Transactional
     public void refresh(Schedule schedule) {
         scheduleReminderRepository.deleteBySchedule_Id(schedule.getId());
 
-        outboxService.delete(OutboxAggregateType.SCHEDULE, schedule.getId(), OutboxEventType.SCHEDULE_REMINDER);
+        outboxService.cancelPending(OutboxAggregateType.SCHEDULE, schedule.getId(), OutboxEventType.SCHEDULE_REMINDER);
 
         save(schedule);
     }

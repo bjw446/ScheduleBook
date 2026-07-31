@@ -35,7 +35,6 @@ public class ScheduleReminderProcessor implements NotificationEventProcessor<Sch
         } catch (Exception e) {
             saveNotificationRetry(outboxId, event.receiverId(), event, e);
         }
-
     }
 
     private void saveNotificationRetry(
