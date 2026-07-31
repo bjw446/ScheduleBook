@@ -9,9 +9,8 @@ import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
 import com.example.schedulebook.domain.auth.dto.request.SignupRequest;
 import com.example.schedulebook.domain.auth.dto.response.*;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
-import com.example.schedulebook.domain.auth.event.LogoutEvent;
-import com.example.schedulebook.domain.auth.event.RefreshReplayDetectedEvent;
-import com.example.schedulebook.domain.auth.event.LogoutSessionEvent;
+import com.example.schedulebook.domain.auth.enums.AuditEventType;
+import com.example.schedulebook.domain.auth.event.AuditEvent;
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import com.example.schedulebook.domain.outbox.service.OutboxService;
@@ -21,7 +20,6 @@ import com.example.schedulebook.domain.user.validator.UserValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -41,7 +39,6 @@ public class AuthService {
     private final LoginSuccessService loginSuccessService;
     private final SessionService sessionService;
     private final JwtProvider jwtProvider;
-    private final ApplicationEventPublisher applicationEventPublisher;
     private final SessionLimitService sessionLimitService;
     private final OutboxService outboxService;
 
@@ -102,7 +99,14 @@ public class AuthService {
                     OutboxAggregateType.USER,
                     user.getId(),
                     OutboxEventType.AUDIT_EVENT,
-                    new LogoutSessionEvent(user.getId(), ip, userAgent)
+                    new AuditEvent(
+                            user.getId(),
+                            null,
+                            user.getLoginId(),
+                            AuditEventType.LOGIN_SUCCESS,
+                            ip,
+                            userAgent
+                    )
             );
 
         } else {
@@ -131,7 +135,14 @@ public class AuthService {
                 OutboxAggregateType.USER,
                 token.userId(),
                 OutboxEventType.AUDIT_EVENT,
-                new LogoutEvent(token.userId(), ip, userAgent)
+                new AuditEvent(
+                        token.userId(),
+                        null,
+                        null,
+                        AuditEventType.LOGOUT,
+                        ip,
+                        userAgent
+                )
         );
     }
 
@@ -154,10 +165,15 @@ public class AuthService {
 
                 User user = userValidator.validateActiveUser(userId);
 
-                applicationEventPublisher.publishEvent(
-                        new RefreshReplayDetectedEvent(
-                                userId,
+                outboxService.save(
+                        OutboxAggregateType.USER,
+                        user.getId(),
+                        OutboxEventType.AUDIT_EVENT,
+                        new AuditEvent(
+                                user.getId(),
+                                null,
                                 user.getLoginId(),
+                                AuditEventType.REFRESH_REPLAY,
                                 ip,
                                 userAgent
                         )
@@ -188,7 +204,14 @@ public class AuthService {
                 OutboxAggregateType.USER,
                 currentUserId,
                 OutboxEventType.AUDIT_EVENT,
-                new LogoutSessionEvent(currentUserId, ip, userAgent)
+                new AuditEvent(
+                        currentUserId,
+                        null,
+                        null,
+                        AuditEventType.SESSION_LOGOUT,
+                        ip,
+                        userAgent
+                )
         );
     }
 
