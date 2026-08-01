@@ -28,15 +28,15 @@ public class SecurityNotificationService {
     private final UserRepository userRepository;
 
     @Transactional
-    public void notifyUser(AuditEvent event) {
+    public void notifyUser(Long outboxId, AuditEvent event) {
         User receiver = userValidator.validateActiveUser(event.userId());
 
-        createAndPublishNotification(receiver, NotificationType.REFRESH_REPLAY_USER, event);
+        createAndPublishNotification(receiver, NotificationType.REFRESH_REPLAY_USER, event, outboxId);
     }
 
     @Transactional
-    public void notifyAdmin(User admin, AuditEvent event) {
-        createAndPublishNotification(admin, NotificationType.REFRESH_REPLAY_ADMIN, event);
+    public void notifyAdmin(User admin, Long outboxId, AuditEvent event) {
+        createAndPublishNotification(admin, NotificationType.REFRESH_REPLAY_ADMIN, event, outboxId);
     }
 
     @Transactional(readOnly = true)
@@ -44,8 +44,8 @@ public class SecurityNotificationService {
         return userRepository.findAllActiveAdmins(UserRole.SUPER_ADMIN);
     }
 
-    private void createAndPublishNotification(User user, NotificationType notificationType, AuditEvent event) {
-        if (notificationRepository.existsNotification(user.getId(), event.userId(), notificationType)) {
+    private void createAndPublishNotification(User user, NotificationType notificationType, AuditEvent event, Long outboxId) {
+        if (notificationRepository.existsNotification(user.getId(), outboxId, notificationType)) {
             return;
         }
 
@@ -65,7 +65,7 @@ public class SecurityNotificationService {
                 notificationType,
                 notificationType.getTitle(),
                 message,
-                event.userId()
+                outboxId
         );
 
         notificationRepository.save(notification);
