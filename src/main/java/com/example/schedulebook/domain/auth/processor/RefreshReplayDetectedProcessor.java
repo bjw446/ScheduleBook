@@ -23,7 +23,7 @@ public class RefreshReplayDetectedProcessor {
 
     public void process(Long outboxId, AuditEvent event) {
         try {
-            securityNotificationService.notifyUser(event);
+            securityNotificationService.notifyUser(outboxId, event);
 
         } catch (Exception e) {
             log.error("리프레시 재사용 감시 사용자 전달 실패 : {}", e.getMessage(), e);
@@ -35,7 +35,7 @@ public class RefreshReplayDetectedProcessor {
 
         for (User admin : admins) {
             try {
-                securityNotificationService.notifyAdmin(admin, event);
+                securityNotificationService.notifyAdmin(admin, outboxId, event);
 
             } catch (Exception e) {
                 log.error("리프레시 재사용 감시 운영자 전달 실패 : {}", e.getMessage(), e);

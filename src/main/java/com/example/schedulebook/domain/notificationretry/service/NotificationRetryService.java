@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.notificationretry.service;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
@@ -102,6 +103,6 @@ public class NotificationRetryService {
     private long nextDelaySeconds(int retryCount) {
         int safeRetry = Math.max(0, Math.min(retryCount, 10));
 
-        return Math.min(30L * (1L << safeRetry), 3600L);
+        return Math.min(CommonConst.NEXT_RETRY_DELAY * (1L << safeRetry), 3600L);
     }
 }

@@ -1,6 +1,7 @@
 package com.example.schedulebook.domain.outbox.enums;
 
 import com.example.schedulebook.domain.auth.event.AuditEvent;
+import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import com.example.schedulebook.domain.comment.dto.response.CommentEventResponse;
 import com.example.schedulebook.domain.comment.event.CommentCreatedEvent;
 import com.example.schedulebook.domain.friend.event.FriendAcceptedEvent;
@@ -29,7 +30,8 @@ public enum OutboxEventType {
     USER_WITHDRAW(UserWithdrawEvent.class),
     NOTIFICATION_EVENT(NotificationEventResponse.class),
     COMMENT_EVENT(CommentEventResponse.class),
-    AUDIT_EVENT(AuditEvent.class);
+    AUDIT_EVENT(AuditEvent.class),
+    FORCE_LOGOUT(ForceLogoutSessionEvent.class);
 
     private final Class<?> eventClass;
 }

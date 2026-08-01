@@ -18,6 +18,6 @@ public class OutboxRetryPolicy {
     }
 
     private long nextDelaySeconds(int retryCount) {
-        return Math.min(30L * (1L << retryCount), 3600L);
+        return Math.min(CommonConst.NEXT_RETRY_DELAY * (1L << retryCount), 3600L);
     }
 }
