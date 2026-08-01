@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.auth.service;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.auth.entity.ForceLogoutRetry;
@@ -26,7 +27,7 @@ public class ForceLogoutRetryService {
     private final ObjectMapper objectMapper;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void save(String sessionId, Long userId, Object event, String reason) {
+    public void save(String sessionId, Long userId, ForceLogoutSessionEvent event, String reason) {
         try {
             String json = objectMapper.writeValueAsString(event);
 
@@ -43,14 +44,14 @@ public class ForceLogoutRetryService {
         }
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markSuccess(Long forceLogoutRetryId, String claimToken) {
         if (forceLogoutRetryRepository.markSuccess(forceLogoutRetryId, claimToken) != 1) {
             throw new BaseException(ErrorEnum.FORCE_LOGOUT_RETRY_NOT_FOUND);
         }
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(Long forceLogoutRetryId, String reason, String claimToken) {
         if (forceLogoutRetryRepository.markFailed(forceLogoutRetryId, reason, claimToken) != 1) {
             throw new BaseException(ErrorEnum.FORCE_LOGOUT_RETRY_NOT_FOUND);
@@ -116,6 +117,6 @@ public class ForceLogoutRetryService {
     private long nextDelaySeconds(int retryCount) {
         int safeRetry = Math.max(0, Math.min(retryCount, 10));
 
-        return Math.min(30L * (1L << safeRetry), 3600L);
+        return Math.min(CommonConst.NEXT_RETRY_DELAY * (1L << safeRetry), 3600L);
     }
 }

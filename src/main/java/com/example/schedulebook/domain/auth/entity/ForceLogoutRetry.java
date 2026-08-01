@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.auth.entity;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.entity.ModifyEntity;
 import com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus;
 import jakarta.persistence.*;
@@ -51,7 +52,7 @@ public class ForceLogoutRetry extends ModifyEntity {
         forceLogoutRetry.payload = payload;
         forceLogoutRetry.forceLogoutRetryStatus = ForceLogoutRetryStatus.PENDING;
         forceLogoutRetry.retryCount = 0;
-        forceLogoutRetry.nextRetryAt = LocalDateTime.now().plusSeconds(30);
+        forceLogoutRetry.nextRetryAt = LocalDateTime.now().plusSeconds(CommonConst.NEXT_RETRY_DELAY);
         forceLogoutRetry.reason = reason;
 
         return forceLogoutRetry;

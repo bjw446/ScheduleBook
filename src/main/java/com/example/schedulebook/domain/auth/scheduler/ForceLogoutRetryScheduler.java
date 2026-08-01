@@ -41,8 +41,6 @@ public class ForceLogoutRetryScheduler {
                 try {
                     forceLogoutDispatcher.dispatch(forceLogoutRetryService.deserialize(forceLogoutRetry));
 
-                    forceLogoutRetryStateService.completeSuccess(forceLogoutRetry, claimToken);
-
                 } catch (BaseException e) {
                     if (e.getErrorEnum() == ErrorEnum.JSON_DESERIALIZATION_FAILED) {
                         forceLogoutRetryStateService.completeFailure(forceLogoutRetry, e.getMessage(), claimToken);
@@ -52,10 +50,21 @@ public class ForceLogoutRetryScheduler {
 
                     retry(forceLogoutRetry, claimToken, e);
 
+                    continue;
+
                 } catch (Exception e) {
                     log.warn("강제 로그아웃 재시도 처리 실패 forceLogoutRetryId = {}", forceLogoutRetry.getId(), e);
 
                     retry(forceLogoutRetry, claimToken, e);
+
+                    continue;
+                }
+
+                try {
+                    forceLogoutRetryStateService.completeSuccess(forceLogoutRetry, claimToken);
+
+                } catch (Exception e) {
+                    log.error("강제 로그아웃 재시도 완료 상태 갱신 실패 forceLogoutRetryId = {}", forceLogoutRetry.getId(), e);
                 }
             }
         }

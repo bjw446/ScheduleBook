@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.notificationretry.entity;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.entity.ModifyEntity;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notificationretry.enums.NotificationRetryStatus;
@@ -64,7 +65,7 @@ public class NotificationRetry extends ModifyEntity {
         notificationRetry.retryCount = 0;
         notificationRetry.notificationRetryStatus = NotificationRetryStatus.PENDING;
         notificationRetry.reason = reason;
-        notificationRetry.nextRetryAt = LocalDateTime.now().plusSeconds(30);
+        notificationRetry.nextRetryAt = LocalDateTime.now().plusSeconds(CommonConst.NEXT_RETRY_DELAY);
 
         return notificationRetry;
     }
