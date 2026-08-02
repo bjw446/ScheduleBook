@@ -7,6 +7,10 @@ import com.example.schedulebook.domain.auth.dispatcher.ForceLogoutDispatcher;
 import com.example.schedulebook.domain.auth.entity.ForceLogoutRetry;
 import com.example.schedulebook.domain.auth.service.ForceLogoutRetryService;
 import com.example.schedulebook.domain.auth.service.ForceLogoutRetryStateService;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
+import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,6 +25,7 @@ public class ForceLogoutRetryScheduler {
     private final ForceLogoutRetryService forceLogoutRetryService;
     private final ForceLogoutRetryStateService forceLogoutRetryStateService;
     private final ForceLogoutDispatcher forceLogoutDispatcher;
+    private final DeadLetterService deadLetterService;
 
     @Scheduled(fixedDelay = 30_000)
     public void process() {
@@ -43,7 +48,7 @@ public class ForceLogoutRetryScheduler {
 
                 } catch (BaseException e) {
                     if (e.getErrorEnum() == ErrorEnum.JSON_DESERIALIZATION_FAILED) {
-                        forceLogoutRetryStateService.completeFailure(forceLogoutRetry, e.getMessage(), claimToken);
+                        deadLetterSave(forceLogoutRetry, claimToken, e);
 
                         continue;
                     }
@@ -73,7 +78,7 @@ public class ForceLogoutRetryScheduler {
     private void retry(ForceLogoutRetry forceLogoutRetry, String claimToken, Exception e) {
         try {
             if ((forceLogoutRetry.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
-                forceLogoutRetryStateService.completeFailure(forceLogoutRetry, e.getMessage(), claimToken);
+                deadLetterSave(forceLogoutRetry, claimToken, e);
 
             } else {
                 forceLogoutRetryService.markRetry(
@@ -86,6 +91,36 @@ public class ForceLogoutRetryScheduler {
 
         } catch (Exception exception) {
             log.error("강제 로그아웃 재시도 상태 갱신 실패 forceLogoutRetryId = {}", forceLogoutRetry.getId(), exception);
+        }
+    }
+
+    private void deadLetterSave(ForceLogoutRetry forceLogoutRetry, String claimToken, Exception e) {
+        try {
+            deadLetterService.save(
+                    DeadLetterType.FORCE_LOGOUT,
+                    DeadLetterSource.FORCE_LOGOUT_RETRY_SCHEDULER,
+                    DeadLetterAggregateType.SESSION,
+                    forceLogoutRetry.getSessionId(),
+                    forceLogoutRetry.getUserId(),
+                    forceLogoutRetry.getPayload(),
+                    e.getMessage(),
+                    e.getClass().getSimpleName(),
+                    forceLogoutRetry.getRetryCount()
+            );
+
+        } catch (Exception dlqException) {
+            log.error("DLQ 저장 실패", dlqException);
+
+        } finally {
+            try {
+                forceLogoutRetryStateService.completeFailure(forceLogoutRetry, e.getMessage(), claimToken);
+
+            } catch (Exception exception) {
+                log.error("강제 로그아웃 재시도 FAILED 상태 갱신 실패 forceLogoutRetryId = {}",
+                        forceLogoutRetry.getId(),
+                        exception
+                );
+            }
         }
     }
 }

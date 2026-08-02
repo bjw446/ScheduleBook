@@ -1,9 +1,14 @@
 package com.example.schedulebook.domain.deadletter.entity;
 
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Entity
@@ -14,5 +19,63 @@ public class DeadLetterQueue {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // TODO : DLQ 추가 예정
+    @Enumerated(EnumType.STRING)
+    @Column(name = "dead_letter_type", nullable = false)
+    private DeadLetterType deadLetterType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "dead_letter_source", nullable = false)
+    private DeadLetterSource deadLetterSource;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "dead_letter_aggregate_type")
+    private DeadLetterAggregateType deadLetterAggregateType;
+
+    @Column(name = "aggregate_id")
+    private String aggregateId;
+
+    @Column(name = "user_id")
+    private Long userId;
+
+    @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
+    private String payload;
+
+    @Column(name = "reason", columnDefinition = "TEXT")
+    private String reason;
+
+    @Column(name = "exception_type")
+    private String exceptionType;
+
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount;
+
+    @Column(name = "failed_at", nullable = false)
+    private LocalDateTime failedAt;
+
+    public static DeadLetterQueue create(
+            DeadLetterType deadLetterType,
+            DeadLetterSource deadLetterSource,
+            DeadLetterAggregateType deadLetterAggregateType,
+            String aggregateId,
+            Long userId,
+            String payload,
+            String reason,
+            String exceptionType,
+            int retryCount
+    ) {
+        DeadLetterQueue deadLetterQueue = new DeadLetterQueue();
+
+        deadLetterQueue.deadLetterType = deadLetterType;
+        deadLetterQueue.deadLetterAggregateType = deadLetterAggregateType;
+        deadLetterQueue.aggregateId = aggregateId;
+        deadLetterQueue.userId = userId;
+        deadLetterQueue.payload = payload;
+        deadLetterQueue.reason = reason;
+        deadLetterQueue.deadLetterSource = deadLetterSource;
+        deadLetterQueue.retryCount = retryCount;
+        deadLetterQueue.exceptionType = exceptionType;
+        deadLetterQueue.failedAt = LocalDateTime.now();
+
+        return deadLetterQueue;
+    }
 }

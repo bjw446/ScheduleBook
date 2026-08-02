@@ -30,8 +30,7 @@ public enum OutboxEventType {
     USER_WITHDRAW(UserWithdrawEvent.class),
     NOTIFICATION_EVENT(NotificationEventResponse.class),
     COMMENT_EVENT(CommentEventResponse.class),
-    AUDIT_EVENT(AuditEvent.class),
-    FORCE_LOGOUT(ForceLogoutSessionEvent.class);
+    AUDIT_EVENT(AuditEvent.class);
 
     private final Class<?> eventClass;
 }
