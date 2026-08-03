@@ -124,6 +124,8 @@ public class ForceLogoutRetryService {
 
         if (updated == 0) {
             log.warn("강제 로그아웃 재시도 {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", forceLogoutRetry.getId());
+
+            throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
         } else {
             log.debug("강제 로그아웃 재시도 {} 상태 {}로 복구 성공",
                     forceLogoutRetry.getId(),

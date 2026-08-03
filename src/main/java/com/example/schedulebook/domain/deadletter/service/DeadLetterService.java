@@ -7,7 +7,6 @@ import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
 import com.example.schedulebook.domain.deadletter.repository.DeadLetterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -15,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeadLetterService {
     private final DeadLetterRepository deadLetterRepository;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void save(
             DeadLetterType deadLetterType,
             DeadLetterSource deadLetterSource,

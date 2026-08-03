@@ -61,7 +61,7 @@ public class OutboxTransactionService {
 
             try {
                 deadLetterSave(
-                        getAggregateId(outbox),
+                        getDeadLetterAggregateId(outbox),
                         outbox.getPayload(),
                         normalizeMessage(e),
                         e.getClass().getSimpleName(),
@@ -114,7 +114,7 @@ public class OutboxTransactionService {
 
                 try {
                     deadLetterSave(
-                            getAggregateId(outbox),
+                            getDeadLetterAggregateId(outbox),
                             outbox.getPayload(),
                             errorMessage,
                             "LEASE_TIMEOUT",
@@ -140,19 +140,17 @@ public class OutboxTransactionService {
                     retryDecision.nextRetryAt()
             );
 
-            recoverLog(outbox.getId(), retryDecision.outboxStatus(), updated);
+            recoverLog(outbox.getId(), retryDecision.outboxStatus(), updated, false);
         }
     }
 
     @Transactional
-    public void recover(Long aggregateId) {
-        Outbox outbox = outboxRepository.findByAggregateId(aggregateId).orElseThrow(
-                () -> new BaseException(ErrorEnum.OUTBOX_NOT_FOUND)
-        );
+    public void recover(Long outboxId) {
+        Outbox outbox = findById(outboxId);
 
         int updated = outboxRepository.updateRecover(outbox.getId());
 
-        recoverLog(outbox.getId(), OutboxStatus.PENDING, updated);
+        recoverLog(outboxId, OutboxStatus.PENDING, updated, true);
     }
 
     public Outbox findById(Long outboxId) {
@@ -191,13 +189,17 @@ public class OutboxTransactionService {
         );
     }
 
-    private String getAggregateId(Outbox outbox) {
-        return outbox.getAggregateId() == null ? null : outbox.getAggregateId().toString();
+    private String getDeadLetterAggregateId(Outbox outbox) {
+        return outbox.getId() == null ? null : outbox.getId().toString();
     }
 
-    private void recoverLog(Long outboxId, OutboxStatus outboxStatus, int updated) {
+    private void recoverLog(Long outboxId, OutboxStatus outboxStatus, int updated, boolean throwOnFail) {
         if (updated == 0) {
             log.warn("Outbox {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outboxId);
+
+            if (throwOnFail) {
+                throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
+            }
         } else {
             log.debug("Outbox {} 상태 {}로 복구 성공", outboxId, outboxStatus);
         }

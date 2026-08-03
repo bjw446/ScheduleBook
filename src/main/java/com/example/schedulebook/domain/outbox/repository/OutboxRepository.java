@@ -13,7 +13,6 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 public interface OutboxRepository extends JpaRepository<Outbox, Long> {
     @Query(value = "SELECT * FROM outbox WHERE status = 'PENDING' OR (status = 'FAILED' AND next_retry_at <= :now) " +
@@ -74,8 +73,6 @@ public interface OutboxRepository extends JpaRepository<Outbox, Long> {
     void updateStatusToDeadIfPending(@Param("aggregateType") OutboxAggregateType aggregateType,
                                     @Param("aggregateId") Long aggregateId,
                                     @Param("eventType") OutboxEventType eventType);
-
-    Optional<Outbox> findByAggregateId(Long aggregateId);
 
     @Modifying
     @Query("UPDATE Outbox o SET o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.PENDING, " +
