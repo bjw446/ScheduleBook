@@ -105,7 +105,7 @@ public class ForceLogoutRetryScheduler {
                     forceLogoutRetry.getPayload(),
                     e.getMessage(),
                     e.getClass().getSimpleName(),
-                    forceLogoutRetry.getRetryCount()
+                    forceLogoutRetry.getRetryCount() + 1
             );
 
         } catch (Exception dlqException) {

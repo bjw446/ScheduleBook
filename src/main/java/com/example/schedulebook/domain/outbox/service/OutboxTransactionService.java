@@ -59,13 +59,20 @@ public class OutboxTransactionService {
         if (retryDecision.isDead()) {
             log.error("Outbox {} 영구 실패", outbox.getId(), e);
 
-            deadLetterSave(
-                    getAggregateId(outbox),
-                    outbox.getPayload(),
-                    normalizeMessage(e),
-                    e.getClass().getSimpleName(),
-                    nextRetry
-            );
+            try {
+                deadLetterSave(
+                        getAggregateId(outbox),
+                        outbox.getPayload(),
+                        normalizeMessage(e),
+                        e.getClass().getSimpleName(),
+                        nextRetry
+                );
+
+            } catch (Exception exception) {
+                log.error("DLQ 저장 실패", exception);
+
+                return;
+            }
 
         } else {
             log.warn("Outbox {} 발행 실패 : {}회 재시도 예정", outbox.getId(), nextRetry, e);
@@ -105,13 +112,20 @@ public class OutboxTransactionService {
 
                 log.error("Outbox {} lease timeout으로 DEAD 처리", outbox.getId());
 
-                deadLetterSave(
-                        getAggregateId(outbox),
-                        outbox.getPayload(),
-                        errorMessage,
-                        "LEASE_TIMEOUT",
-                        nextRetry
-                );
+                try {
+                    deadLetterSave(
+                            getAggregateId(outbox),
+                            outbox.getPayload(),
+                            errorMessage,
+                            "LEASE_TIMEOUT",
+                            nextRetry
+                    );
+
+                } catch (Exception e) {
+                    log.error("DLQ 저장 실패", e);
+
+                    continue;
+                }
 
             } else {
                 errorMessage = "Outbox 처리 중 시간 초과";
@@ -126,12 +140,19 @@ public class OutboxTransactionService {
                     retryDecision.nextRetryAt()
             );
 
-            if (updated == 0) {
-                log.warn("Outbox {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outbox.getId());
-            } else {
-                log.debug("Outbox {} 상태 {}로 복구 성공", outbox.getId(), retryDecision.outboxStatus());
-            }
+            recoverLog(outbox.getId(), retryDecision.outboxStatus(), updated);
         }
+    }
+
+    @Transactional
+    public void recover(Long aggregateId) {
+        Outbox outbox = outboxRepository.findByAggregateId(aggregateId).orElseThrow(
+                () -> new BaseException(ErrorEnum.OUTBOX_NOT_FOUND)
+        );
+
+        int updated = outboxRepository.updateRecover(outbox.getId());
+
+        recoverLog(outbox.getId(), OutboxStatus.PENDING, updated);
     }
 
     public Outbox findById(Long outboxId) {
@@ -157,25 +178,28 @@ public class OutboxTransactionService {
             String exceptionType,
             int retryCount
     ) {
-        try {
-            deadLetterService.save(
-                    DeadLetterType.OUTBOX,
-                    DeadLetterSource.OUTBOX_TRANSACTION_SERVICE,
-                    DeadLetterAggregateType.OUTBOX,
-                    aggregateId,
-                    null,
-                    payload,
-                    reason,
-                    exceptionType,
-                    retryCount
-            );
-
-        } catch (Exception exception) {
-            log.error("DLQ 저장 실패", exception);
-        }
+        deadLetterService.save(
+                DeadLetterType.OUTBOX,
+                DeadLetterSource.OUTBOX_TRANSACTION_SERVICE,
+                DeadLetterAggregateType.OUTBOX,
+                aggregateId,
+                null,
+                payload,
+                reason,
+                exceptionType,
+                retryCount
+        );
     }
 
     private String getAggregateId(Outbox outbox) {
         return outbox.getAggregateId() == null ? null : outbox.getAggregateId().toString();
+    }
+
+    private void recoverLog(Long outboxId, OutboxStatus outboxStatus, int updated) {
+        if (updated == 0) {
+            log.warn("Outbox {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outboxId);
+        } else {
+            log.debug("Outbox {} 상태 {}로 복구 성공", outboxId, outboxStatus);
+        }
     }
 }

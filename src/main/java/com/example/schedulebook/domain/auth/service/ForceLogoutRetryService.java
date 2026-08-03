@@ -114,6 +114,24 @@ public class ForceLogoutRetryService {
         }
     }
 
+    @Transactional
+    public void recover(Long aggregateId) {
+        ForceLogoutRetry forceLogoutRetry = forceLogoutRetryRepository.findByAggregateId(aggregateId).orElseThrow(
+                () -> new BaseException(ErrorEnum.FORCE_LOGOUT_RETRY_NOT_FOUND)
+        );
+
+        int updated = forceLogoutRetryRepository.updateRecover(forceLogoutRetry.getId());
+
+        if (updated == 0) {
+            log.warn("강제 로그아웃 재시도 {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", forceLogoutRetry.getId());
+        } else {
+            log.debug("강제 로그아웃 재시도 {} 상태 {}로 복구 성공",
+                    forceLogoutRetry.getId(),
+                    forceLogoutRetry.getForceLogoutRetryStatus()
+            );
+        }
+    }
+
     private long nextDelaySeconds(int retryCount) {
         int safeRetry = Math.max(0, Math.min(retryCount, 10));
 
