@@ -71,7 +71,7 @@ public class OutboxTransactionService {
             } catch (Exception exception) {
                 log.error("DLQ 저장 실패", exception);
 
-                return;
+                throw exception;
             }
 
         } else {
@@ -124,7 +124,7 @@ public class OutboxTransactionService {
                 } catch (Exception e) {
                     log.error("DLQ 저장 실패", e);
 
-                    continue;
+                    throw e;
                 }
 
             } else {
