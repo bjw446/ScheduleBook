@@ -73,4 +73,11 @@ public interface OutboxRepository extends JpaRepository<Outbox, Long> {
     void updateStatusToDeadIfPending(@Param("aggregateType") OutboxAggregateType aggregateType,
                                     @Param("aggregateId") Long aggregateId,
                                     @Param("eventType") OutboxEventType eventType);
+
+    @Modifying
+    @Query("UPDATE Outbox o SET o.status = com.example.schedulebook.domain.outbox.enums.OutboxStatus.PENDING, " +
+            "o.retryCount = 0, o.nextRetryAt = NULL, o.processingAt = NULL, o.errorMessage = NULL, " +
+            "o.updatedAt = CURRENT_TIMESTAMP WHERE o.id = :outboxId AND o.status = " +
+            "com.example.schedulebook.domain.outbox.enums.OutboxStatus.DEAD")
+    int updateRecover(@Param("outboxId") Long outboxId);
 }

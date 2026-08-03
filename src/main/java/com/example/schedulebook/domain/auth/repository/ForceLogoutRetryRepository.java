@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 public interface ForceLogoutRetryRepository extends JpaRepository<ForceLogoutRetry, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -55,4 +56,13 @@ public interface ForceLogoutRetryRepository extends JpaRepository<ForceLogoutRet
             "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.PROCESSING " +
             "AND f.updatedAt <= :timeout) ORDER BY f.nextRetryAt, f.retryCount, f.id ASC")
     Page<ForceLogoutRetry> findRetryTargets(@Param("timeout") LocalDateTime timeout, Pageable pageable);
+
+    @Modifying
+    @Query("UPDATE ForceLogoutRetry f SET f.forceLogoutRetryStatus = " +
+            "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.PENDING, " +
+            "f.retryCount = 0, f.reason = NULL, f.nextRetryAt = NULL, f.updatedAt = CURRENT_TIMESTAMP " +
+            "WHERE f.id = :forceLogoutRetryId AND f.claimToken = :claimToken ")
+    int updateRecover(@Param("forceLogoutRetryId") Long forceLogoutRetryId, @Param("claimToken") String claimToken);
+
+    Optional<ForceLogoutRetry> findBySessionId(String sessionId);
 }

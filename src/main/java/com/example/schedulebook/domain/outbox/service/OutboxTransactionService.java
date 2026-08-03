@@ -3,6 +3,10 @@ package com.example.schedulebook.domain.outbox.service;
 import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
+import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
 import com.example.schedulebook.domain.outbox.dto.RetryDecision;
 import com.example.schedulebook.domain.outbox.entity.Outbox;
 import com.example.schedulebook.domain.outbox.enums.OutboxStatus;
@@ -22,6 +26,7 @@ import java.util.List;
 public class OutboxTransactionService {
     private final OutboxRepository outboxRepository;
     private final OutboxRetryPolicy outboxRetryPolicy;
+    private final DeadLetterService deadLetterService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public List<Long> claimOutboxes() {
@@ -53,6 +58,21 @@ public class OutboxTransactionService {
 
         if (retryDecision.isDead()) {
             log.error("Outbox {} 영구 실패", outbox.getId(), e);
+
+            try {
+                deadLetterSave(
+                        getDeadLetterAggregateId(outbox),
+                        outbox.getPayload(),
+                        normalizeMessage(e),
+                        e.getClass().getSimpleName(),
+                        nextRetry
+                );
+
+            } catch (Exception exception) {
+                log.error("DLQ 저장 실패", exception);
+
+                throw exception;
+            }
 
         } else {
             log.warn("Outbox {} 발행 실패 : {}회 재시도 예정", outbox.getId(), nextRetry, e);
@@ -92,6 +112,21 @@ public class OutboxTransactionService {
 
                 log.error("Outbox {} lease timeout으로 DEAD 처리", outbox.getId());
 
+                try {
+                    deadLetterSave(
+                            getDeadLetterAggregateId(outbox),
+                            outbox.getPayload(),
+                            errorMessage,
+                            "LEASE_TIMEOUT",
+                            nextRetry
+                    );
+
+                } catch (Exception e) {
+                    log.error("DLQ 저장 실패", e);
+
+                    throw e;
+                }
+
             } else {
                 errorMessage = "Outbox 처리 중 시간 초과";
 
@@ -105,12 +140,17 @@ public class OutboxTransactionService {
                     retryDecision.nextRetryAt()
             );
 
-            if (updated == 0) {
-                log.warn("Outbox {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outbox.getId());
-            } else {
-                log.debug("Outbox {} 상태 {}로 복구 성공", outbox.getId(), retryDecision.outboxStatus());
-            }
+            recoverLog(outbox.getId(), retryDecision.outboxStatus(), updated, false);
         }
+    }
+
+    @Transactional
+    public void recover(Long outboxId) {
+        Outbox outbox = findById(outboxId);
+
+        int updated = outboxRepository.updateRecover(outbox.getId());
+
+        recoverLog(outboxId, OutboxStatus.PENDING, updated, true);
     }
 
     public Outbox findById(Long outboxId) {
@@ -127,5 +167,41 @@ public class OutboxTransactionService {
         }
 
         return message.length() > 500 ? message.substring(0, 500) : message;
+    }
+
+    private void deadLetterSave(
+            String aggregateId,
+            String payload,
+            String reason,
+            String exceptionType,
+            int retryCount
+    ) {
+        deadLetterService.save(
+                DeadLetterType.OUTBOX,
+                DeadLetterSource.OUTBOX_TRANSACTION_SERVICE,
+                DeadLetterAggregateType.OUTBOX,
+                aggregateId,
+                null,
+                payload,
+                reason,
+                exceptionType,
+                retryCount
+        );
+    }
+
+    private String getDeadLetterAggregateId(Outbox outbox) {
+        return outbox.getId() == null ? null : outbox.getId().toString();
+    }
+
+    private void recoverLog(Long outboxId, OutboxStatus outboxStatus, int updated, boolean throwOnFail) {
+        if (updated == 0) {
+            log.warn("Outbox {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", outboxId);
+
+            if (throwOnFail) {
+                throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
+            }
+        } else {
+            log.debug("Outbox {} 상태 {}로 복구 성공", outboxId, outboxStatus);
+        }
     }
 }
