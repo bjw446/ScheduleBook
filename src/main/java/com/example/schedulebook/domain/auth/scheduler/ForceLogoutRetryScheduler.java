@@ -111,16 +111,17 @@ public class ForceLogoutRetryScheduler {
         } catch (Exception dlqException) {
             log.error("DLQ 저장 실패", dlqException);
 
-        } finally {
-            try {
-                forceLogoutRetryStateService.completeFailure(forceLogoutRetry, e.getMessage(), claimToken);
+            return;
+        }
 
-            } catch (Exception exception) {
-                log.error("강제 로그아웃 재시도 FAILED 상태 갱신 실패 forceLogoutRetryId = {}",
-                        forceLogoutRetry.getId(),
-                        exception
-                );
-            }
+        try {
+            forceLogoutRetryStateService.completeFailure(forceLogoutRetry, e.getMessage(), claimToken);
+
+        } catch (Exception exception) {
+            log.error("강제 로그아웃 재시도 FAILED 상태 갱신 실패 forceLogoutRetryId = {}",
+                    forceLogoutRetry.getId(),
+                    exception
+            );
         }
     }
 }

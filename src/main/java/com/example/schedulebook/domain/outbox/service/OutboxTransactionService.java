@@ -3,6 +3,10 @@ package com.example.schedulebook.domain.outbox.service;
 import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
+import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
 import com.example.schedulebook.domain.outbox.dto.RetryDecision;
 import com.example.schedulebook.domain.outbox.entity.Outbox;
 import com.example.schedulebook.domain.outbox.enums.OutboxStatus;
@@ -22,6 +26,7 @@ import java.util.List;
 public class OutboxTransactionService {
     private final OutboxRepository outboxRepository;
     private final OutboxRetryPolicy outboxRetryPolicy;
+    private final DeadLetterService deadLetterService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public List<Long> claimOutboxes() {
@@ -53,6 +58,14 @@ public class OutboxTransactionService {
 
         if (retryDecision.isDead()) {
             log.error("Outbox {} 영구 실패", outbox.getId(), e);
+
+            deadLetterSave(
+                    getAggregateId(outbox),
+                    outbox.getPayload(),
+                    normalizeMessage(e),
+                    e.getClass().getSimpleName(),
+                    nextRetry
+            );
 
         } else {
             log.warn("Outbox {} 발행 실패 : {}회 재시도 예정", outbox.getId(), nextRetry, e);
@@ -92,6 +105,14 @@ public class OutboxTransactionService {
 
                 log.error("Outbox {} lease timeout으로 DEAD 처리", outbox.getId());
 
+                deadLetterSave(
+                        getAggregateId(outbox),
+                        outbox.getPayload(),
+                        errorMessage,
+                        "LEASE_TIMEOUT",
+                        nextRetry
+                );
+
             } else {
                 errorMessage = "Outbox 처리 중 시간 초과";
 
@@ -127,5 +148,34 @@ public class OutboxTransactionService {
         }
 
         return message.length() > 500 ? message.substring(0, 500) : message;
+    }
+
+    private void deadLetterSave(
+            String aggregateId,
+            String payload,
+            String reason,
+            String exceptionType,
+            int retryCount
+    ) {
+        try {
+            deadLetterService.save(
+                    DeadLetterType.OUTBOX,
+                    DeadLetterSource.OUTBOX_TRANSACTION_SERVICE,
+                    DeadLetterAggregateType.OUTBOX,
+                    aggregateId,
+                    null,
+                    payload,
+                    reason,
+                    exceptionType,
+                    retryCount
+            );
+
+        } catch (Exception exception) {
+            log.error("DLQ 저장 실패", exception);
+        }
+    }
+
+    private String getAggregateId(Outbox outbox) {
+        return outbox.getAggregateId() == null ? null : outbox.getAggregateId().toString();
     }
 }
