@@ -34,7 +34,7 @@ public class AdminDeadLetterController {
     }
 
     @GetMapping("/{deadLetterId}")
-    public ResponseEntity<ApiResponse<DeadLetterDetailResponse>> findOndDeadLetter(@PathVariable Long deadLetterId) {
+    public ResponseEntity<ApiResponse<DeadLetterDetailResponse>> findOneDeadLetter(@PathVariable Long deadLetterId) {
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
                         SuccessEnum.READ_SUCCESS,

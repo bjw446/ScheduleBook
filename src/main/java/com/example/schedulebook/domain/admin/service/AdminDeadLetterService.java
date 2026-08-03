@@ -29,7 +29,7 @@ public class AdminDeadLetterService {
     public PageResponse<DeadLetterSummaryResponse> findAllDeadLetters(Long currentUserId, Pageable pageable) {
         userValidator.validateActiveAdmin(currentUserId);
 
-        Page<DeadLetterQueue> deadLetterQueuePage = deadLetterRepository.findAllPages(pageable);
+        Page<DeadLetterQueue> deadLetterQueuePage = deadLetterRepository.findAll(pageable);
 
         return PageResponse.register(deadLetterQueuePage.map(DeadLetterSummaryResponse::from));
     }
@@ -55,7 +55,7 @@ public class AdminDeadLetterService {
 
         switch (deadLetterQueue.getDeadLetterAggregateType()) {
             case SESSION ->
-                    forceLogoutRetryService.recover(Long.valueOf(deadLetterQueue.getAggregateId()));
+                    forceLogoutRetryService.recover(deadLetterQueue.getAggregateId());
 
             case OUTBOX ->
                     outboxTransactionService.recover(Long.valueOf(deadLetterQueue.getAggregateId()));

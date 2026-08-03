@@ -60,9 +60,9 @@ public interface ForceLogoutRetryRepository extends JpaRepository<ForceLogoutRet
     @Modifying
     @Query("UPDATE ForceLogoutRetry f SET f.forceLogoutRetryStatus = " +
             "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.PENDING, " +
-            "f.retryCount = 0, f.reason = NULL, f.nextRetryAt = NULL, " +
-            "f.updatedAt = CURRENT_TIMESTAMP WHERE f.id = :forceLogoutRetryId ")
-    int updateRecover(@Param("forceLogoutRetryId") Long forceLogoutRetryId);
+            "f.retryCount = 0, f.reason = NULL, f.nextRetryAt = NULL, f.updatedAt = CURRENT_TIMESTAMP " +
+            "WHERE f.id = :forceLogoutRetryId AND f.claimToken = :claimToken ")
+    int updateRecover(@Param("forceLogoutRetryId") Long forceLogoutRetryId, @Param("claimToken") String claimToken);
 
-    Optional<ForceLogoutRetry> findByAggregateId(Long aggregateId);
+    Optional<ForceLogoutRetry> findBySessionId(String sessionId);
 }
