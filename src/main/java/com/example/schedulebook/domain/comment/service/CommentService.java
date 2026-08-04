@@ -61,7 +61,7 @@ public class CommentService {
 
         outboxService.save(
                 OutboxAggregateType.COMMENT,
-                savedComment.getId(),
+                String.valueOf(savedComment.getId()),
                 OutboxEventType.COMMENT_EVENT,
                 commentEventResponse
         );
@@ -75,7 +75,7 @@ public class CommentService {
 
         outboxService.save(
                 OutboxAggregateType.COMMENT,
-                savedComment.getId(),
+                String.valueOf(savedComment.getId()),
                 OutboxEventType.COMMENT_CREATED,
                 createdEvent
         );
@@ -109,7 +109,7 @@ public class CommentService {
 
         outboxService.save(
                 OutboxAggregateType.COMMENT,
-                commentId,
+                String.valueOf(commentId),
                 OutboxEventType.COMMENT_EVENT,
                 commentEventResponse
         );
@@ -134,7 +134,7 @@ public class CommentService {
 
         outboxService.save(
                 OutboxAggregateType.COMMENT,
-                commentId,
+                String.valueOf(commentId),
                 OutboxEventType.COMMENT_EVENT,
                 commentEventResponse
         );

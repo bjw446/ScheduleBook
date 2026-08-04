@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public record OutboxResponse(
         Long id,
         OutboxAggregateType aggregateType,
-        Long aggregateId,
+        String aggregateId,
         OutboxEventType eventType,
         OutboxStatus status,
         String payloadPreview,

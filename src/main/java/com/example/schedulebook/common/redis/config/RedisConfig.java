@@ -5,6 +5,7 @@ import com.example.schedulebook.common.redis.delegate.CommentRedisMessageDelegat
 import com.example.schedulebook.common.redis.delegate.ForceLogoutRedisMessageDelegate;
 import com.example.schedulebook.common.redis.delegate.NotificationRedisMessageDelegate;
 import com.example.schedulebook.common.redis.subscriber.RedisSubscriber;
+import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.TimeoutOptions;
@@ -117,10 +118,11 @@ public class RedisConfig {
     @Bean
     public MessageListenerAdapter forceLogoutListenerAdapter(
             RedisSubscriber redisSubscriber,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            DeadLetterService deadLetterService
     ) {
         MessageListenerAdapter adapter = new MessageListenerAdapter(
-                new ForceLogoutRedisMessageDelegate(redisSubscriber, objectMapper), "handleMessage"
+                new ForceLogoutRedisMessageDelegate(redisSubscriber, objectMapper, deadLetterService), "handleMessage"
         );
 
         adapter.setSerializer(new StringRedisSerializer());

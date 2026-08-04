@@ -1,6 +1,8 @@
 package com.example.schedulebook.common.redis.publisher;
 
 import com.example.schedulebook.common.consts.RedisConst;
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,7 +28,7 @@ public class RedisEventPublisher {
             );
 
         } catch (JsonProcessingException e) {
-            log.error("강제 로그아웃 이벤트 직렬화 실패 : {}", e.getMessage(), e);
+            throw new BaseException(ErrorEnum.JSON_SERIALIZATION_FAILED, e);
         }
     }
 }

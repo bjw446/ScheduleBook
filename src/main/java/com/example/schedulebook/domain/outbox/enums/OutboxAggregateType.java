@@ -4,10 +4,7 @@ public enum OutboxAggregateType {
     USER,
     SCHEDULE,
     COMMENT,
-    CHAT,
     FRIEND,
     NOTIFICATION,
-    REWARD,
-    SECURITY,
-    AUTH
+    SESSION
 }

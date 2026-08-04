@@ -22,7 +22,12 @@ public class ForceLogoutHandler {
             forceLogoutDispatcher.dispatch(event);
 
         } catch (Exception e) {
-            log.error("웹소켓 전송 실패 : {}", WebSocketDestination.FORCE_LOGOUT, e);
+            log.error("강제 로그아웃 처리 실패 : {}, userId ={}. sessionId = {}",
+                    WebSocketDestination.FORCE_LOGOUT,
+                    event.userId(),
+                    event.sessionId(),
+                    e
+            );
 
             forceLogoutRetryService.save(event.sessionId(), event.userId(), event, e.getMessage());
         }

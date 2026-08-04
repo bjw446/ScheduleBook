@@ -70,7 +70,7 @@ public class UserService {
 
         outboxService.save(
                 OutboxAggregateType.USER,
-                user.getId(),
+                String.valueOf(user.getId()),
                 OutboxEventType.USER_WITHDRAW,
                 userWithdrawEvent
         );

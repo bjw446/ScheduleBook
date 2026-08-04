@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class WebSocketForceLogoutDispatcher implements ForceLogoutDispatcher {
+public class ForceLogoutDispatcherImpl implements ForceLogoutDispatcher {
     private final SessionBlockStore sessionBlockStore;
     private final RedisPresenceService redisPresenceService;
     private final SimpMessagingTemplate simpMessagingTemplate;

@@ -98,7 +98,7 @@ public class AuthService {
 
             outboxService.save(
                     OutboxAggregateType.USER,
-                    user.getId(),
+                    String.valueOf(user.getId()),
                     OutboxEventType.AUDIT_EVENT,
                     new AuditEvent(
                             user.getId(),
@@ -134,7 +134,7 @@ public class AuthService {
 
         outboxService.save(
                 OutboxAggregateType.USER,
-                token.userId(),
+                String.valueOf(token.userId()),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
                         token.userId(),
@@ -168,7 +168,7 @@ public class AuthService {
 
                 auditEventOutboxService.saveReplayEvent(user.getId(), user.getLoginId(), ip, userAgent);
 
-                throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID);
+                throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID, e);
             }
 
             throw e;
@@ -193,7 +193,7 @@ public class AuthService {
 
         outboxService.save(
                 OutboxAggregateType.USER,
-                currentUserId,
+                String.valueOf(currentUserId),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
                         currentUserId,
@@ -211,7 +211,7 @@ public class AuthService {
             loginSuccessService.loginSuccess(user, ip, userAgent);
 
         } catch (ObjectOptimisticLockingFailureException e) {
-            throw new BaseException(ErrorEnum.LOGIN_CONFLICT);
+            throw new BaseException(ErrorEnum.LOGIN_CONFLICT, e);
         }
     }
 

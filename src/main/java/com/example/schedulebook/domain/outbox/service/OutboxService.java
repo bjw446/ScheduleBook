@@ -21,7 +21,7 @@ public class OutboxService {
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public void save(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType, Object payload) {
+    public void save(OutboxAggregateType aggregateType, String aggregateId, OutboxEventType eventType, Object payload) {
         try {
             String json = objectMapper.writeValueAsString(payload);
 
@@ -35,7 +35,7 @@ public class OutboxService {
             outboxRepository.save(outbox);
 
         } catch (JsonProcessingException e) {
-            throw new BaseException(ErrorEnum.OUTBOX_PAYLOAD_SERIALIZATION_FAILED);
+            throw new BaseException(ErrorEnum.OUTBOX_PAYLOAD_SERIALIZATION_FAILED, e);
 
         } catch (Exception e) {
             log.error("Outbox 저장 실패 {}", e.getMessage(), e);
@@ -45,7 +45,7 @@ public class OutboxService {
     }
 
     @Transactional
-    public void cancelPending(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType) {
+    public void cancelPending(OutboxAggregateType aggregateType, String aggregateId, OutboxEventType eventType) {
         outboxRepository.updateStatusToDeadIfPending(
                 aggregateType,
                 aggregateId,

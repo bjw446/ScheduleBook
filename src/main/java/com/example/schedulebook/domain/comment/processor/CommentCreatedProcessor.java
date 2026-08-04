@@ -102,7 +102,7 @@ public class CommentCreatedProcessor implements NotificationEventProcessor<Comme
         } catch (Exception ex) {
             log.error("일정 댓글 생성 Retry 저장 실패", ex);
 
-            throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_SAVE_FAILED);
+            throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_SAVE_FAILED, ex);
         }
     }
 }

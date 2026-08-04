@@ -12,4 +12,9 @@ public class BaseException extends RuntimeException {
         super(errorEnum.getMessage());
         this.errorEnum = errorEnum;
     }
+
+    public BaseException(ErrorEnum errorEnum, Throwable cause) {
+        super(errorEnum.getMessage(), cause);
+        this.errorEnum = errorEnum;
+    }
 }
