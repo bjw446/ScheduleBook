@@ -66,7 +66,7 @@ public class FriendService {
         } catch (DataIntegrityViolationException e) {
             log.warn("친구 요청 생성 중 중복 에러 발생 (requesterId={}, receiverId={}): {}",
                     requester.getId(), receiver.getId(), e.getMessage(), e);
-            throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS);
+            throw new BaseException(ErrorEnum.FRIEND_ALREADY_EXISTS, e);
         }
 
         return completeFriendRequest(savedFriend, requester, receiver);

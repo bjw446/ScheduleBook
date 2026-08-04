@@ -31,7 +31,7 @@ public class ForceLogoutRedisMessageDelegate {
                 deadLetterService.save(
                         DeadLetterType.FORCE_LOGOUT,
                         DeadLetterSource.FORCE_LOGOUT_REDIS_MESSAGE_DELEGATE,
-                        DeadLetterAggregateType.SESSION,
+                        DeadLetterAggregateType.DESERIALIZATION_ERROR,
                         null,
                         null,
                         message,

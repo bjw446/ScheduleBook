@@ -168,7 +168,7 @@ public class AuthService {
 
                 auditEventOutboxService.saveReplayEvent(user.getId(), user.getLoginId(), ip, userAgent);
 
-                throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID);
+                throw new BaseException(ErrorEnum.REFRESH_TOKEN_INVALID, e);
             }
 
             throw e;
@@ -211,7 +211,7 @@ public class AuthService {
             loginSuccessService.loginSuccess(user, ip, userAgent);
 
         } catch (ObjectOptimisticLockingFailureException e) {
-            throw new BaseException(ErrorEnum.LOGIN_CONFLICT);
+            throw new BaseException(ErrorEnum.LOGIN_CONFLICT, e);
         }
     }
 

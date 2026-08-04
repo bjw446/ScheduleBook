@@ -28,7 +28,7 @@ public class RedisEventPublisher {
             );
 
         } catch (JsonProcessingException e) {
-            throw new BaseException(ErrorEnum.JSON_SERIALIZATION_FAILED);
+            throw new BaseException(ErrorEnum.JSON_SERIALIZATION_FAILED, e);
         }
     }
 }

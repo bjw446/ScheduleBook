@@ -40,7 +40,7 @@ public class ForceLogoutRetryService {
 
         }  catch (JsonProcessingException exception) {
             log.error("강제 로그아웃 재시도 payload 직렬화 실패", exception);
-            throw new BaseException(ErrorEnum.JSON_SERIALIZATION_FAILED);
+            throw new BaseException(ErrorEnum.JSON_SERIALIZATION_FAILED, exception);
         }
     }
 
@@ -110,7 +110,7 @@ public class ForceLogoutRetryService {
         } catch (JsonProcessingException e) {
             log.error("강제 로그아웃 payload 역직렬화 실패 forceLogoutRetryId = {}", forceLogoutRetry.getId(), e);
 
-            throw new BaseException(ErrorEnum.JSON_DESERIALIZATION_FAILED);
+            throw new BaseException(ErrorEnum.JSON_DESERIALIZATION_FAILED, e);
         }
     }
 

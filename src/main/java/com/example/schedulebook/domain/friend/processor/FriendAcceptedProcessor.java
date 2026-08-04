@@ -54,7 +54,7 @@ public class FriendAcceptedProcessor implements NotificationEventProcessor<Frien
         } catch (Exception ex) {
             log.error("친구 수락 알림 Retry 저장 실패", ex);
 
-            throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_SAVE_FAILED);
+            throw new BaseException(ErrorEnum.NOTIFICATION_RETRY_SAVE_FAILED, ex);
         }
     }
 }

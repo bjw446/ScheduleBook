@@ -49,10 +49,10 @@ public class JwtProvider {
             return Long.parseLong(claims.getSubject());
 
         } catch (NumberFormatException e) {
-            throw new BaseException(ErrorEnum.TOKEN_INVALID);
+            throw new BaseException(ErrorEnum.TOKEN_INVALID, e);
 
         } catch (JwtException | IllegalArgumentException e) {
-            throw new BaseException(ErrorEnum.TOKEN_INVALID);
+            throw new BaseException(ErrorEnum.TOKEN_INVALID, e);
         }
     }
 
@@ -69,7 +69,7 @@ public class JwtProvider {
             return UserRole.valueOf(userRole);
 
         } catch (JwtException | IllegalArgumentException e) {
-            throw new BaseException(ErrorEnum.TOKEN_INVALID);
+            throw new BaseException(ErrorEnum.TOKEN_INVALID, e);
         }
     }
 
@@ -82,7 +82,7 @@ public class JwtProvider {
 
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("JWT 유효하지 않은 토큰 : {}", e.getMessage());
-            throw new BaseException(ErrorEnum.TOKEN_INVALID);
+            throw new BaseException(ErrorEnum.TOKEN_INVALID, e);
         }
     }
 
@@ -93,7 +93,7 @@ public class JwtProvider {
             return claims.getExpiration().getTime() - System.currentTimeMillis();
 
         } catch (JwtException e) {
-            throw new BaseException(ErrorEnum.TOKEN_INVALID);
+            throw new BaseException(ErrorEnum.TOKEN_INVALID, e);
         }
     }
 
@@ -124,7 +124,7 @@ public class JwtProvider {
             return sessionId;
 
         } catch (JwtException | IllegalArgumentException e) {
-            throw new BaseException(ErrorEnum.TOKEN_INVALID);
+            throw new BaseException(ErrorEnum.TOKEN_INVALID, e);
         }
     }
 

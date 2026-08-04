@@ -49,7 +49,7 @@ public class ScheduleReminderService {
     public void refresh(Schedule schedule) {
         scheduleReminderRepository.deleteBySchedule_Id(schedule.getId());
 
-        outboxService.cancelPending(OutboxAggregateType.SCHEDULE, schedule.getId(), OutboxEventType.SCHEDULE_REMINDER);
+        outboxService.cancelPending(OutboxAggregateType.SCHEDULE, String.valueOf(schedule.getId()), OutboxEventType.SCHEDULE_REMINDER);
 
         save(schedule);
     }
