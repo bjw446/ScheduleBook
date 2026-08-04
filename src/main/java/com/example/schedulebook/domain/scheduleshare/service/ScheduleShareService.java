@@ -193,7 +193,7 @@ public class ScheduleShareService {
 
         outboxService.save(
                 OutboxAggregateType.SCHEDULE,
-                scheduleShare.getSchedule().getId(),
+                String.valueOf(scheduleShare.getSchedule().getId()),
                 OutboxEventType.SCHEDULE_CANCELED,
                 scheduleCanceledEvent
         );
@@ -225,7 +225,7 @@ public class ScheduleShareService {
 
         outboxService.save(
                 OutboxAggregateType.SCHEDULE,
-                schedule.getId(),
+                String.valueOf(schedule.getId()),
                 OutboxEventType.SCHEDULE_SHARED,
                 scheduleSharedEvent
         );

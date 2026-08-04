@@ -98,7 +98,7 @@ public class AuthService {
 
             outboxService.save(
                     OutboxAggregateType.USER,
-                    user.getId(),
+                    String.valueOf(user.getId()),
                     OutboxEventType.AUDIT_EVENT,
                     new AuditEvent(
                             user.getId(),
@@ -134,7 +134,7 @@ public class AuthService {
 
         outboxService.save(
                 OutboxAggregateType.USER,
-                token.userId(),
+                String.valueOf(token.userId()),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
                         token.userId(),
@@ -193,7 +193,7 @@ public class AuthService {
 
         outboxService.save(
                 OutboxAggregateType.USER,
-                currentUserId,
+                String.valueOf(currentUserId),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
                         currentUserId,

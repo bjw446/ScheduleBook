@@ -21,7 +21,7 @@ public class OutboxService {
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public void save(OutboxAggregateType aggregateType, Long aggregateId, OutboxEventType eventType, Object payload) {
+    public void save(OutboxAggregateType aggregateType, String aggregateId, OutboxEventType eventType, Object payload) {
         try {
             String json = objectMapper.writeValueAsString(payload);
 

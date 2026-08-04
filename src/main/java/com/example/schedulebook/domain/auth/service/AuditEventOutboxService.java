@@ -19,7 +19,7 @@ public class AuditEventOutboxService {
     public void saveReplayEvent(Long userId, String loginId, String ip, String userAgent) {
         outboxService.save(
                 OutboxAggregateType.USER,
-                userId,
+                String.valueOf(userId),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
                         userId,

@@ -83,7 +83,7 @@ public class SecurityNotificationService {
 
         outboxService.save(
                 OutboxAggregateType.NOTIFICATION,
-                notification.getId(),
+                String.valueOf(notification.getId()),
                 OutboxEventType.NOTIFICATION_EVENT,
                 notificationEventResponse
         );

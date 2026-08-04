@@ -2,9 +2,7 @@ package com.example.schedulebook.domain.auth.service;
 
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
-import com.example.schedulebook.common.executor.AfterCommitExecutor;
 import com.example.schedulebook.common.redis.service.RedisBlacklistService;
-import com.example.schedulebook.common.redis.publisher.RedisEventPublisher;
 import com.example.schedulebook.common.redis.service.RedisRefreshTokenService;
 import com.example.schedulebook.common.redis.service.RedisSessionService;
 import com.example.schedulebook.common.security.JwtProperties;
@@ -14,6 +12,9 @@ import com.example.schedulebook.domain.auth.dto.response.SessionInfo;
 import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.enums.RefreshRotateResult;
+import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
+import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
+import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.user.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,8 +31,7 @@ public class SessionService {
     private final RedisRefreshTokenService redisRefreshTokenService;
     private final RedisSessionService redisSessionService;
     private final RedisBlacklistService redisBlacklistService;
-    private final RedisEventPublisher redisEventPublisher;
-    private final AfterCommitExecutor afterCommitExecutor;
+    private final OutboxService outboxService;
 
     public LoginToken createSession(Long userId, String ip, String userAgent, UserRole userRole) {
         String sessionId = UUID.randomUUID().toString();
@@ -126,9 +126,7 @@ public class SessionService {
 
         removeSession(userId, sessionId);
 
-        afterCommitExecutor.execute(() ->
-                redisEventPublisher.publish(new ForceLogoutSessionEvent(userId, sessionId, jwtProperties.accessTokenExpiration()))
-        );
+        saveOutbox(userId, sessionId);
     }
 
     public void forceLogoutAllSessions(Long userId) {
@@ -138,17 +136,11 @@ public class SessionService {
             return;
         }
 
-        List<ForceLogoutSessionEvent> events = new ArrayList<>();
-
         for (String sessionId : sessionIds) {
             removeSession(userId, sessionId);
 
-            events.add(new ForceLogoutSessionEvent(userId, sessionId, jwtProperties.accessTokenExpiration()));
+            saveOutbox(userId, sessionId);
         }
-
-        afterCommitExecutor.execute(() -> {
-            events.forEach(redisEventPublisher::publish);
-        });
     }
 
     private LoginToken validateRefreshToken(String refreshToken) {
@@ -226,5 +218,18 @@ public class SessionService {
         redisSessionService.removeSession(userId, sessionId);
 
         redisSessionService.deleteSessionInfo(sessionId);
+    }
+
+    private void saveOutbox(Long userId, String sessionId) {
+        outboxService.save(
+                OutboxAggregateType.SESSION,
+                sessionId,
+                OutboxEventType.FORCE_LOGOUT,
+                new ForceLogoutSessionEvent(
+                        userId,
+                        sessionId,
+                        jwtProperties.accessTokenExpiration()
+                )
+        );
     }
 }

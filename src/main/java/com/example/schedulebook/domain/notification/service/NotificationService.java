@@ -146,7 +146,7 @@ public class NotificationService {
 
         outboxService.save(
                 OutboxAggregateType.NOTIFICATION,
-                currentUserId,
+                String.valueOf(currentUserId),
                 OutboxEventType.NOTIFICATION_EVENT,
                 notificationEventResponse
         );
@@ -170,7 +170,7 @@ public class NotificationService {
 
         outboxService.save(
                 OutboxAggregateType.NOTIFICATION,
-                currentUserId,
+                String.valueOf(currentUserId),
                 OutboxEventType.NOTIFICATION_EVENT,
                 notificationEventResponse
         );
@@ -210,7 +210,7 @@ public class NotificationService {
 
         outboxService.save(
                 OutboxAggregateType.NOTIFICATION,
-                notification.getId(),
+                String.valueOf(notification.getId()),
                 OutboxEventType.NOTIFICATION_EVENT,
                 notificationEventResponse
         );

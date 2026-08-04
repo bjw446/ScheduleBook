@@ -43,7 +43,7 @@ public class AdminSessionService {
 
         outboxService.save(
                 OutboxAggregateType.USER,
-                userId,
+                String.valueOf(userId),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
                         userId,
@@ -67,7 +67,7 @@ public class AdminSessionService {
 
         outboxService.save(
                 OutboxAggregateType.USER,
-                userId,
+                String.valueOf(userId),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
                         userId,

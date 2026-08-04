@@ -31,7 +31,7 @@ public class LoginSuccessService {
         try {
             outboxService.save(
                     OutboxAggregateType.USER,
-                    user.getId(),
+                    String.valueOf(user.getId()),
                     OutboxEventType.AUDIT_EVENT,
                     new AuditEvent(
                             user.getId(),

@@ -120,7 +120,7 @@ public class ScheduleService {
 
         outboxService.save(
                 OutboxAggregateType.SCHEDULE,
-                schedule.getId(),
+                String.valueOf(schedule.getId()),
                 OutboxEventType.SCHEDULE_UPDATED,
                 scheduleUpdatedEvent
         );
@@ -139,7 +139,7 @@ public class ScheduleService {
 
         outboxService.save(
                 OutboxAggregateType.SCHEDULE,
-                schedule.getId(),
+                String.valueOf(schedule.getId()),
                 OutboxEventType.SCHEDULE_DELETED,
                 scheduleDeletedEvent
         );

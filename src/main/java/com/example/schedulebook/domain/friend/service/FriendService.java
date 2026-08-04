@@ -140,7 +140,7 @@ public class FriendService {
 
         outboxService.save(
                 OutboxAggregateType.FRIEND,
-                friend.getId(),
+                String.valueOf(friend.getId()),
                 OutboxEventType.FRIEND_ACCEPTED,
                 friendAcceptedEvent
         );
@@ -195,7 +195,7 @@ public class FriendService {
 
         outboxService.save(
                 OutboxAggregateType.FRIEND,
-                friend.getId(),
+                String.valueOf(friend.getId()),
                 OutboxEventType.FRIEND_REQUESTED,
                 friendRequestedEvent
         );

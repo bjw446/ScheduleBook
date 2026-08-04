@@ -69,7 +69,7 @@ public class ScheduleReminderService {
 
         outboxService.save(
                 OutboxAggregateType.SCHEDULE,
-                scheduleReminder.getSchedule().getId(),
+                String.valueOf(scheduleReminder.getSchedule().getId()),
                 OutboxEventType.SCHEDULE_REMINDER,
                 reminderEvent
         );
