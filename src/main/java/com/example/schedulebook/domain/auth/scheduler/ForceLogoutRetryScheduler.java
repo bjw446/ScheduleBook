@@ -131,7 +131,7 @@ public class ForceLogoutRetryScheduler {
         } catch (Exception dlqException) {
             log.error("DLQ 저장 실패", dlqException);
 
-            throw new BaseException(ErrorEnum.DEAD_LETTER_SAVE_FAILED);
+            throw new BaseException(ErrorEnum.DEAD_LETTER_SAVE_FAILED, dlqException);
         }
 
         try {
