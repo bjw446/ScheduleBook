@@ -5,6 +5,7 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.auth.dispatcher.ForceLogoutDispatcher;
 import com.example.schedulebook.domain.auth.entity.ForceLogoutRetry;
+import com.example.schedulebook.domain.auth.metrics.ForceLogoutRetryMetrics;
 import com.example.schedulebook.domain.auth.service.ForceLogoutRetryService;
 import com.example.schedulebook.domain.auth.service.ForceLogoutRetryStateService;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
@@ -26,9 +27,12 @@ public class ForceLogoutRetryScheduler {
     private final ForceLogoutRetryStateService forceLogoutRetryStateService;
     private final ForceLogoutDispatcher forceLogoutDispatcher;
     private final DeadLetterService deadLetterService;
+    private final ForceLogoutRetryMetrics forceLogoutRetryMetrics;
 
     @Scheduled(fixedDelay = 30_000)
     public void process() {
+        forceLogoutRetryMetrics.schedulerRun();
+
         for (int batch = 0; batch < CommonConst.MAX_BATCHES_PER_RUN; batch++) {
             List<ForceLogoutRetry> forceLogoutRetries = forceLogoutRetryService.findRetryTargets(CommonConst.BATCH_SIZE);
 
@@ -43,10 +47,14 @@ public class ForceLogoutRetryScheduler {
                     continue;
                 }
 
+                forceLogoutRetryMetrics.processed();
+
                 try {
                     forceLogoutDispatcher.dispatch(forceLogoutRetryService.deserialize(forceLogoutRetry));
 
                 } catch (BaseException e) {
+                    forceLogoutRetryMetrics.schedulerError();
+
                     if (e.getErrorEnum() == ErrorEnum.JSON_DESERIALIZATION_FAILED) {
                         deadLetterSave(forceLogoutRetry, claimToken, e);
 
@@ -60,6 +68,8 @@ public class ForceLogoutRetryScheduler {
                 } catch (Exception e) {
                     log.warn("강제 로그아웃 재시도 처리 실패 forceLogoutRetryId = {}", forceLogoutRetry.getId(), e);
 
+                    forceLogoutRetryMetrics.schedulerError();
+
                     retry(forceLogoutRetry, claimToken, e);
 
                     continue;
@@ -68,7 +78,11 @@ public class ForceLogoutRetryScheduler {
                 try {
                     forceLogoutRetryStateService.completeSuccess(forceLogoutRetry, claimToken);
 
+                    forceLogoutRetryMetrics.success();
+
                 } catch (Exception e) {
+                    forceLogoutRetryMetrics.schedulerError();
+
                     log.error("강제 로그아웃 재시도 완료 상태 갱신 실패 forceLogoutRetryId = {}", forceLogoutRetry.getId(), e);
                 }
             }
@@ -87,9 +101,13 @@ public class ForceLogoutRetryScheduler {
                         forceLogoutRetry.getRetryCount(),
                         claimToken
                 );
+
+                forceLogoutRetryMetrics.retry();
             }
 
         } catch (Exception exception) {
+            forceLogoutRetryMetrics.schedulerError();
+
             log.error("강제 로그아웃 재시도 상태 갱신 실패 forceLogoutRetryId = {}", forceLogoutRetry.getId(), exception);
         }
     }
@@ -108,16 +126,20 @@ public class ForceLogoutRetryScheduler {
                     forceLogoutRetry.getRetryCount() + 1
             );
 
+            forceLogoutRetryMetrics.dlq();
+
         } catch (Exception dlqException) {
             log.error("DLQ 저장 실패", dlqException);
 
-            return;
+            throw new BaseException(ErrorEnum.DEAD_LETTER_SAVE_FAILED, dlqException);
         }
 
         try {
             forceLogoutRetryStateService.completeFailure(forceLogoutRetry, e.getMessage(), claimToken);
 
         } catch (Exception exception) {
+            forceLogoutRetryMetrics.schedulerError();
+
             log.error("강제 로그아웃 재시도 FAILED 상태 갱신 실패 forceLogoutRetryId = {}",
                     forceLogoutRetry.getId(),
                     exception
