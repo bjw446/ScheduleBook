@@ -65,4 +65,8 @@ public interface ForceLogoutRetryRepository extends JpaRepository<ForceLogoutRet
     int updateRecover(@Param("forceLogoutRetryId") Long forceLogoutRetryId, @Param("claimToken") String claimToken);
 
     Optional<ForceLogoutRetry> findBySessionId(String sessionId);
+
+    @Query("SELECT COUNT(f) FROM ForceLogoutRetry f WHERE f.forceLogoutRetryStatus = " +
+            "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.PENDING")
+    long countPending();
 }

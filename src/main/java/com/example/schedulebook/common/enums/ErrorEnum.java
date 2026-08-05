@@ -146,7 +146,8 @@ public enum ErrorEnum {
     // DeadLetter
     DEAD_LETTER_NOT_FOUND(404, "존재하지 않는 DeadLetterQueue 입니다."),
     INVALID_DEAD_LETTER_AGGREGATE_TYPE(400, "잘못된 DeadLetter 집계 타입 입니다."),
-    DEAD_LETTER_RECOVER_FAILED(409, "DeadLetter 복구에 실패 했습니다.");
+    DEAD_LETTER_RECOVER_FAILED(409, "DeadLetter 복구에 실패 했습니다."),
+    DEAD_LETTER_SAVE_FAILED(409, "DeadLetter 저장에 실패 했습니다.");
 
     private final int status;
     private final String message;
