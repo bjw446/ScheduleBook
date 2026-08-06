@@ -5,7 +5,7 @@ import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
-import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
+import com.example.schedulebook.domain.deadletter.service.DeadLetterRetryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ForceLogoutRedisMessageDelegate {
     private final RedisSubscriber redisSubscriber;
     private final ObjectMapper objectMapper;
-    private final DeadLetterService deadLetterService;
+    private final DeadLetterRetryService deadLetterRetryService;
 
     public void handleMessage(String message) {
         try {
@@ -27,7 +27,7 @@ public class ForceLogoutRedisMessageDelegate {
         } catch (JsonProcessingException e) {
             log.error("강제 로그아웃 역직렬화 실패", e);
 
-            deadLetterService.saveDeadLetterWithRetry(
+            deadLetterRetryService.saveDeadLetterWithRetry(
                     DeadLetterType.FORCE_LOGOUT,
                     DeadLetterSource.FORCE_LOGOUT_REDIS_MESSAGE_DELEGATE,
                     DeadLetterAggregateType.DESERIALIZATION_ERROR,

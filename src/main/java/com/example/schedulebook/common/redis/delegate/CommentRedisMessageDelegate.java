@@ -5,7 +5,7 @@ import com.example.schedulebook.domain.comment.event.CommentEvent;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
-import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
+import com.example.schedulebook.domain.deadletter.service.DeadLetterRetryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CommentRedisMessageDelegate {
     private final RedisSubscriber redisSubscriber;
     private final ObjectMapper objectMapper;
-    private final DeadLetterService deadLetterService;
+    private final DeadLetterRetryService deadLetterRetryService;
 
     public void handleMessage(String message) {
         try {
@@ -28,7 +28,7 @@ public class CommentRedisMessageDelegate {
         } catch (JsonProcessingException e) {
             log.error("Redis 메시지 역직렬화 실패, 메시지 : {}", message, e);
 
-            deadLetterService.saveDeadLetterWithRetry(
+            deadLetterRetryService.saveDeadLetterWithRetry(
                     DeadLetterType.COMMENT,
                     DeadLetterSource.COMMENT_REDIS_MESSAGE_DELEGATE,
                     DeadLetterAggregateType.DESERIALIZATION_ERROR,
