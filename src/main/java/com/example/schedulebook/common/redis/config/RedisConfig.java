@@ -5,7 +5,7 @@ import com.example.schedulebook.common.redis.delegate.CommentRedisMessageDelegat
 import com.example.schedulebook.common.redis.delegate.ForceLogoutRedisMessageDelegate;
 import com.example.schedulebook.common.redis.delegate.NotificationRedisMessageDelegate;
 import com.example.schedulebook.common.redis.subscriber.RedisSubscriber;
-import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
+import com.example.schedulebook.domain.deadletter.service.DeadLetterRetryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.TimeoutOptions;
@@ -90,10 +90,11 @@ public class RedisConfig {
     @Bean
     public MessageListenerAdapter notificationListenerAdapter(
             RedisSubscriber redisSubscriber,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            DeadLetterRetryService deadLetterRetryService
     ) {
         MessageListenerAdapter adapter = new MessageListenerAdapter(
-                new NotificationRedisMessageDelegate(redisSubscriber, objectMapper), "handleMessage"
+                new NotificationRedisMessageDelegate(redisSubscriber, objectMapper, deadLetterRetryService), "handleMessage"
         );
 
         adapter.setSerializer(new StringRedisSerializer());
@@ -104,10 +105,11 @@ public class RedisConfig {
     @Bean
     public MessageListenerAdapter commentListenerAdapter(
             RedisSubscriber redisSubscriber,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            DeadLetterRetryService deadLetterRetryService
     ) {
         MessageListenerAdapter adapter = new MessageListenerAdapter(
-                new CommentRedisMessageDelegate(redisSubscriber, objectMapper), "handleMessage"
+                new CommentRedisMessageDelegate(redisSubscriber, objectMapper, deadLetterRetryService), "handleMessage"
         );
 
         adapter.setSerializer(new StringRedisSerializer());
@@ -119,10 +121,10 @@ public class RedisConfig {
     public MessageListenerAdapter forceLogoutListenerAdapter(
             RedisSubscriber redisSubscriber,
             ObjectMapper objectMapper,
-            DeadLetterService deadLetterService
+            DeadLetterRetryService deadLetterRetryService
     ) {
         MessageListenerAdapter adapter = new MessageListenerAdapter(
-                new ForceLogoutRedisMessageDelegate(redisSubscriber, objectMapper, deadLetterService), "handleMessage"
+                new ForceLogoutRedisMessageDelegate(redisSubscriber, objectMapper, deadLetterRetryService), "handleMessage"
         );
 
         adapter.setSerializer(new StringRedisSerializer());
