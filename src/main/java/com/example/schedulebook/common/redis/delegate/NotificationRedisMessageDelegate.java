@@ -28,6 +28,15 @@ public class NotificationRedisMessageDelegate {
         } catch (JsonProcessingException e) {
             log.error("Redis 메시지 역직렬화 실패, 메시지 : {}", message, e);
 
+            saveDeadLetterWithRetry(message, e);
+
+        } catch (Exception e) {
+            log.error("Redis 메시지 처리 중 예상치 못한 오류 발생, 메시지 : {}", message, e);
+        }
+    }
+
+    private void saveDeadLetterWithRetry(String message, Exception e) {
+        for (int i = 0; i < 3; i++) {
             try {
                 deadLetterService.save(
                         DeadLetterType.NOTIFICATION,
@@ -40,11 +49,24 @@ public class NotificationRedisMessageDelegate {
                         e.getClass().getSimpleName(),
                         0
                 );
+
+                return;
+
             } catch (Exception exception) {
-                log.error("알림 전송 DLQ 저장 실패", exception);
+                log.warn("알림 전송 DLQ 저장 재시도 {} / 3", i + 1, exception);
+
+                try {
+                    Thread.sleep((long) Math.pow(2, i) * 100);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+
+                    log.warn("알림 전송 DLQ 저장 재시도 중 인터럽트 발생");
+
+                    return;
+                }
             }
-        } catch (Exception e) {
-            log.error("Redis 메시지 처리 중 예상치 못한 오류 발생, 메시지 : {}", message, e);
         }
+
+        log.error("알림 전송 DLQ 저장 최종 실패, message = {}", message);
     }
 }
