@@ -40,7 +40,7 @@ public class ForceLogoutRedisMessageDelegate {
                         0
                 );
             } catch (Exception exception) {
-                log.error("강제 로그아웃 DLQ 저장 싫패", exception);
+                log.error("강제 로그아웃 DLQ 저장 실패", exception);
             }
         }
     }

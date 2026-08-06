@@ -90,10 +90,11 @@ public class RedisConfig {
     @Bean
     public MessageListenerAdapter notificationListenerAdapter(
             RedisSubscriber redisSubscriber,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            DeadLetterService deadLetterService
     ) {
         MessageListenerAdapter adapter = new MessageListenerAdapter(
-                new NotificationRedisMessageDelegate(redisSubscriber, objectMapper), "handleMessage"
+                new NotificationRedisMessageDelegate(redisSubscriber, objectMapper, deadLetterService), "handleMessage"
         );
 
         adapter.setSerializer(new StringRedisSerializer());
@@ -104,10 +105,11 @@ public class RedisConfig {
     @Bean
     public MessageListenerAdapter commentListenerAdapter(
             RedisSubscriber redisSubscriber,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            DeadLetterService deadLetterService
     ) {
         MessageListenerAdapter adapter = new MessageListenerAdapter(
-                new CommentRedisMessageDelegate(redisSubscriber, objectMapper), "handleMessage"
+                new CommentRedisMessageDelegate(redisSubscriber, objectMapper, deadLetterService), "handleMessage"
         );
 
         adapter.setSerializer(new StringRedisSerializer());
