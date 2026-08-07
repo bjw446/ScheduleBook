@@ -4,5 +4,6 @@ public enum DeadLetterType {
     FORCE_LOGOUT,
     OUTBOX,
     COMMENT,
-    NOTIFICATION
+    NOTIFICATION,
+    NOTIFICATION_RETRY
 }
