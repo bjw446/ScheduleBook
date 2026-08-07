@@ -1,13 +1,7 @@
 package com.example.schedulebook.domain.notificationretry.scheduler;
 
 import com.example.schedulebook.common.consts.CommonConst;
-import com.example.schedulebook.common.enums.ErrorEnum;
-import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.metrics.RetrySchedulerMetrics;
-import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
-import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
-import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
-import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
 import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
 import com.example.schedulebook.domain.notificationretry.processor.NotificationRetryProcessor;
 import com.example.schedulebook.domain.notificationretry.repository.NotificationRetryRepository;
@@ -28,7 +22,6 @@ public class NotificationRetryScheduler {
     private final NotificationRetryProcessor notificationRetryProcessor;
     private final NotificationRetryService notificationRetryService;
     private final NotificationRetryStateService notificationRetryStateService;
-    private final DeadLetterService deadLetterService;
     private final NotificationRetryRepository notificationRetryRepository;
     private final RetrySchedulerMetrics retrySchedulerMetrics;
     private static final String METRIC = "notification";
@@ -79,7 +72,19 @@ public class NotificationRetryScheduler {
     private void retry(NotificationRetry notificationRetry, String claimToken, Exception e) {
         try {
             if ((notificationRetry.getRetryCount() + 1) >= CommonConst.MAX_RETRY) {
-                deadLetterSave(notificationRetry, claimToken, e);
+                try {
+                    notificationRetryStateService.completeFailure(notificationRetry, e.getMessage(), claimToken, e);
+
+                    retrySchedulerMetrics.dlq(METRIC);
+
+                } catch (Exception exception) {
+                    retrySchedulerMetrics.error(METRIC);
+
+                    log.error("알림 재시도 FAILED 상태 갱신 실패 notificationRetryId = {}",
+                            notificationRetry.getId(),
+                            exception
+                    );
+                }
 
             } else {
                 notificationRetryService.markRetry(
@@ -93,42 +98,9 @@ public class NotificationRetryScheduler {
             }
 
         } catch (Exception exception) {
-            log.error("알림 재시도 상태 갱신 실패 notificationRetryId = {}", notificationRetry.getId(), exception);
-        }
-    }
-
-    private void deadLetterSave(NotificationRetry notificationRetry, String claimToken, Exception e) {
-        try {
-            deadLetterService.save(
-                    DeadLetterType.NOTIFICATION_RETRY,
-                    DeadLetterSource.NOTIFICATION_RETRY_SCHEDULER,
-                    DeadLetterAggregateType.OUTBOX,
-                    String.valueOf(notificationRetry.getOutboxId()),
-                    notificationRetry.getReceiverId(),
-                    notificationRetry.getPayload(),
-                    e.getMessage(),
-                    e.getClass().getSimpleName(),
-                    notificationRetry.getRetryCount() + 1
-            );
-
-            retrySchedulerMetrics.dlq(METRIC);
-
-        } catch (Exception dlqException) {
-            log.error("DLQ 저장 실패", dlqException);
-
-            throw new BaseException(ErrorEnum.DEAD_LETTER_SAVE_FAILED, dlqException);
-        }
-
-        try {
-            notificationRetryStateService.completeFailure(notificationRetry, e.getMessage(), claimToken);
-
-        } catch (Exception exception) {
             retrySchedulerMetrics.error(METRIC);
 
-            log.error("알림 재시도 FAILED 상태 갱신 실패 forceLogoutRetryId = {}",
-                    notificationRetry.getId(),
-                    exception
-            );
+            log.error("알림 재시도 상태 갱신 실패 notificationRetryId = {}", notificationRetry.getId(), exception);
         }
     }
 }

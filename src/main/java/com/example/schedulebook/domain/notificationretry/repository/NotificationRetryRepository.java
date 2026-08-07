@@ -56,7 +56,7 @@ public interface NotificationRetryRepository extends JpaRepository<NotificationR
             "AND n.updatedAt <= :timeout) ORDER BY n.nextRetryAt, n.retryCount, n.id ASC")
     Page<NotificationRetry> findRetryTargets(@Param("timeout") LocalDateTime timeout, Pageable pageable);
 
-    @Query("SELECT COUNT(n) FROM NotificationRetry f WHERE n.NotificationRetryStatus = " +
+    @Query("SELECT COUNT(n) FROM NotificationRetry n WHERE n.notificationRetryStatus = " +
             "com.example.schedulebook.domain.notificationretry.enums.NotificationRetryStatus.PENDING")
     long countPending();
 }
