@@ -266,4 +266,3 @@ public class RedisPresenceServiceImpl implements RedisPresenceService{
         return RedisConst.getPresenceSessionKey(sessionId);
     }
 }
-
