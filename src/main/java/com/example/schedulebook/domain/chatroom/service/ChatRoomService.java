@@ -137,6 +137,10 @@ public class ChatRoomService {
 
     @Transactional(readOnly = true)
     public ChatRoomSliceResponse findMyChatRooms(Long currentUserId, LocalDateTime cursorTime, Long cursorRoomId, int size) {
+        if (cursorTime != null && cursorRoomId == null) {
+            throw new BaseException(ErrorEnum.INVALID_CURSOR);
+        }
+
         int pageSize = Math.max(1, Math.min(size, CommonConst.MAX_PAGE_SIZE));
 
         List<ChatRoomListProjection> projections = chatRoomMemberRepository.findMyChatRooms(

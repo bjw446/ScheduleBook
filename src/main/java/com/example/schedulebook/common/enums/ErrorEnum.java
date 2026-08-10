@@ -109,6 +109,7 @@ public enum ErrorEnum {
     INVALID_MESSAGE_TYPE(400, "잘못된 MESSAGE_TYPE 입니다."),
     INVALID_CHAT_TARGET(400, "잘못된 채팅 상대 입니다."),
     INVALID_CHAT_ROOM_TYPE(400, "잘못된 채팅방 타입 입니다."),
+    INVALID_CURSOR(400, "잘못된 커서입니다."),
     CHAT_MESSAGE_EMPTY(400, "채팅 메시지를 입력해야 합니다."),
     CHAT_MESSAGE_TOO_LONG(400, "채팅 메시지는 1000자를 초과할 수 없습니다."),
     CHAT_MESSAGE_NOT_FOUND(404, "채팅 메시지가 존재하지 않습니다."),
