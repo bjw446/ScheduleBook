@@ -7,10 +7,9 @@ import com.example.schedulebook.domain.chatroom.dto.request.ChatRoomInviteReques
 import com.example.schedulebook.domain.chatroom.dto.request.GroupChatRoomCreateRequest;
 import com.example.schedulebook.domain.chatroom.dto.request.ChatRoomUpdateNameRequest;
 import com.example.schedulebook.domain.chatmessage.dto.response.*;
-import com.example.schedulebook.domain.chatroom.dto.response.ChatRoomDetailResponse;
-import com.example.schedulebook.domain.chatroom.dto.response.ChatRoomListResponse;
-import com.example.schedulebook.domain.chatroom.dto.response.ChatRoomResponse;
+import com.example.schedulebook.domain.chatroom.dto.response.*;
 import com.example.schedulebook.domain.chatroom.entity.ChatRoom;
+import com.example.schedulebook.domain.chatroom.projection.ChatRoomListProjection;
 import com.example.schedulebook.domain.chatroom.repository.ChatRoomMemberRepository;
 import com.example.schedulebook.domain.chatroom.repository.ChatRoomRepository;
 import com.example.schedulebook.domain.chatroom.repository.DirectChatRoomRepository;
@@ -24,6 +23,7 @@ import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -136,10 +136,35 @@ public class ChatRoomService {
     }
 
     @Transactional(readOnly = true)
-    public List<ChatRoomListResponse> findMyChatRooms(Long currentUserId) {
-        return chatRoomMemberRepository.findMyChatRooms(currentUserId).stream()
+    public ChatRoomSliceResponse findMyChatRooms(Long currentUserId, LocalDateTime cursorTime, Long cursorRoomId, int size) {
+        int pageSize = Math.max(1, Math.min(size, CommonConst.MAX_PAGE_SIZE));
+
+        List<ChatRoomListProjection> projections = chatRoomMemberRepository.findMyChatRooms(
+                currentUserId,
+                cursorTime,
+                cursorRoomId,
+                PageRequest.of(0, pageSize + 1)
+        );
+
+        boolean hasNext = projections.size() > pageSize;
+
+        if (hasNext) {
+            projections = projections.subList(0, pageSize);
+        }
+
+        List<ChatRoomListResponse> responses = projections.stream()
                 .map(ChatRoomListResponse::from)
                 .toList();
+
+        ChatRoomCursor nextCursor = null;
+
+        if (hasNext && !responses.isEmpty()) {
+            ChatRoomListProjection last = projections.get(projections.size() - 1);
+
+            nextCursor = new ChatRoomCursor(last.getLastMessageAt(), last.getRoomId());
+        }
+
+        return new ChatRoomSliceResponse(responses, nextCursor, hasNext);
     }
 
     @Transactional(readOnly = true)

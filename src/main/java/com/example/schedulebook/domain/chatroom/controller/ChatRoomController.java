@@ -9,6 +9,7 @@ import com.example.schedulebook.domain.chatroom.dto.request.ChatRoomUpdateNameRe
 import com.example.schedulebook.domain.chatroom.dto.response.ChatRoomDetailResponse;
 import com.example.schedulebook.domain.chatroom.dto.response.ChatRoomListResponse;
 import com.example.schedulebook.domain.chatroom.dto.response.ChatRoomResponse;
+import com.example.schedulebook.domain.chatroom.dto.response.ChatRoomSliceResponse;
 import com.example.schedulebook.domain.chatroom.service.ChatRoomService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -60,11 +62,20 @@ public class ChatRoomController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ChatRoomListResponse>>> getMyChatRooms() {
+    public ResponseEntity<ApiResponse<ChatRoomSliceResponse>> getMyChatRooms(
+            @RequestParam(required = false) LocalDateTime cursorTime,
+            @RequestParam(required = false) Long cursorRoomId,
+            @RequestParam(defaultValue = "30") Integer size
+    ) {
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.success(
                         SuccessEnum.READ_SUCCESS,
-                        chatRoomService.findMyChatRooms(SecurityUtils.getCurrentUserId())
+                        chatRoomService.findMyChatRooms(
+                                SecurityUtils.getCurrentUserId(),
+                                cursorTime,
+                                cursorRoomId,
+                                size
+                        )
                 )
         );
     }
