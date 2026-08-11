@@ -76,6 +76,7 @@ public enum ErrorEnum {
     SCHEDULE_NOT_FOUND(404, "존재하지 않는 일정 입니다."),
     SCHEDULE_FORBIDDEN(403, "해당 일정에 대한 접근 권한이 없습니다."),
     SCHEDULE_REMINDER_NOT_FOUND(404, "존재하지 않는 일정 알림 입니다."),
+    SCHEDULE_REMINDER_STATUS_CHANGE_FAILED(500, "일정 알림 상태 변경에 실패했습니다."),
 
     // Friend
     CANNOT_ADD_MYSELF(400, "자기 자신에게 친구 신청할 수 없습니다."),
