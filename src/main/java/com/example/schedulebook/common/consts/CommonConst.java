@@ -16,4 +16,5 @@ public final class CommonConst {
     public static final int MAX_BATCHES_PER_RUN = 5;
     public static final long PROCESSING_TIMEOUT_MINUTES = 10;
     public static final long NEXT_RETRY_DELAY = 30;
+    public static final int SCHEDULE_REMINDER_PROCESSING_TIMEOUT_MINUTES = 5;
 }

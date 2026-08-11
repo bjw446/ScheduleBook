@@ -4,12 +4,14 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RetrySchedulerMetrics {
@@ -23,6 +25,7 @@ public class RetrySchedulerMetrics {
     private final ConcurrentHashMap<String, Counter> retryCounters = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Counter> dlqCounters = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Counter> errorCounters = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Counter> recoveredCounters = new ConcurrentHashMap<>();
 
     public void schedulerRun(String scheduler) {
         schedulerRunCounters.computeIfAbsent(scheduler, this::newSchedulerRunCounter).increment();
@@ -46,6 +49,14 @@ public class RetrySchedulerMetrics {
 
     public void error(String scheduler) {
         errorCounters.computeIfAbsent(scheduler, this::newErrorCounter).increment();
+    }
+
+    public void recovered(String scheduler, int count) {
+        if (count <= 0) {
+            return;
+        }
+
+        recoveredCounters.computeIfAbsent(scheduler, this::newRecoveredCounter).increment(count);
     }
 
     public void registerPendingGauge(String scheduler, Supplier<Number> supplier) {
@@ -106,6 +117,13 @@ public class RetrySchedulerMetrics {
     private Counter newErrorCounter(String scheduler) {
         return Counter.builder("retry.scheduler.error")
                 .description("Retry Scheduler 오류")
+                .tag("scheduler", scheduler)
+                .register(meterRegistry);
+    }
+
+    private Counter newRecoveredCounter(String scheduler) {
+        return Counter.builder("retry.scheduler.recovered")
+                .description("처리 중 오래된 작업 복구")
                 .tag("scheduler", scheduler)
                 .register(meterRegistry);
     }

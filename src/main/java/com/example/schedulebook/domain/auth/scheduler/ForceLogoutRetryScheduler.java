@@ -9,7 +9,6 @@ import com.example.schedulebook.domain.auth.entity.ForceLogoutRetry;
 import com.example.schedulebook.domain.auth.repository.ForceLogoutRetryRepository;
 import com.example.schedulebook.domain.auth.service.ForceLogoutRetryService;
 import com.example.schedulebook.domain.auth.service.ForceLogoutRetryStateService;
-import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,6 @@ public class ForceLogoutRetryScheduler {
     private final ForceLogoutRetryService forceLogoutRetryService;
     private final ForceLogoutRetryStateService forceLogoutRetryStateService;
     private final ForceLogoutDispatcher forceLogoutDispatcher;
-    private final DeadLetterService deadLetterService;
     private final RetrySchedulerMetrics retrySchedulerMetrics;
     private final ForceLogoutRetryRepository forceLogoutRetryRepository;
     private static final String METRIC = "force_logout";
