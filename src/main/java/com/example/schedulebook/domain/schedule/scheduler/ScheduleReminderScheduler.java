@@ -77,9 +77,8 @@ public class ScheduleReminderScheduler {
                     if (!pending) {
                         retrySchedulerMetrics.error(METRIC);
 
-                        log.warn("ScheduleReminder PENDING 복구 실패 scheduleReminderId = {}, claimToken = {}",
-                                reminder.getId(),
-                                claimToken
+                        log.warn("ScheduleReminder PENDING 복구 실패 scheduleReminderId = {}",
+                                reminder.getId()
                         );
                     }
                 }
