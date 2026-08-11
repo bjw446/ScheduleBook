@@ -56,12 +56,16 @@ public class ScheduleReminderScheduler {
                 try {
                     if (scheduleReminderService.processReminderSent(reminder.getId(), claimToken)) {
                         retrySchedulerMetrics.success(METRIC);
-                    }
 
-                    log.debug("알림 Outbox 이벤트 생성 완료 scheduleId = {}, reminderTime = {}",
-                            reminder.getSchedule().getId(),
-                            reminder.getReminderTime()
-                    );
+                        log.debug("알림 Outbox 이벤트 생성 완료 scheduleId = {}, reminderTime = {}",
+                                reminder.getSchedule().getId(),
+                                reminder.getReminderTime()
+                        );
+                    } else {
+                        log.warn("알림 Outbox 이벤트 생성 건너뜀 scheduleId = {}, reminderTime = {}",
+                                reminder.getSchedule().getId(),
+                                reminder.getReminderTime());
+                    }
 
                 } catch (Exception e) {
                     retrySchedulerMetrics.error(METRIC);
