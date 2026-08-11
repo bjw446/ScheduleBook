@@ -62,7 +62,7 @@ public class ScheduleReminderService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void processReminderSent(Long scheduleReminderId, String claimToken) {
+    public boolean processReminderSent(Long scheduleReminderId, String claimToken) {
         ScheduleReminder scheduleReminder = scheduleReminderRepository.findById(scheduleReminderId).orElseThrow(
                 () -> new BaseException(ErrorEnum.SCHEDULE_REMINDER_NOT_FOUND)
         );
@@ -70,7 +70,7 @@ public class ScheduleReminderService {
         if (!claimToken.equals(scheduleReminder.getClaimToken())
                 || scheduleReminder.getScheduleReminderStatus()
                 != ScheduleReminderStatus.PROCESSING) {
-            return;
+            return false;
         }
 
         ScheduleReminderEvent reminderEvent = new ScheduleReminderEvent(
@@ -92,6 +92,8 @@ public class ScheduleReminderService {
         if (!sent) {
             throw new BaseException(ErrorEnum.SCHEDULE_REMINDER_STATUS_CHANGE_FAILED);
         }
+
+        return true;
     }
 
     @Transactional

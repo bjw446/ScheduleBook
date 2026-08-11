@@ -54,9 +54,9 @@ public class ScheduleReminderScheduler {
                 retrySchedulerMetrics.processed(METRIC);
 
                 try {
-                    scheduleReminderService.processReminderSent(reminder.getId(), claimToken);
-
-                    retrySchedulerMetrics.success(METRIC);
+                    if (scheduleReminderService.processReminderSent(reminder.getId(), claimToken)) {
+                        retrySchedulerMetrics.success(METRIC);
+                    }
 
                     log.debug("알림 Outbox 이벤트 생성 완료 scheduleId = {}, reminderTime = {}",
                             reminder.getSchedule().getId(),
