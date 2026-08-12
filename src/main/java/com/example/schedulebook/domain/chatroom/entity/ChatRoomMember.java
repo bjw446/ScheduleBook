@@ -70,11 +70,4 @@ public class ChatRoomMember extends DeleteEntity {
     public void updateUnreadCount(int unreadCount) {
         this.unreadCount = unreadCount;
     }
-
-    public void rejoin(LocalDateTime joinedAt) {
-        restore();
-        unreadCount = 0;
-        lastReadMessageId = null;
-        this.joinedAt = joinedAt;
-    }
 }

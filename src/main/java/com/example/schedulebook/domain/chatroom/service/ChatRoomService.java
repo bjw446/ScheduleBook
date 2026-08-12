@@ -281,7 +281,11 @@ public class ChatRoomService {
             return false;
         }
 
-        chatRoomMember.rejoin(now);
+        int rejoinCount = chatRoomMemberRepository.rejoin(chatRoomMember.getId(), now);
+
+        if (rejoinCount != 1) {
+            return false;
+        }
 
         int updateCount = chatRoomRepository.increaseMemberCount(chatRoom.getId(), 1);
 
