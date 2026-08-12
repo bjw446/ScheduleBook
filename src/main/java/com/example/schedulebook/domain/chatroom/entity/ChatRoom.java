@@ -61,12 +61,6 @@ public class ChatRoom extends DeleteEntity {
         chatRoomMember.assignChatRoom(this);
     }
 
-    public void decreaseMemberCount() {
-        if (this.memberCount > 0) {
-            this.memberCount--;
-        }
-    }
-
     public void increaseMemberCount() {
         this.memberCount++;
     }

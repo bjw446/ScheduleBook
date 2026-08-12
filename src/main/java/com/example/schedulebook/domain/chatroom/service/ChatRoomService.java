@@ -221,7 +221,11 @@ public class ChatRoomService {
             ChatRoom chatRoom = chatRoomMember.getChatRoom();
 
             if (chatRoom.getChatRoomType() == ChatRoomType.GROUP) {
-                chatRoom.decreaseMemberCount();
+                int updateCount = chatRoomRepository.decreaseMemberCount(chatRoom.getId());
+
+                if (updateCount == 0) {
+                    throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
+                }
             }
 
             chatRoomMemberRepository.delete(chatRoomMember);
@@ -284,7 +288,11 @@ public class ChatRoomService {
     private void leaveGroupRoom(ChatRoom chatRoom, ChatRoomMember chatRoomMember) {
         chatRoomMember.leaveChatRoom();
 
-        chatRoom.decreaseMemberCount();
+        int updateCount = chatRoomRepository.decreaseMemberCount(chatRoom.getId());
+
+        if (updateCount == 0) {
+            throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
+        }
 
         chatRoomLifecycleManager.afterMemberLeft(chatRoom, chatRoomMember);
     }
