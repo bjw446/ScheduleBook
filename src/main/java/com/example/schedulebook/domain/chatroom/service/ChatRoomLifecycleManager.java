@@ -32,8 +32,8 @@ public class ChatRoomLifecycleManager {
         publish(chatMessageManager.createUpdateNameSystemMessage(chatRoom, updater, oldName, newName));
     }
 
-    public void afterMemberLeft(ChatRoom chatRoom, ChatRoomMember chatRoomMember) {
-        publish(chatMessageManager.createLeaveSystemMessage(chatRoom, chatRoomMember));
+    public void afterMemberLeft(ChatRoom chatRoom, String nickname) {
+        publish(chatMessageManager.createLeaveSystemMessage(chatRoom, nickname));
     }
 
     private void publish(PublishChatMessage publishChatMessage) {

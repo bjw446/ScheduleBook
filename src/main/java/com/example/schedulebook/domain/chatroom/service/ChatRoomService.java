@@ -217,18 +217,24 @@ public class ChatRoomService {
     public void removeAllChatRelations(Long userId) {
         List<ChatRoomMember> chatRoomMembers = chatRoomMemberRepository.findAllByUserId(userId);
 
+        LocalDateTime deleteAt = LocalDateTime.now();
+
         for (ChatRoomMember chatRoomMember : chatRoomMembers) {
+            int leaveCount = chatRoomMemberRepository.leave(chatRoomMember.getId(), deleteAt);
+
+            if (leaveCount != 1) {
+                continue;
+            }
+
             ChatRoom chatRoom = chatRoomMember.getChatRoom();
 
             if (chatRoom.getChatRoomType() == ChatRoomType.GROUP) {
                 int updateCount = chatRoomRepository.decreaseMemberCount(chatRoom.getId());
 
-                if (updateCount == 0) {
+                if (updateCount != 1) {
                     throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
                 }
             }
-
-            chatRoomMemberRepository.delete(chatRoomMember);
         }
 
         directChatRoomRepository.deleteDirectChatRoomByUserId(userId);
@@ -282,19 +288,27 @@ public class ChatRoomService {
     }
 
     private void leaveDirectRoom(ChatRoomMember chatRoomMember) {
-        chatRoomMember.leaveChatRoom();
+        chatRoomMemberRepository.leave(chatRoomMember.getId(), LocalDateTime.now());
     }
 
     private void leaveGroupRoom(ChatRoom chatRoom, ChatRoomMember chatRoomMember) {
-        chatRoomMember.leaveChatRoom();
+        Long memberId = chatRoomMember.getId();
+
+        String nickname = chatRoomMember.getUser().getNickname();
+
+        int leaveCount = chatRoomMemberRepository.leave(memberId, LocalDateTime.now());
+
+        if (leaveCount != 1) {
+            return;
+        }
 
         int updateCount = chatRoomRepository.decreaseMemberCount(chatRoom.getId());
 
-        if (updateCount == 0) {
+        if (updateCount != 1) {
             throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
         }
 
-        chatRoomLifecycleManager.afterMemberLeft(chatRoom, chatRoomMember);
+        chatRoomLifecycleManager.afterMemberLeft(chatRoom, nickname);
     }
 
     private void handleLeave(ChatRoom chatRoom, ChatRoomMember chatRoomMember) {

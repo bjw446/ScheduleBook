@@ -72,4 +72,7 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
                                                  @Param("cursorTime") LocalDateTime cursorTime,
                                                  @Param("cursorRoomId") Long cursorRoomId,
                                                  Pageable pageable);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE ChatRoomMember crm SET crm.deletedAt = :deletedAt WHERE crm.id = :memberId AND crm.deletedAt IS NULL")
+    int leave(@Param("memberId") Long memberId, @Param("deletedAt") LocalDateTime deletedAt);
 }

@@ -8,6 +8,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("UPDATE ChatRoom c SET c.memberCount = :c.memberCount - 1 WHERE c.id = :roomId AND c.memberCount > 0")
+    @Query("UPDATE ChatRoom c SET c.memberCount = c.memberCount - 1 WHERE c.id = :roomId AND c.memberCount > 0")
     int decreaseMemberCount(@Param("roomId") Long roomId);
 }

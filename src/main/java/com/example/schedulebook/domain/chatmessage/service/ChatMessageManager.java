@@ -4,7 +4,6 @@ import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.domain.chatmessage.dto.request.PublishChatMessage;
 import com.example.schedulebook.domain.chatmessage.entity.ChatMessage;
 import com.example.schedulebook.domain.chatroom.entity.ChatRoom;
-import com.example.schedulebook.domain.chatroom.entity.ChatRoomMember;
 import com.example.schedulebook.domain.chatmessage.enums.SystemMessageType;
 import com.example.schedulebook.domain.chatroom.projection.MemberReadStatusProjection;
 import com.example.schedulebook.domain.chatmessage.repository.ChatMessageRepository;
@@ -24,11 +23,11 @@ public class ChatMessageManager {
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final ChatUnreadCountManager chatUnreadCountManager;
 
-    public PublishChatMessage createLeaveSystemMessage(ChatRoom chatRoom, ChatRoomMember chatRoomMember){
+    public PublishChatMessage createLeaveSystemMessage(ChatRoom chatRoom, String nickname){
         return createSystemMessage(
                 chatRoom,
                 SystemMessageType.USER_LEAVE,
-                SystemMessageType.USER_LEAVE.format(chatRoomMember.getUser().getNickname())
+                SystemMessageType.USER_LEAVE.format(nickname)
         );
     }
 
