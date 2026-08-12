@@ -18,6 +18,7 @@ import com.example.schedulebook.domain.chatroom.enums.ChatRoomType;
 import com.example.schedulebook.domain.chatroom.projection.MemberReadStatusProjection;
 import com.example.schedulebook.domain.chatmessage.repository.ChatMessageRepository;
 import com.example.schedulebook.domain.chatroom.repository.ChatRoomMemberRepository;
+import com.example.schedulebook.domain.chatroom.repository.ChatRoomRepository;
 import com.example.schedulebook.domain.chatroom.validator.ChatRoomValidator;
 import com.example.schedulebook.domain.schedule.validator.ScheduleValidator;
 import com.example.schedulebook.domain.scheduleparticipant.validator.ScheduleParticipantValidator;
@@ -66,6 +67,7 @@ public class ChatMessageService {
     private final ChatRoomValidator chatRoomValidator;
     private final ChatMessageValidator chatMessageValidator;
     private final ScheduleParticipantValidator scheduleParticipantValidator;
+    private final ChatRoomRepository chatRoomRepository;
 
     public void sendMessage(Long currentUserId, ChatMessageSendRequest request) {
         ChatRoom chatRoom = chatRoomValidator.validateChatRoom(request.roomId());
@@ -250,7 +252,17 @@ public class ChatMessageService {
         List<ChatRoomMember> leftMembers = chatRoomMemberRepository.findDeletedMembers(roomId, senderId);
 
         for (ChatRoomMember chatRoomMember : leftMembers) {
-            chatRoomMember.rejoin(joinedAt);
+            int rejoinCount = chatRoomMemberRepository.rejoin(chatRoomMember.getId(), joinedAt);
+
+            if (rejoinCount != 1) {
+                continue;
+            }
+
+            int updateCount = chatRoomRepository.increaseMemberCount(roomId, 1);
+
+            if (updateCount != 1) {
+                throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
+            }
         }
     }
 
@@ -281,6 +293,8 @@ public class ChatMessageService {
 
         if (chatRoom.getChatRoomType() == chatRoomType) {
             rejoinLeftMembers(chatRoom.getId(), senderId, chatMessage.getCreatedAt());
+
+            chatRoom = chatRoomValidator.validateChatRoom(chatRoom.getId());
         }
 
         updateUnreadCount(chatRoom, senderId);

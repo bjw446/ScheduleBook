@@ -69,9 +69,17 @@ public class ChatRoomService {
 
             chatRoomMemberRepository.saveAll(List.of(member1, member2));
 
-            directChatRoomRepository.save(DirectChatRoom.of(currentUserId, friendId, chatRoom));
+            int updateCount = chatRoomRepository.increaseMemberCount(chatRoom.getId(), 2);
 
-            return ChatRoomResponse.from(chatRoom);
+            if (updateCount != 1) {
+                throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
+            }
+
+            ChatRoom updatedChatRoom = chatRoomValidator.validateChatRoom(chatRoom.getId());
+
+            directChatRoomRepository.save(DirectChatRoom.of(currentUserId, friendId, updatedChatRoom));
+
+            return ChatRoomResponse.from(updatedChatRoom);
         } catch (DataIntegrityViolationException e) {
             log.info("1:1 채팅방 중복 생성 발생, user1 = {}, user2 = {}", currentUserId, friendId);
 
@@ -104,9 +112,17 @@ public class ChatRoomService {
 
         chatRoomMemberRepository.saveAll(chatRoomMembers);
 
-        chatRoomLifecycleManager.afterRoomCreated(chatRoom, owner);
+        int updateCount = chatRoomRepository.increaseMemberCount(chatRoom.getId(), chatRoomMembers.size());
 
-        return ChatRoomResponse.from(chatRoom);
+        if (updateCount != 1) {
+            throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
+        }
+
+        ChatRoom updatedChatRoom = chatRoomValidator.validateChatRoom(chatRoom.getId());
+
+        chatRoomLifecycleManager.afterRoomCreated(updatedChatRoom, owner);
+
+        return ChatRoomResponse.from(updatedChatRoom);
     }
 
     public ChatRoomResponse inviteMembers(Long currentUserId, Long roomId, ChatRoomInviteRequest request) {
@@ -128,11 +144,13 @@ public class ChatRoomService {
             }
         }
 
+        ChatRoom updatedChatRoom = chatRoomValidator.validateChatRoom(chatRoom.getId());
+
         if (!invitedUsers.isEmpty()) {
-            chatRoomLifecycleManager.afterMemberInvited(chatRoom, userValidator.validateActiveUser(currentUserId), invitedUsers);
+            chatRoomLifecycleManager.afterMemberInvited(updatedChatRoom, userValidator.validateActiveUser(currentUserId), invitedUsers);
         }
 
-        return ChatRoomResponse.from(chatRoom);
+        return ChatRoomResponse.from(updatedChatRoom);
     }
 
     @Transactional(readOnly = true)
@@ -217,14 +235,24 @@ public class ChatRoomService {
     public void removeAllChatRelations(Long userId) {
         List<ChatRoomMember> chatRoomMembers = chatRoomMemberRepository.findAllByUserId(userId);
 
+        LocalDateTime deleteAt = LocalDateTime.now();
+
         for (ChatRoomMember chatRoomMember : chatRoomMembers) {
+            int leaveCount = chatRoomMemberRepository.leave(chatRoomMember.getId(), deleteAt);
+
+            if (leaveCount != 1) {
+                continue;
+            }
+
             ChatRoom chatRoom = chatRoomMember.getChatRoom();
 
             if (chatRoom.getChatRoomType() == ChatRoomType.GROUP) {
-                chatRoom.decreaseMemberCount();
-            }
+                int updateCount = chatRoomRepository.decreaseMemberCount(chatRoom.getId());
 
-            chatRoomMemberRepository.delete(chatRoomMember);
+                if (updateCount != 1) {
+                    throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
+                }
+            }
         }
 
         directChatRoomRepository.deleteDirectChatRoomByUserId(userId);
@@ -238,6 +266,12 @@ public class ChatRoomService {
 
             chatRoomMemberRepository.save(chatRoomMember);
 
+            int updateCount = chatRoomRepository.increaseMemberCount(chatRoom.getId(), 1);
+
+            if (updateCount != 1) {
+                throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
+            }
+
             return true;
         }
 
@@ -247,7 +281,17 @@ public class ChatRoomService {
             return false;
         }
 
-        chatRoomMember.rejoin(now);
+        int rejoinCount = chatRoomMemberRepository.rejoin(chatRoomMember.getId(), now);
+
+        if (rejoinCount != 1) {
+            return false;
+        }
+
+        int updateCount = chatRoomRepository.increaseMemberCount(chatRoom.getId(), 1);
+
+        if (updateCount != 1) {
+            throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
+        }
 
         return true;
     }
@@ -278,15 +322,29 @@ public class ChatRoomService {
     }
 
     private void leaveDirectRoom(ChatRoomMember chatRoomMember) {
-        chatRoomMember.leaveChatRoom();
+        chatRoomMemberRepository.leave(chatRoomMember.getId(), LocalDateTime.now());
     }
 
     private void leaveGroupRoom(ChatRoom chatRoom, ChatRoomMember chatRoomMember) {
-        chatRoomMember.leaveChatRoom();
+        Long memberId = chatRoomMember.getId();
 
-        chatRoom.decreaseMemberCount();
+        String nickname = chatRoomMember.getUser().getNickname();
 
-        chatRoomLifecycleManager.afterMemberLeft(chatRoom, chatRoomMember);
+        int leaveCount = chatRoomMemberRepository.leave(memberId, LocalDateTime.now());
+
+        if (leaveCount != 1) {
+            return;
+        }
+
+        int updateCount = chatRoomRepository.decreaseMemberCount(chatRoom.getId());
+
+        if (updateCount != 1) {
+            throw new BaseException(ErrorEnum.CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED);
+        }
+
+        ChatRoom updatedChatRoom = chatRoomValidator.validateChatRoom(chatRoom.getId());
+
+        chatRoomLifecycleManager.afterMemberLeft(updatedChatRoom, nickname);
     }
 
     private void handleLeave(ChatRoom chatRoom, ChatRoomMember chatRoomMember) {

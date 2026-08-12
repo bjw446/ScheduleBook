@@ -105,6 +105,7 @@ public enum ErrorEnum {
     CHAT_ROOM_FORBIDDEN(403, "해당 채팅방에 대한 접근 권한이 없습니다."),
     CHAT_ROOM_NOT_FOUND(404, "채팅방이 존재하지 않습니다."),
     CHAT_ROOM_ALREADY_EXISTS(409, "채팅방이 이미 존재 합니다."),
+    CHAT_ROOM_MEMBER_COUNT_UPDATE_FAILED(409, "채팅방 멤버 수 변경에 실패했습니다."),
     CHAT_ROOM_MEMBER_ALREADY_EXISTS(409, "채팅멤버가 이미 존재 합니다."),
     INVALID_SENDER_TYPE(400, "잘못된 SENDER_TYPE 입니다."),
     INVALID_MESSAGE_TYPE(400, "잘못된 MESSAGE_TYPE 입니다."),
