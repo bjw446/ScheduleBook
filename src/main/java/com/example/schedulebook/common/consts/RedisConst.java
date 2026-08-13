@@ -212,4 +212,70 @@ public final class RedisConst {
             
             return #sessions
             """;
+    public static final String ADD_SESSION_IF_AVAILABLE_SCRIPT = """
+            local key = KEYS[1]
+            
+            local sessionId = ARGV[1]
+            
+            local limit = tonumber(ARGV[2])
+            
+            local expiration = tonumber(ARGV[3])
+            
+            local count = redis.call('SCARD', key)
+            
+            if count >= limit then return 0
+            end
+            
+            redis.call('SADD', key, sessionId)
+            
+            redis.call('PEXPIRE', key, expiration)
+            
+            return 1
+            """;
+    public static final String REPLACE_SESSION_IF_AVAILABLE_SCRIPT = """
+            local key = KEYS[1]
+            
+            local oldSessionId = ARGV[1]
+            
+            local newSessionId = ARGV[2]
+            
+            local limit = tonumber(ARGV[3])
+            
+            local expiration = tonumber(ARGV[4])
+            
+            if redis.call('SISMEMBER', key, oldSessionId) == 0 then return 0
+            
+            end
+            
+            local count = redis.call('SCARD', key)
+            
+            if count > limit then return 0
+            
+            end
+            
+            redis.call('SREM', key, oldSessionId)
+            
+            redis.call('SADD', key, newSessionId)
+            
+            redis.call('PEXPIRE', key, expiration)
+            
+            return 1
+            """;
+    public static final String REVERT_REPLACE_SESSION_SCRIPT = """
+            local key = KEYS[1]
+            
+            local oldSessionId = ARGV[1]
+            
+            local newSessionId = ARGV[2]
+            
+            local expiration = tonumber(ARGV[3])
+            
+            redis.call('SREM', key, newSessionId)
+            
+            redis.call('SADD', key, oldSessionId)
+            
+            redis.call('PEXPIRE', key, expiration)
+            
+            return 1
+            """;
 }

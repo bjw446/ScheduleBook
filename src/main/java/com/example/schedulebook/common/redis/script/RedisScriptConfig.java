@@ -64,4 +64,19 @@ public class RedisScriptConfig {
     public RedisScript<Long> deleteAllPresenceScript() {
         return RedisScript.of(RedisConst.DELETE_ALL_PRESENCE_SCRIPT, Long.class);
     }
+
+    @Bean
+    public RedisScript<Long> addSessionIfAvailableScript() {
+        return RedisScript.of(RedisConst.ADD_SESSION_IF_AVAILABLE_SCRIPT, Long.class);
+    }
+
+    @Bean
+    public RedisScript<Long> replaceSessionIfAvailable() {
+        return RedisScript.of(RedisConst.REPLACE_SESSION_IF_AVAILABLE_SCRIPT, Long.class);
+    }
+
+    @Bean
+    public RedisScript<Long> revertReplaceSessionScript() {
+        return RedisScript.of(RedisConst.REVERT_REPLACE_SESSION_SCRIPT, Long.class);
+    }
 }

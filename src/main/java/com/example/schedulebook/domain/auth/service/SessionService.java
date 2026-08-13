@@ -33,16 +33,12 @@ public class SessionService {
     private final RedisBlacklistService redisBlacklistService;
     private final OutboxService outboxService;
 
-    public LoginToken createSession(Long userId, String ip, String userAgent, UserRole userRole) {
-        String sessionId = UUID.randomUUID().toString();
-
+    public LoginToken createSession(Long userId, String sessionId, String ip, String userAgent, UserRole userRole) {
         String accessToken = jwtProvider.generateAccessToken(userId, sessionId, userRole);
 
         String refreshToken = jwtProvider.generateRefreshToken(userId, sessionId, userRole);
 
         redisRefreshTokenService.saveRefreshToken(sessionId, refreshToken, jwtProperties.refreshTokenExpiration());
-
-        redisSessionService.addSession(userId, sessionId, jwtProperties.refreshTokenExpiration());
 
         String safeIp = ip != null ? ip : "unknown";
 
@@ -141,6 +137,25 @@ public class SessionService {
 
             saveOutbox(userId, sessionId);
         }
+    }
+
+    public String generateSessionId() {
+        return UUID.randomUUID().toString();
+    }
+
+    public void rollbackCreatedSession(Long userId, String oldSessionId, String newSessionId) {
+        redisRefreshTokenService.deleteRefreshToken(newSessionId);
+
+        redisSessionService.removeSession(userId, newSessionId);
+
+        redisSessionService.deleteSessionInfo(newSessionId);
+
+        redisSessionService.revertReplaceSession(
+                userId,
+                oldSessionId,
+                newSessionId,
+                jwtProperties.refreshTokenExpiration()
+        );
     }
 
     private LoginToken validateRefreshToken(String refreshToken) {

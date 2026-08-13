@@ -21,18 +21,9 @@ public class RedisSessionService {
     private final RedisScript<Long> removeSessionScript;
     private final RedisScript<Long> deleteAllSessionsScript;
     private final RedisScript<Long> updateLastAccessScript;
-
-    public void addSession(Long userId, String sessionId, long expiration) {
-        stringRedisTemplate.opsForSet().add(
-                buildUserSessionKey(userId),
-                sessionId
-        );
-
-        stringRedisTemplate.expire(
-                buildUserSessionKey(userId),
-                Duration.ofMillis(expiration)
-        );
-    }
+    private final RedisScript<Long> addSessionIfAvailableScript;
+    private final RedisScript<Long> replaceSessionIfAvailableScript;
+    private final RedisScript<Long> revertReplaceSessionScript;
 
     public void removeSession(Long userId, String sessionId) {
         stringRedisTemplate.execute(
@@ -130,6 +121,43 @@ public class RedisSessionService {
 
     public boolean existsSession(String sessionId) {
         return stringRedisTemplate.hasKey(buildSessionInfoKey(sessionId));
+    }
+
+    public boolean addSessionIfAvailable(Long userId, String sessionId, int limit, long expiration) {
+        Long result = stringRedisTemplate.execute(
+                addSessionIfAvailableScript,
+                Collections.singletonList(buildUserSessionKey(userId)),
+                sessionId,
+                String.valueOf(limit),
+                String.valueOf(expiration)
+        );
+
+        return result != null && result == 1L;
+    }
+
+    public boolean replaceSessionIfAvailable(Long userId, String oldSessionId, String newSessionId, int limit, long expiration) {
+        Long result = stringRedisTemplate.execute(
+                replaceSessionIfAvailableScript,
+                Collections.singletonList(buildUserSessionKey(userId)),
+                oldSessionId,
+                newSessionId,
+                String.valueOf(limit),
+                String.valueOf(expiration)
+        );
+
+        return result != null && result == 1L;
+    }
+
+    public boolean revertReplaceSession(Long userId, String oldSessionId, String newSessionId, long expiration) {
+        Long result = stringRedisTemplate.execute(
+                revertReplaceSessionScript,
+                Collections.singletonList(buildUserSessionKey(userId)),
+                oldSessionId,
+                newSessionId,
+                String.valueOf(expiration)
+        );
+
+        return result != null && result == 1L;
     }
 
     private String buildSessionInfoKey(String sessionId) {

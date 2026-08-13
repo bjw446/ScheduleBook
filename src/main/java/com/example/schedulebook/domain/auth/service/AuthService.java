@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.auth.service;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.exception.SessionLimitException;
+import com.example.schedulebook.common.redis.service.RedisSessionService;
 import com.example.schedulebook.common.security.JwtProvider;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
@@ -42,6 +43,7 @@ public class AuthService {
     private final SessionLimitService sessionLimitService;
     private final OutboxService outboxService;
     private final AuditEventOutboxService auditEventOutboxService;
+    private final RedisSessionService redisSessionService;
 
     public SignupResponse signup(SignupRequest request) {
         userValidator.validateDuplicateUser(
@@ -73,6 +75,8 @@ public class AuthService {
 
         userValidator.validateLoginUserStatus(user);
 
+        String sessionId = sessionService.generateSessionId();
+
         String ip = getUserIp(servletRequest);
 
         String userAgent = getUserAgent(servletRequest);
@@ -84,45 +88,71 @@ public class AuthService {
         }
 
         if (request.replaceSessionId() != null && !request.replaceSessionId().isBlank()) {
-            SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimitExcluding(
+            SessionLimitResult sessionLimitResult = sessionLimitService.replaceSession(
                     user.getId(),
                     user.getUserRole(),
-                    request.replaceSessionId()
+                    request.replaceSessionId(),
+                    sessionId
             );
 
             if (sessionLimitResult.exceeded()) {
                 throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
             }
 
-            sessionService.logoutSession(user.getId(), request.replaceSessionId());
+            try {
+                processLogin(user, ip, userAgent);
 
-            outboxService.save(
-                    OutboxAggregateType.USER,
-                    String.valueOf(user.getId()),
-                    OutboxEventType.AUDIT_EVENT,
-                    new AuditEvent(
-                            user.getId(),
-                            null,
-                            user.getLoginId(),
-                            AuditEventType.SESSION_LOGOUT,
-                            ip,
-                            userAgent
-                    )
-            );
+                outboxService.save(
+                        OutboxAggregateType.USER,
+                        String.valueOf(user.getId()),
+                        OutboxEventType.AUDIT_EVENT,
+                        new AuditEvent(
+                                user.getId(),
+                                null,
+                                user.getLoginId(),
+                                AuditEventType.SESSION_LOGOUT,
+                                ip,
+                                userAgent
+                        )
+                );
+
+                LoginToken token = sessionService.createSession(user.getId(), sessionId, ip, userAgent, user.getUserRole());
+
+                return LoginResponse.from(user, token.accessToken(), token.refreshToken());
+
+            } catch (Exception e) {
+                sessionService.rollbackCreatedSession(user.getId(), request.replaceSessionId(), sessionId);
+
+                throw e;
+            }
 
         } else {
-            SessionLimitResult sessionLimitResult = sessionLimitService.validateSessionLimit(user.getId(), user.getUserRole());
+            boolean reserved = false;
 
-            if (sessionLimitResult.exceeded()) {
-                throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
+            try {
+                SessionLimitResult sessionLimitResult = sessionLimitService.reserveSession(user.getId(), user.getUserRole(), sessionId);
+
+                if (sessionLimitResult.exceeded()) {
+                    throw new SessionLimitException(ErrorEnum.SESSION_LIMIT_EXCEEDED, sessionLimitResult.sessionInfoResponses());
+                }
+
+                reserved = true;
+
+                processLogin(user, ip, userAgent);
+
+                LoginToken token = sessionService.createSession(user.getId(), sessionId, ip, userAgent, user.getUserRole());
+
+                return LoginResponse.from(user, token.accessToken(), token.refreshToken());
+
+
+            } catch (Exception e) {
+                if (reserved) {
+                    redisSessionService.removeSession(user.getId(), sessionId);
+                }
+
+                throw e;
             }
         }
-
-        processLogin(user, ip, userAgent);
-
-        LoginToken token = sessionService.createSession(user.getId(), ip, userAgent, user.getUserRole());
-
-        return LoginResponse.from(user, token.accessToken(), token.refreshToken());
     }
 
     public void logout(String accessToken, HttpServletRequest servletRequest) {
