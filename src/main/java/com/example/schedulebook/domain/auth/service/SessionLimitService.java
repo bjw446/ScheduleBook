@@ -35,15 +35,21 @@ public class SessionLimitService {
         return SessionLimitResult.exceeded(sessionService.findSessions(userId));
     }
 
-    public SessionLimitResult replaceSession(Long userId, UserRole userRole, String oldSessionId, String newSessionId) {
+    public SessionLimitResult replaceSession(
+            Long userId,
+            UserRole userRole,
+            String oldSessionId,
+            String newSessionId,
+            String operationId
+    ) {
         int limit = sessionLimitProperties.getLimit(userRole);
 
         boolean available = redisSessionService.replaceSessionIfAvailable(
                 userId,
                 oldSessionId,
                 newSessionId,
-                limit,
-                jwtProperties.refreshTokenExpiration()
+                operationId,
+                limit
         );
 
         if (available) {

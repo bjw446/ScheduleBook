@@ -71,7 +71,7 @@ public class RedisScriptConfig {
     }
 
     @Bean
-    public RedisScript<Long> replaceSessionIfAvailable() {
+    public RedisScript<Long> replaceSessionIfAvailableScript() {
         return RedisScript.of(RedisConst.REPLACE_SESSION_IF_AVAILABLE_SCRIPT, Long.class);
     }
 

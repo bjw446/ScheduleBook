@@ -28,7 +28,7 @@ public class RedisSessionService {
     public void removeSession(Long userId, String sessionId) {
         stringRedisTemplate.execute(
                 removeSessionScript,
-                Collections.singletonList(buildUserSessionKey(userId)),
+                List.of(buildUserSessionKey(userId), buildReplacePendingKey(userId, sessionId)),
                 sessionId
         );
     }
@@ -135,26 +135,40 @@ public class RedisSessionService {
         return result != null && result == 1L;
     }
 
-    public boolean replaceSessionIfAvailable(Long userId, String oldSessionId, String newSessionId, int limit, long expiration) {
+    public boolean replaceSessionIfAvailable(
+            Long userId,
+            String oldSessionId,
+            String newSessionId,
+            String operationId,
+            int limit
+    ) {
         Long result = stringRedisTemplate.execute(
                 replaceSessionIfAvailableScript,
-                Collections.singletonList(buildUserSessionKey(userId)),
+                List.of(buildUserSessionKey(userId), buildReplacePendingKey(userId, oldSessionId)),
                 oldSessionId,
                 newSessionId,
+                operationId,
                 String.valueOf(limit),
-                String.valueOf(expiration)
+                String.valueOf(RedisConst.SESSION_REPLACE_PENDING_EXPIRATION.toMillis())
         );
 
         return result != null && result == 1L;
     }
 
-    public boolean revertReplaceSession(Long userId, String oldSessionId, String newSessionId, long expiration) {
+    public boolean revertReplaceSession(
+            Long userId,
+            String oldSessionId,
+            String newSessionId,
+            String operationId,
+            long sessionExpiration
+    ) {
         Long result = stringRedisTemplate.execute(
                 revertReplaceSessionScript,
-                Collections.singletonList(buildUserSessionKey(userId)),
+                List.of(buildUserSessionKey(userId), buildReplacePendingKey(userId, oldSessionId)),
                 oldSessionId,
                 newSessionId,
-                String.valueOf(expiration)
+                operationId,
+                String.valueOf(sessionExpiration)
         );
 
         return result != null && result == 1L;
@@ -188,5 +202,9 @@ public class RedisSessionService {
                 Instant.ofEpochMilli(Long.parseLong(value)),
                 ZoneId.systemDefault()
         );
+    }
+
+    private String buildReplacePendingKey(Long userId, String oldSessionId) {
+        return RedisConst.SESSION_REPLACE_PENDING_PREFIX + userId + ":" + oldSessionId;
     }
 }

@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -88,11 +89,14 @@ public class AuthService {
         }
 
         if (request.replaceSessionId() != null && !request.replaceSessionId().isBlank()) {
+            String replaceOperationId = UUID.randomUUID().toString();
+
             SessionLimitResult sessionLimitResult = sessionLimitService.replaceSession(
                     user.getId(),
                     user.getUserRole(),
                     request.replaceSessionId(),
-                    sessionId
+                    sessionId,
+                    replaceOperationId
             );
 
             if (sessionLimitResult.exceeded()) {
@@ -121,7 +125,7 @@ public class AuthService {
                 return LoginResponse.from(user, token.accessToken(), token.refreshToken());
 
             } catch (Exception e) {
-                sessionService.rollbackCreatedSession(user.getId(), request.replaceSessionId(), sessionId);
+                sessionService.rollbackReplacedSession(user.getId(), request.replaceSessionId(), sessionId, replaceOperationId);
 
                 throw e;
             }
@@ -144,10 +148,9 @@ public class AuthService {
 
                 return LoginResponse.from(user, token.accessToken(), token.refreshToken());
 
-
             } catch (Exception e) {
                 if (reserved) {
-                    redisSessionService.removeSession(user.getId(), sessionId);
+                    sessionService.removeSession(user.getId(), sessionId);
                 }
 
                 throw e;

@@ -143,19 +143,42 @@ public class SessionService {
         return UUID.randomUUID().toString();
     }
 
-    public void rollbackCreatedSession(Long userId, String oldSessionId, String newSessionId) {
-        redisRefreshTokenService.deleteRefreshToken(newSessionId);
+    public void removeSession(Long userId, String sessionId) {
+        redisRefreshTokenService.deleteRefreshToken(sessionId);
 
-        redisSessionService.removeSession(userId, newSessionId);
+        redisSessionService.deleteSessionInfo(sessionId);
 
-        redisSessionService.deleteSessionInfo(newSessionId);
+        redisSessionService.removeSession(userId, sessionId);
+    }
 
-        redisSessionService.revertReplaceSession(
+    public void rollbackReplacedSession(Long userId, String oldSessionId, String newSessionId, String operationId) {
+        boolean reverted = redisSessionService.revertReplaceSession(
                 userId,
                 oldSessionId,
                 newSessionId,
+                operationId,
                 jwtProperties.refreshTokenExpiration()
         );
+
+        if (!reverted) {
+            log.error("세션 교체 롤백 실패 userId = {}, oldSessionId = {}, newSessionId = {}",
+                    userId,
+                    oldSessionId,
+                    newSessionId
+                    );
+
+            return;
+        }
+
+        redisRefreshTokenService.deleteRefreshToken(newSessionId);
+
+        redisSessionService.deleteSessionInfo(newSessionId);
+    }
+
+    public void cleanupReplacedSession(String oldSessionId) {
+        redisRefreshTokenService.deleteRefreshToken(oldSessionId);
+
+        redisSessionService.deleteSessionInfo(oldSessionId);
     }
 
     private LoginToken validateRefreshToken(String refreshToken) {
@@ -225,14 +248,6 @@ public class SessionService {
         if (!sessionInfo.userId().equals(userId)) {
             throw new BaseException(ErrorEnum.FORBIDDEN);
         }
-    }
-
-    private void removeSession(Long userId, String sessionId) {
-        redisRefreshTokenService.deleteRefreshToken(sessionId);
-
-        redisSessionService.removeSession(userId, sessionId);
-
-        redisSessionService.deleteSessionInfo(sessionId);
     }
 
     private void saveOutbox(Long userId, String sessionId) {
