@@ -179,6 +179,8 @@ public class SessionService {
         redisRefreshTokenService.deleteRefreshToken(oldSessionId);
 
         redisSessionService.deleteSessionInfo(oldSessionId);
+
+        log.info("세션 교체 후 기존 세션 데이터 정리 완료 : oldSessionId = {}", oldSessionId);
     }
 
     private LoginToken validateRefreshToken(String refreshToken) {

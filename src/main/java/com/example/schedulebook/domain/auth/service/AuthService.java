@@ -12,6 +12,7 @@ import com.example.schedulebook.domain.auth.dto.response.*;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.enums.AuditEventType;
 import com.example.schedulebook.domain.auth.event.AuditEvent;
+import com.example.schedulebook.domain.auth.event.ReplaceSessionCleanupEvent;
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import com.example.schedulebook.domain.outbox.service.OutboxService;
@@ -121,6 +122,16 @@ public class AuthService {
                 );
 
                 LoginToken token = sessionService.createSession(user.getId(), sessionId, ip, userAgent, user.getUserRole());
+
+                outboxService.save(
+                        OutboxAggregateType.SESSION,
+                        request.replaceSessionId(),
+                        OutboxEventType.SESSION_REPLACE_CLEANUP,
+                        new ReplaceSessionCleanupEvent(
+                                user.getId(),
+                                request.replaceSessionId()
+                        )
+                );
 
                 return LoginResponse.from(user, token.accessToken(), token.refreshToken());
 
