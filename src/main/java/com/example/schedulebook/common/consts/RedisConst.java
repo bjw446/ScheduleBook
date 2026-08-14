@@ -247,7 +247,9 @@ public final class RedisConst {
             
             local limit = tonumber(ARGV[4])
             
-            local expiration = tonumber(ARGV[5])
+            local pendingExpiration = tonumber(ARGV[5])
+            
+            local sessionExpiration = tonumber(ARGV[6])
             
             if redis.call('SISMEMBER', sessionKey, oldSessionId) == 0 then return 0
             
@@ -263,13 +265,13 @@ public final class RedisConst {
             
             end
             
-            redis.call('SET', pendingKey, operationId, 'PX', expiration)
+            redis.call('SET', pendingKey, operationId, 'PX', pendingExpiration)
             
             redis.call('SREM', sessionKey, oldSessionId)
             
             redis.call('SADD', sessionKey, newSessionId)
             
-            redis.call('PEXPIRE', sessionKey, expiration)
+            redis.call('PEXPIRE', sessionKey, sessionExpiration)
             
             return 1
             """;
@@ -307,5 +309,5 @@ public final class RedisConst {
             return 1
             """;
     public static final String SESSION_REPLACE_PENDING_PREFIX = "session:replace:pending:";
-    public static final Duration SESSION_REPLACE_PENDING_EXPIRATION = Duration.ofSeconds(10);
+    public static final Duration SESSION_REPLACE_PENDING_EXPIRATION = Duration.ofSeconds(30);
 }

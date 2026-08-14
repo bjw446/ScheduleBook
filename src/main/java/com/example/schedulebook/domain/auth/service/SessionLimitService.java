@@ -49,7 +49,8 @@ public class SessionLimitService {
                 oldSessionId,
                 newSessionId,
                 operationId,
-                limit
+                limit,
+                jwtProperties.refreshTokenExpiration()
         );
 
         if (available) {

@@ -190,6 +190,10 @@ public class SessionService {
 
         String sessionId = jwtProvider.extractSessionId(refreshToken);
 
+        if (!redisSessionService.isSessionMember(userId, sessionId)) {
+            throw new BaseException(ErrorEnum.SESSION_NOT_FOUND);
+        }
+
         if (!redisSessionService.existsSession(sessionId)) {
             throw new BaseException(ErrorEnum.SESSION_NOT_FOUND);
         }

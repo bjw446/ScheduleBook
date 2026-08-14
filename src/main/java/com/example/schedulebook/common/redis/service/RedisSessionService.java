@@ -140,7 +140,8 @@ public class RedisSessionService {
             String oldSessionId,
             String newSessionId,
             String operationId,
-            int limit
+            int limit,
+            long sessionExpiration
     ) {
         Long result = stringRedisTemplate.execute(
                 replaceSessionIfAvailableScript,
@@ -149,7 +150,8 @@ public class RedisSessionService {
                 newSessionId,
                 operationId,
                 String.valueOf(limit),
-                String.valueOf(RedisConst.SESSION_REPLACE_PENDING_EXPIRATION.toMillis())
+                String.valueOf(RedisConst.SESSION_REPLACE_PENDING_EXPIRATION.toMillis()),
+                String.valueOf(sessionExpiration)
         );
 
         return result != null && result == 1L;
@@ -172,6 +174,15 @@ public class RedisSessionService {
         );
 
         return result != null && result == 1L;
+    }
+
+    public boolean isSessionMember(Long userId, String sessionId) {
+        return Boolean.TRUE.equals(
+                stringRedisTemplate.opsForSet().isMember(
+                        buildUserSessionKey(userId),
+                        sessionId
+                )
+        );
     }
 
     private String buildSessionInfoKey(String sessionId) {
