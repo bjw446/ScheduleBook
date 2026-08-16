@@ -236,49 +236,61 @@ public final class RedisConst {
             """;
     public static final String REPLACE_SESSION_IF_AVAILABLE_SCRIPT = """
             local sessionKey = KEYS[1]
-            
+
             local pendingKey = KEYS[2]
-            
+
+            local generationKey = KEYS[3]
+
             local oldSessionId = ARGV[1]
-            
+
             local newSessionId = ARGV[2]
-            
+
             local operationId = ARGV[3]
-            
+
             local limit = tonumber(ARGV[4])
-            
+
             local pendingExpiration = tonumber(ARGV[5])
-            
+
             local sessionExpiration = tonumber(ARGV[6])
-            
+
             if redis.call('SISMEMBER', sessionKey, oldSessionId) == 0 then return 0
-            
+        
             end
-            
+
             if redis.call('EXISTS', pendingKey) == 1 then return 0
-            
+        
             end
-            
+
             local count = redis.call('SCARD', sessionKey)
-            
+
             if count > limit then return 0
-            
+        
             end
-            
-            redis.call('SET', pendingKey, operationId, 'PX', pendingExpiration)
-            
+
+            local currentGeneration = redis.call('GET', generationKey)
+
+            if currentGeneration == false then currentGeneration = "0"
+        
+            end
+
+            local pendingValue = operationId .. ":" .. currentGeneration
+
+            redis.call('SET', pendingKey, pendingValue, 'PX', pendingExpiration)
+
             redis.call('SREM', sessionKey, oldSessionId)
-            
+
             redis.call('SADD', sessionKey, newSessionId)
-            
+
             redis.call('PEXPIRE', sessionKey, sessionExpiration)
-            
+
             return 1
             """;
     public static final String REVERT_REPLACE_SESSION_SCRIPT = """
             local sessionKey = KEYS[1]
 
             local pendingKey = KEYS[2]
+            
+            local generationKey = KEYS[3]
 
             local oldSessionId = ARGV[1]
 
@@ -288,14 +300,34 @@ public final class RedisConst {
 
             local expiration = tonumber(ARGV[4])
 
-            local pendingOperationId = redis.call('GET', pendingKey)
+            local pendingValue = redis.call('GET', pendingKey)
 
-            if pendingOperationId == false then return 0
+            if pendingValue == false then return 0
         
             end
+            
+            local separator = string.find(pendingValue, ":")
+            
+            if separator == nil then redis.call('DEL', pendingKey) return 0
+            
+            end
+            
+            local pendingOperationId = string.sub(pendingValue, 1, separator - 1)
+            
+            local pendingGeneration = string.sub(pendingValue, separator + 1)
 
             if pendingOperationId ~= operationId then return 0
         
+            end
+            
+            local currentGeneration = redis.call('GET', generationKey)
+            
+            if currentGeneration == false then currentGeneration = "0"
+            
+            end
+            
+            if pendingGeneration ~= currentGeneration then redis.call('DEL', pendingKey) return 0
+            
             end
 
             redis.call('SREM', sessionKey, newSessionId)
@@ -310,4 +342,5 @@ public final class RedisConst {
             """;
     public static final String SESSION_REPLACE_PENDING_PREFIX = "session:replace:pending:";
     public static final Duration SESSION_REPLACE_PENDING_EXPIRATION = Duration.ofSeconds(30);
+    public static final String SESSION_GENERATION_PREFIX = "session:generation:";
 }

@@ -126,6 +126,8 @@ public class SessionService {
     }
 
     public void forceLogoutAllSessions(Long userId) {
+        redisSessionService.incrementSessionGeneration(userId);
+
         Set<String> sessionIds = redisSessionService.getSessions(userId);
 
         if (sessionIds == null || sessionIds.isEmpty()) {

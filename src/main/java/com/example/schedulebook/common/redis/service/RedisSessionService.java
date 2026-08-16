@@ -145,7 +145,11 @@ public class RedisSessionService {
     ) {
         Long result = stringRedisTemplate.execute(
                 replaceSessionIfAvailableScript,
-                List.of(buildUserSessionKey(userId), buildReplacePendingKey(userId, oldSessionId)),
+                List.of(
+                        buildUserSessionKey(userId),
+                        buildReplacePendingKey(userId, oldSessionId),
+                        buildSessionGenerationKey(userId)
+                ),
                 oldSessionId,
                 newSessionId,
                 operationId,
@@ -185,6 +189,11 @@ public class RedisSessionService {
         );
     }
 
+    public long incrementSessionGeneration(Long userId) {
+        return stringRedisTemplate.opsForValue()
+                .increment(buildSessionGenerationKey(userId));
+    }
+
     private String buildSessionInfoKey(String sessionId) {
         return RedisConst.SESSION_INFO_PREFIX + sessionId;
     }
@@ -217,5 +226,9 @@ public class RedisSessionService {
 
     private String buildReplacePendingKey(Long userId, String oldSessionId) {
         return RedisConst.SESSION_REPLACE_PENDING_PREFIX + userId + ":" + oldSessionId;
+    }
+
+    private String buildSessionGenerationKey(Long userId) {
+        return RedisConst.SESSION_GENERATION_PREFIX + userId;
     }
 }
