@@ -343,4 +343,31 @@ public final class RedisConst {
     public static final String SESSION_REPLACE_PENDING_PREFIX = "session:replace:pending:";
     public static final Duration SESSION_REPLACE_PENDING_EXPIRATION = Duration.ofSeconds(30);
     public static final String SESSION_GENERATION_PREFIX = "session:generation:";
+    public static final String DELETE_REPLACE_PENDING_IF_OWNER_SCRIPT = """
+            local pendingKey = KEYS[1]
+
+            local operationId = ARGV[1]
+
+            local pendingValue = redis.call('GET', pendingKey)
+
+            if pendingValue == false then return 0
+        
+            end
+
+            local separator = string.find(pendingValue, ":")
+
+            if separator == nil then return 0
+        
+            end
+
+            local pendingOperationId = string.sub(pendingValue, 1, separator - 1)
+
+            if pendingOperationId ~= operationId then return 0
+        
+            end
+
+            redis.call('DEL', pendingKey)
+
+            return 1
+            """;
 }

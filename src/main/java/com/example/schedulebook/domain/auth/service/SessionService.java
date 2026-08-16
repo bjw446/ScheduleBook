@@ -154,22 +154,55 @@ public class SessionService {
     }
 
     public void rollbackReplacedSession(Long userId, String oldSessionId, String newSessionId, String operationId) {
-        boolean reverted = redisSessionService.revertReplaceSession(
-                userId,
-                oldSessionId,
-                newSessionId,
-                operationId,
-                jwtProperties.refreshTokenExpiration()
-        );
+        boolean reverted = false;
 
-        removeSession(userId, newSessionId);
+        try {
+            reverted = redisSessionService.revertReplaceSession(
+                    userId,
+                    oldSessionId,
+                    newSessionId,
+                    operationId,
+                    jwtProperties.refreshTokenExpiration()
+            );
+
+        } catch (Exception e) {
+            log.error("세션 교체 롤백 Redis 처리 실패 userId = {}, oldSessionId = {}, newSessionId = {}",
+                    userId,
+                    oldSessionId,
+                    newSessionId,
+                    e
+            );
+
+        } finally {
+            try {
+                removeSession(userId, newSessionId);
+
+            } catch (Exception e) {
+                log.error("세션 교체 롤백 신규 세션 정리 실패 userId = {}, newSessionId = {}",
+                        userId,
+                        newSessionId,
+                        e
+                );
+            }
+
+            try {
+                redisSessionService.deleteReplacePendingIfOwner(userId, oldSessionId, operationId);
+
+            } catch (Exception e) {
+                log.error("세션 교체 pending 정리 실패 userId = {}, oldSessionId = {}",
+                        userId,
+                        oldSessionId,
+                        e
+                );
+            }
+        }
 
         if (!reverted) {
-            log.error("세션 교체 롤백 실패 및 신규 세션 정리 완료 userId = {}, oldSessionId = {}, newSessionId = {}",
+            log.error("세션 교체 롤백 실패 및 보상 정리 수행 userId = {}, oldSessionId = {}, newSessionId = {}",
                     userId,
                     oldSessionId,
                     newSessionId
-                    );
+            );
 
             return;
         }

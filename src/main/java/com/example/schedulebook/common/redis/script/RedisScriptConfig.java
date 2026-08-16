@@ -79,4 +79,9 @@ public class RedisScriptConfig {
     public RedisScript<Long> revertReplaceSessionScript() {
         return RedisScript.of(RedisConst.REVERT_REPLACE_SESSION_SCRIPT, Long.class);
     }
+
+    @Bean
+    public RedisScript<Long> deleteReplacePendingIfOwnerScript() {
+        return RedisScript.of(RedisConst.DELETE_REPLACE_PENDING_IF_OWNER_SCRIPT, Long.class);
+    }
 }

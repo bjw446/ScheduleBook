@@ -24,6 +24,7 @@ public class RedisSessionService {
     private final RedisScript<Long> addSessionIfAvailableScript;
     private final RedisScript<Long> replaceSessionIfAvailableScript;
     private final RedisScript<Long> revertReplaceSessionScript;
+    private final RedisScript<Long> deleteReplacePendingIfOwnerScript;
 
     public void removeSession(Long userId, String sessionId) {
         stringRedisTemplate.execute(
@@ -196,6 +197,20 @@ public class RedisSessionService {
     public long incrementSessionGeneration(Long userId) {
         return stringRedisTemplate.opsForValue()
                 .increment(buildSessionGenerationKey(userId));
+    }
+
+    public boolean deleteReplacePendingIfOwner(
+            Long userId,
+            String oldSessionId,
+            String operationId
+    ) {
+        Long result = stringRedisTemplate.execute(
+                deleteReplacePendingIfOwnerScript,
+                List.of(buildReplacePendingKey(userId, oldSessionId)),
+                operationId
+        );
+
+        return result != null && result == 1L;
     }
 
     private String buildSessionInfoKey(String sessionId) {
