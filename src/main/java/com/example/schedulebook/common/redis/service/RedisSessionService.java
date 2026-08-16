@@ -21,23 +21,15 @@ public class RedisSessionService {
     private final RedisScript<Long> removeSessionScript;
     private final RedisScript<Long> deleteAllSessionsScript;
     private final RedisScript<Long> updateLastAccessScript;
-
-    public void addSession(Long userId, String sessionId, long expiration) {
-        stringRedisTemplate.opsForSet().add(
-                buildUserSessionKey(userId),
-                sessionId
-        );
-
-        stringRedisTemplate.expire(
-                buildUserSessionKey(userId),
-                Duration.ofMillis(expiration)
-        );
-    }
+    private final RedisScript<Long> addSessionIfAvailableScript;
+    private final RedisScript<Long> replaceSessionIfAvailableScript;
+    private final RedisScript<Long> revertReplaceSessionScript;
+    private final RedisScript<Long> deleteReplacePendingIfOwnerScript;
 
     public void removeSession(Long userId, String sessionId) {
         stringRedisTemplate.execute(
                 removeSessionScript,
-                Collections.singletonList(buildUserSessionKey(userId)),
+                List.of(buildUserSessionKey(userId), buildReplacePendingKey(userId, sessionId)),
                 sessionId
         );
     }
@@ -132,6 +124,95 @@ public class RedisSessionService {
         return stringRedisTemplate.hasKey(buildSessionInfoKey(sessionId));
     }
 
+    public boolean addSessionIfAvailable(Long userId, String sessionId, int limit, long expiration) {
+        Long result = stringRedisTemplate.execute(
+                addSessionIfAvailableScript,
+                Collections.singletonList(buildUserSessionKey(userId)),
+                sessionId,
+                String.valueOf(limit),
+                String.valueOf(expiration)
+        );
+
+        return result != null && result == 1L;
+    }
+
+    public boolean replaceSessionIfAvailable(
+            Long userId,
+            String oldSessionId,
+            String newSessionId,
+            String operationId,
+            int limit,
+            long sessionExpiration
+    ) {
+        Long result = stringRedisTemplate.execute(
+                replaceSessionIfAvailableScript,
+                List.of(
+                        buildUserSessionKey(userId),
+                        buildReplacePendingKey(userId, oldSessionId),
+                        buildSessionGenerationKey(userId)
+                ),
+                oldSessionId,
+                newSessionId,
+                operationId,
+                String.valueOf(limit),
+                String.valueOf(RedisConst.SESSION_REPLACE_PENDING_EXPIRATION.toMillis()),
+                String.valueOf(sessionExpiration)
+        );
+
+        return result != null && result == 1L;
+    }
+
+    public boolean revertReplaceSession(
+            Long userId,
+            String oldSessionId,
+            String newSessionId,
+            String operationId,
+            long sessionExpiration
+    ) {
+        Long result = stringRedisTemplate.execute(
+                revertReplaceSessionScript,
+                List.of(
+                        buildUserSessionKey(userId),
+                        buildReplacePendingKey(userId, oldSessionId),
+                        buildSessionGenerationKey(userId)
+                ),
+                oldSessionId,
+                newSessionId,
+                operationId,
+                String.valueOf(sessionExpiration)
+        );
+
+        return result != null && result == 1L;
+    }
+
+    public boolean isSessionMember(Long userId, String sessionId) {
+        return Boolean.TRUE.equals(
+                stringRedisTemplate.opsForSet().isMember(
+                        buildUserSessionKey(userId),
+                        sessionId
+                )
+        );
+    }
+
+    public long incrementSessionGeneration(Long userId) {
+        return stringRedisTemplate.opsForValue()
+                .increment(buildSessionGenerationKey(userId));
+    }
+
+    public boolean deleteReplacePendingIfOwner(
+            Long userId,
+            String oldSessionId,
+            String operationId
+    ) {
+        Long result = stringRedisTemplate.execute(
+                deleteReplacePendingIfOwnerScript,
+                List.of(buildReplacePendingKey(userId, oldSessionId)),
+                operationId
+        );
+
+        return result != null && result == 1L;
+    }
+
     private String buildSessionInfoKey(String sessionId) {
         return RedisConst.SESSION_INFO_PREFIX + sessionId;
     }
@@ -160,5 +241,13 @@ public class RedisSessionService {
                 Instant.ofEpochMilli(Long.parseLong(value)),
                 ZoneId.systemDefault()
         );
+    }
+
+    private String buildReplacePendingKey(Long userId, String oldSessionId) {
+        return RedisConst.SESSION_REPLACE_PENDING_PREFIX + userId + ":" + oldSessionId;
+    }
+
+    private String buildSessionGenerationKey(Long userId) {
+        return RedisConst.SESSION_GENERATION_PREFIX + userId;
     }
 }

@@ -33,16 +33,12 @@ public class SessionService {
     private final RedisBlacklistService redisBlacklistService;
     private final OutboxService outboxService;
 
-    public LoginToken createSession(Long userId, String ip, String userAgent, UserRole userRole) {
-        String sessionId = UUID.randomUUID().toString();
-
+    public LoginToken createSession(Long userId, String sessionId, String ip, String userAgent, UserRole userRole) {
         String accessToken = jwtProvider.generateAccessToken(userId, sessionId, userRole);
 
         String refreshToken = jwtProvider.generateRefreshToken(userId, sessionId, userRole);
 
         redisRefreshTokenService.saveRefreshToken(sessionId, refreshToken, jwtProperties.refreshTokenExpiration());
-
-        redisSessionService.addSession(userId, sessionId, jwtProperties.refreshTokenExpiration());
 
         String safeIp = ip != null ? ip : "unknown";
 
@@ -130,6 +126,8 @@ public class SessionService {
     }
 
     public void forceLogoutAllSessions(Long userId) {
+        redisSessionService.incrementSessionGeneration(userId);
+
         Set<String> sessionIds = redisSessionService.getSessions(userId);
 
         if (sessionIds == null || sessionIds.isEmpty()) {
@@ -143,12 +141,97 @@ public class SessionService {
         }
     }
 
+    public String generateSessionId() {
+        return UUID.randomUUID().toString();
+    }
+
+    public void removeSession(Long userId, String sessionId) {
+        redisRefreshTokenService.deleteRefreshToken(sessionId);
+
+        redisSessionService.deleteSessionInfo(sessionId);
+
+        redisSessionService.removeSession(userId, sessionId);
+    }
+
+    public void rollbackReplacedSession(Long userId, String oldSessionId, String newSessionId, String operationId) {
+        boolean reverted = false;
+
+        try {
+            reverted = redisSessionService.revertReplaceSession(
+                    userId,
+                    oldSessionId,
+                    newSessionId,
+                    operationId,
+                    jwtProperties.refreshTokenExpiration()
+            );
+
+        } catch (Exception e) {
+            log.error("세션 교체 롤백 Redis 처리 실패 userId = {}, oldSessionId = {}, newSessionId = {}",
+                    userId,
+                    oldSessionId,
+                    newSessionId,
+                    e
+            );
+
+        } finally {
+            try {
+                removeSession(userId, newSessionId);
+
+            } catch (Exception e) {
+                log.error("세션 교체 롤백 신규 세션 정리 실패 userId = {}, newSessionId = {}",
+                        userId,
+                        newSessionId,
+                        e
+                );
+            }
+
+            try {
+                redisSessionService.deleteReplacePendingIfOwner(userId, oldSessionId, operationId);
+
+            } catch (Exception e) {
+                log.error("세션 교체 pending 정리 실패 userId = {}, oldSessionId = {}",
+                        userId,
+                        oldSessionId,
+                        e
+                );
+            }
+        }
+
+        if (!reverted) {
+            log.error("세션 교체 롤백 실패 및 보상 정리 수행 userId = {}, oldSessionId = {}, newSessionId = {}",
+                    userId,
+                    oldSessionId,
+                    newSessionId
+            );
+
+            return;
+        }
+
+        log.info("세션 교체 롤백 완료 userId = {}, oldSessionId = {}, newSessionId = {}",
+                userId,
+                oldSessionId,
+                newSessionId
+        );
+    }
+
+    public void cleanupReplacedSession(String oldSessionId) {
+        redisRefreshTokenService.deleteRefreshToken(oldSessionId);
+
+        redisSessionService.deleteSessionInfo(oldSessionId);
+
+        log.info("세션 교체 후 기존 세션 데이터 정리 완료 : oldSessionId = {}", oldSessionId);
+    }
+
     private LoginToken validateRefreshToken(String refreshToken) {
         jwtProvider.validateToken(refreshToken);
 
         Long userId = jwtProvider.extractUserId(refreshToken);
 
         String sessionId = jwtProvider.extractSessionId(refreshToken);
+
+        if (!redisSessionService.isSessionMember(userId, sessionId)) {
+            throw new BaseException(ErrorEnum.SESSION_NOT_FOUND);
+        }
 
         if (!redisSessionService.existsSession(sessionId)) {
             throw new BaseException(ErrorEnum.SESSION_NOT_FOUND);
@@ -210,14 +293,6 @@ public class SessionService {
         if (!sessionInfo.userId().equals(userId)) {
             throw new BaseException(ErrorEnum.FORBIDDEN);
         }
-    }
-
-    private void removeSession(Long userId, String sessionId) {
-        redisRefreshTokenService.deleteRefreshToken(sessionId);
-
-        redisSessionService.removeSession(userId, sessionId);
-
-        redisSessionService.deleteSessionInfo(sessionId);
     }
 
     private void saveOutbox(Long userId, String sessionId) {
