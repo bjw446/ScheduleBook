@@ -170,7 +170,11 @@ public class RedisSessionService {
     ) {
         Long result = stringRedisTemplate.execute(
                 revertReplaceSessionScript,
-                List.of(buildUserSessionKey(userId), buildReplacePendingKey(userId, oldSessionId)),
+                List.of(
+                        buildUserSessionKey(userId),
+                        buildReplacePendingKey(userId, oldSessionId),
+                        buildSessionGenerationKey(userId)
+                ),
                 oldSessionId,
                 newSessionId,
                 operationId,

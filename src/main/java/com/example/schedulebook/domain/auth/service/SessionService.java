@@ -162,8 +162,10 @@ public class SessionService {
                 jwtProperties.refreshTokenExpiration()
         );
 
+        removeSession(userId, newSessionId);
+
         if (!reverted) {
-            log.error("세션 교체 롤백 실패 userId = {}, oldSessionId = {}, newSessionId = {}",
+            log.error("세션 교체 롤백 실패 및 신규 세션 정리 완료 userId = {}, oldSessionId = {}, newSessionId = {}",
                     userId,
                     oldSessionId,
                     newSessionId
@@ -172,9 +174,11 @@ public class SessionService {
             return;
         }
 
-        redisRefreshTokenService.deleteRefreshToken(newSessionId);
-
-        redisSessionService.deleteSessionInfo(newSessionId);
+        log.info("세션 교체 롤백 완료 userId = {}, oldSessionId = {}, newSessionId = {}",
+                userId,
+                oldSessionId,
+                newSessionId
+        );
     }
 
     public void cleanupReplacedSession(String oldSessionId) {
