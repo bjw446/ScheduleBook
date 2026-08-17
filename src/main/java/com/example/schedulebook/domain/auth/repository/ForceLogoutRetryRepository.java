@@ -15,7 +15,7 @@ public interface ForceLogoutRetryRepository extends JpaRepository<ForceLogoutRet
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE ForceLogoutRetry f SET f.forceLogoutRetryStatus = " +
             "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.SUCCESS, " +
-            "f.reason = NULL, f.nextRetryAt = NULL, f.updatedAt = CURRENT_TIMESTAMP " +
+            "f.reason = NULL, f.nextRetryAt = NULL, f.claimToken = NULL, f.updatedAt = CURRENT_TIMESTAMP " +
             "WHERE f.id = :forceLogoutRetryId AND f.claimToken = :claimToken")
     int markSuccess(@Param("forceLogoutRetryId") Long forceLogoutRetryId, @Param("claimToken") String claimToken);
 
@@ -60,8 +60,10 @@ public interface ForceLogoutRetryRepository extends JpaRepository<ForceLogoutRet
     @Modifying
     @Query("UPDATE ForceLogoutRetry f SET f.forceLogoutRetryStatus = " +
             "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.PENDING, " +
-            "f.retryCount = 0, f.reason = NULL, f.nextRetryAt = NULL, f.updatedAt = CURRENT_TIMESTAMP " +
-            "WHERE f.id = :forceLogoutRetryId AND f.claimToken = :claimToken ")
+            "f.retryCount = 0, f.reason = NULL, f.nextRetryAt = CURRENT_TIMESTAMP, " +
+            "f.claimToken = NULL, f.updatedAt = CURRENT_TIMESTAMP " +
+            "WHERE f.id = :forceLogoutRetryId AND f.claimToken = :claimToken AND f.forceLogoutRetryStatus = " +
+            "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.FAILED")
     int updateRecover(@Param("forceLogoutRetryId") Long forceLogoutRetryId, @Param("claimToken") String claimToken);
 
     Optional<ForceLogoutRetry> findBySessionId(String sessionId);

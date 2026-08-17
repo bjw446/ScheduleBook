@@ -44,7 +44,7 @@ public class ForceLogoutRetryStateService {
         }
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void completeSuccess(ForceLogoutRetry forceLogoutRetry, String claimToken) {
         forceLogoutRetryService.markSuccess(forceLogoutRetry.getId(), claimToken);
     }

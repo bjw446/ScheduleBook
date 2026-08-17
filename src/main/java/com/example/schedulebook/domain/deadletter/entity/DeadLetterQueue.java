@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.deadletter.entity;
 
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterStatus;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -30,6 +31,10 @@ public class DeadLetterQueue {
     @Enumerated(EnumType.STRING)
     @Column(name = "dead_letter_aggregate_type")
     private DeadLetterAggregateType deadLetterAggregateType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "dead_letter_status", nullable = false)
+    private DeadLetterStatus deadLetterStatus;
 
     @Column(name = "aggregate_id")
     private String aggregateId;
@@ -66,14 +71,15 @@ public class DeadLetterQueue {
         DeadLetterQueue deadLetterQueue = new DeadLetterQueue();
 
         deadLetterQueue.deadLetterType = deadLetterType;
+        deadLetterQueue.deadLetterSource = deadLetterSource;
         deadLetterQueue.deadLetterAggregateType = deadLetterAggregateType;
+        deadLetterQueue.deadLetterStatus = DeadLetterStatus.PENDING;
         deadLetterQueue.aggregateId = aggregateId;
         deadLetterQueue.userId = userId;
         deadLetterQueue.payload = payload;
         deadLetterQueue.reason = reason;
-        deadLetterQueue.deadLetterSource = deadLetterSource;
-        deadLetterQueue.retryCount = retryCount;
         deadLetterQueue.exceptionType = exceptionType;
+        deadLetterQueue.retryCount = retryCount;
         deadLetterQueue.failedAt = LocalDateTime.now();
 
         return deadLetterQueue;

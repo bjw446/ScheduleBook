@@ -1,8 +1,9 @@
 package com.example.schedulebook.domain.outbox.handler;
 
+import com.example.schedulebook.common.consts.RedisConst;
+import com.example.schedulebook.common.redis.publisher.RedisEventPublisher;
 import com.example.schedulebook.domain.comment.dto.response.CommentEventResponse;
 import com.example.schedulebook.domain.comment.event.CommentEvent;
-import com.example.schedulebook.domain.comment.publisher.CommentPublisher;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class CommentOutboxHandler implements OutboxEventHandler<CommentEventResponse> {
-    private final CommentPublisher commentPublisher;
+    private final RedisEventPublisher redisEventPublisher;
 
     @Override
     public OutboxEventType supports() {
@@ -24,6 +25,6 @@ public class CommentOutboxHandler implements OutboxEventHandler<CommentEventResp
 
     @Override
     public void handle(Long outboxId, CommentEventResponse payload) {
-        commentPublisher.publish(CommentEvent.from(payload));
+        redisEventPublisher.publish(RedisConst.COMMENT, CommentEvent.from(payload));
     }
 }

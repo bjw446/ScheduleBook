@@ -44,14 +44,14 @@ public class ForceLogoutRetryService {
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markSuccess(Long forceLogoutRetryId, String claimToken) {
         if (forceLogoutRetryRepository.markSuccess(forceLogoutRetryId, claimToken) != 1) {
             throw new BaseException(ErrorEnum.FORCE_LOGOUT_RETRY_NOT_FOUND);
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markFailed(Long forceLogoutRetryId, String reason, String claimToken) {
         if (forceLogoutRetryRepository.markFailed(forceLogoutRetryId, reason, claimToken) != 1) {
             throw new BaseException(ErrorEnum.FORCE_LOGOUT_RETRY_NOT_FOUND);

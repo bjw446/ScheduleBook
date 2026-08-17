@@ -25,6 +25,7 @@ public class CommentRedisMessageDelegate {
             );
 
             redisSubscriber.onComment(event);
+
         } catch (JsonProcessingException e) {
             log.error("Redis 메시지 역직렬화 실패, 메시지 : {}", message, e);
 

@@ -1,7 +1,8 @@
 package com.example.schedulebook.domain.outbox.handler;
 
+import com.example.schedulebook.common.consts.RedisConst;
+import com.example.schedulebook.common.redis.publisher.RedisEventPublisher;
 import com.example.schedulebook.domain.notification.dto.response.NotificationEventResponse;
-import com.example.schedulebook.domain.notification.publisher.NotificationEventPublisher;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class NotificationOutboxHandler implements OutboxEventHandler<NotificationEventResponse> {
-    private final NotificationEventPublisher notificationEventPublisher;
+    private final RedisEventPublisher redisEventPublisher;
 
     @Override
     public OutboxEventType supports() {
@@ -23,6 +24,6 @@ public class NotificationOutboxHandler implements OutboxEventHandler<Notificatio
 
     @Override
     public void handle(Long outboxId, NotificationEventResponse payload) {
-        notificationEventPublisher.publish(payload);
+        redisEventPublisher.publish(RedisConst.NOTIFICATION, payload);
     }
 }
