@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.deadletter.service;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.deadletter.entity.DeadLetterQueue;
@@ -11,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -43,23 +47,34 @@ public class DeadLetterService {
     }
 
     @Transactional
-    public void markRecovered(Long deadLetterId) {
-        if (deadLetterRepository.markRecovered(deadLetterId) != 1) {
+    public void markRecovered(Long deadLetterId, String claimToken) {
+        if (deadLetterRepository.markRecovered(deadLetterId, claimToken) != 1) {
             throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
         }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markProcessing(Long deadLetterId) {
-        if (deadLetterRepository.markProcessing(deadLetterId) != 1) {
+    public String markProcessing(Long deadLetterId) {
+        String claimToken = UUID.randomUUID().toString();
+
+        if (deadLetterRepository.markProcessing(deadLetterId, claimToken) != 1) {
+            throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
+        }
+
+        return claimToken;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markPending(Long deadLetterId, String claimToken) {
+        if (deadLetterRepository.markPending(deadLetterId, claimToken) != 1) {
             throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
         }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markPending(Long deadLetterId) {
-        if (deadLetterRepository.markPending(deadLetterId) != 1) {
-            throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
-        }
+    public int reclaimExpiredProcessing() {
+        LocalDateTime expiredAt = LocalDateTime.now().minusMinutes(CommonConst.DEAD_LETTER_PROCESSING_LEASE_MINUTES);
+
+        return deadLetterRepository.reclaimExpiredProcessing(expiredAt);
     }
 }

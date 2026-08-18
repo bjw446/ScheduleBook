@@ -60,7 +60,7 @@ public class AdminDeadLetterService {
                 () -> new BaseException(ErrorEnum.DEAD_LETTER_NOT_FOUND)
         );
 
-        deadLetterService.markProcessing(deadLetterId);
+        String claimToken = deadLetterService.markProcessing(deadLetterId);
 
         try {
             switch (deadLetterQueue.getDeadLetterAggregateType()) {
@@ -76,11 +76,11 @@ public class AdminDeadLetterService {
                 default -> throw new BaseException(ErrorEnum.INVALID_DEAD_LETTER_AGGREGATE_TYPE);
             }
 
-            deadLetterService.markRecovered(deadLetterId);
+            deadLetterService.markRecovered(deadLetterId, claimToken);
 
         } catch (Exception e) {
             try {
-                deadLetterService.markPending(deadLetterId);
+                deadLetterService.markPending(deadLetterId, claimToken);
 
             } catch (Exception recoveryException) {
                 log.error("DeadLetter 상태 복구 자체 실패 deadLetterId = {}, originalError={}",

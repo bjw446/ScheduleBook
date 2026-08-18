@@ -13,7 +13,15 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "dead_letter_queues")
+@Table(
+        name = "dead_letter_queues",
+        indexes = {
+                @Index(
+                        name = "idx_dlq_status_processing_at",
+                        columnList = "dead_letter_status, processing_at"
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class DeadLetterQueue {
     @Id
@@ -56,6 +64,12 @@ public class DeadLetterQueue {
 
     @Column(name = "failed_at", nullable = false)
     private LocalDateTime failedAt;
+
+    @Column(name = "processing_at")
+    private LocalDateTime processingAt;
+
+    @Column(name = "claim_token")
+    private String claimToken;
 
     public static DeadLetterQueue create(
             DeadLetterType deadLetterType,
