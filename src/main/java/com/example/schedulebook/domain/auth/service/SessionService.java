@@ -296,11 +296,15 @@ public class SessionService {
     }
 
     private void saveOutbox(Long userId, String sessionId) {
+        String eventId = UUID.randomUUID().toString();
+
         outboxService.save(
+                eventId,
                 OutboxAggregateType.SESSION,
                 sessionId,
                 OutboxEventType.FORCE_LOGOUT,
                 new ForceLogoutSessionEvent(
+                        eventId,
                         userId,
                         sessionId,
                         jwtProperties.accessTokenExpiration()

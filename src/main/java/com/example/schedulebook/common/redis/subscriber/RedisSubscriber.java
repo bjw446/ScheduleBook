@@ -1,5 +1,6 @@
 package com.example.schedulebook.common.redis.subscriber;
 
+import com.example.schedulebook.common.redis.service.RedisEventDeduplicationService;
 import com.example.schedulebook.common.redis.service.RedisPresenceService;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import com.example.schedulebook.domain.auth.handler.ForceLogoutHandler;
@@ -19,6 +20,7 @@ public class RedisSubscriber {
     private final CommentSubscriber commentSubscriber;
     private final ForceLogoutHandler forceLogoutHandler;
     private final RedisPresenceService redisPresenceService;
+    private final RedisEventDeduplicationService redisEventDeduplicationService;
 
     public void onNotification(NotificationEventResponse event) {
         Long receiverId = event.receiverId();
@@ -55,6 +57,12 @@ public class RedisSubscriber {
     }
 
     public void onForceLogout(ForceLogoutSessionEvent event) {
+        if (redisEventDeduplicationService.isAlreadyProcessed(event.eventId())) {
+            log.info("중복 Redis 이벤트 무시 eventId = {}", event.eventId());
+
+            return;
+        }
+
         forceLogoutHandler.handle(event);
     }
 }

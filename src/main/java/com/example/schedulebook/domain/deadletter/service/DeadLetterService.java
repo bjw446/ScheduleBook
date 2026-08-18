@@ -31,7 +31,8 @@ public class DeadLetterService {
             String payload,
             String reason,
             String exceptionType,
-            int retryCount
+            int retryCount,
+            String eventId
     ) {
         deadLetterRepository.save(DeadLetterQueue.create(
                 deadLetterType,
@@ -42,11 +43,12 @@ public class DeadLetterService {
                 payload,
                 reason,
                 exceptionType,
-                retryCount
+                retryCount,
+                eventId
         ));
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markRecovered(Long deadLetterId, String claimToken) {
         if (deadLetterRepository.markRecovered(deadLetterId, claimToken) != 1) {
             throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
@@ -57,7 +59,9 @@ public class DeadLetterService {
     public String markProcessing(Long deadLetterId) {
         String claimToken = UUID.randomUUID().toString();
 
-        if (deadLetterRepository.markProcessing(deadLetterId, claimToken) != 1) {
+        LocalDateTime leaseUntil = LocalDateTime.now().plusMinutes(CommonConst.DEAD_LETTER_PROCESSING_LEASE_MINUTES);
+
+        if (deadLetterRepository.markProcessing(deadLetterId, claimToken, leaseUntil) != 1) {
             throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
         }
 
@@ -73,8 +77,15 @@ public class DeadLetterService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int reclaimExpiredProcessing() {
-        LocalDateTime expiredAt = LocalDateTime.now().minusMinutes(CommonConst.DEAD_LETTER_PROCESSING_LEASE_MINUTES);
+        return deadLetterRepository.reclaimExpiredProcessing();
+    }
 
-        return deadLetterRepository.reclaimExpiredProcessing(expiredAt);
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void renewLease(Long deadLetterId, String claimToken) {
+        LocalDateTime leaseUntil = LocalDateTime.now().plusMinutes(CommonConst.DEAD_LETTER_PROCESSING_LEASE_MINUTES);
+
+        if (deadLetterRepository.renewLease(deadLetterId, claimToken, leaseUntil) != 1) {
+            throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
+        }
     }
 }

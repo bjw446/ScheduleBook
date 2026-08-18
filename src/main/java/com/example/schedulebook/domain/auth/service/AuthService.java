@@ -83,8 +83,10 @@ public class AuthService {
 
         String userAgent = getUserAgent(servletRequest);
 
+        String eventId = UUID.randomUUID().toString();
+
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            loginFailureService.handleFailure(request.loginId(), ip, userAgent);
+            loginFailureService.handleFailure(eventId, request.loginId(), ip, userAgent);
 
             throw new BaseException(ErrorEnum.LOGIN_FAILED);
         }
@@ -105,13 +107,15 @@ public class AuthService {
             }
 
             try {
-                processLogin(user, ip, userAgent);
+                processLogin(eventId, user, ip, userAgent);
 
                 outboxService.save(
+                        eventId,
                         OutboxAggregateType.USER,
                         String.valueOf(user.getId()),
                         OutboxEventType.AUDIT_EVENT,
                         new AuditEvent(
+                                eventId,
                                 user.getId(),
                                 null,
                                 user.getLoginId(),
@@ -124,6 +128,7 @@ public class AuthService {
                 LoginToken token = sessionService.createSession(user.getId(), sessionId, ip, userAgent, user.getUserRole());
 
                 outboxService.save(
+                        eventId,
                         OutboxAggregateType.SESSION,
                         request.replaceSessionId(),
                         OutboxEventType.SESSION_REPLACE_CLEANUP,
@@ -153,7 +158,7 @@ public class AuthService {
 
                 reserved = true;
 
-                processLogin(user, ip, userAgent);
+                processLogin(eventId, user, ip, userAgent);
 
                 LoginToken token = sessionService.createSession(user.getId(), sessionId, ip, userAgent, user.getUserRole());
 
@@ -174,13 +179,17 @@ public class AuthService {
 
         String userAgent = getUserAgent(servletRequest);
 
+        String eventId = UUID.randomUUID().toString();
+
         LoginToken token = sessionService.logout(accessToken);
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.USER,
                 String.valueOf(token.userId()),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
+                        eventId,
                         token.userId(),
                         null,
                         null,
@@ -231,15 +240,19 @@ public class AuthService {
 
         String userAgent = getUserAgent(servletRequest);
 
+        String eventId = UUID.randomUUID().toString();
+
         userValidator.validateActiveUser(currentUserId);
 
         sessionService.logoutSession(currentUserId, sessionId);
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.USER,
                 String.valueOf(currentUserId),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
+                        eventId,
                         currentUserId,
                         null,
                         null,
@@ -250,9 +263,9 @@ public class AuthService {
         );
     }
 
-    private void processLogin(User user, String ip, String userAgent) {
+    private void processLogin(String eventId, User user, String ip, String userAgent) {
         try {
-            loginSuccessService.loginSuccess(user, ip, userAgent);
+            loginSuccessService.loginSuccess(eventId, user, ip, userAgent);
 
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new BaseException(ErrorEnum.LOGIN_CONFLICT, e);

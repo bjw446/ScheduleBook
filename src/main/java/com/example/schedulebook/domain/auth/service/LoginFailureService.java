@@ -22,7 +22,7 @@ public class LoginFailureService {
     private final OutboxService outboxService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleFailure(String loginId, String ip, String userAgent) {
+    public void handleFailure(String eventId, String loginId, String ip, String userAgent) {
         try {
             redisLoginLockService.recordFailure(loginId);
 
@@ -32,10 +32,12 @@ public class LoginFailureService {
 
         try {
             outboxService.save(
+                    eventId,
                     OutboxAggregateType.USER,
                     null,
                     OutboxEventType.AUDIT_EVENT,
                     new AuditEvent(
+                            eventId,
                             null,
                             null,
                             loginId,

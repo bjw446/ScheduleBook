@@ -23,17 +23,19 @@ public class LoginSuccessService {
     private final OutboxService outboxService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void loginSuccess(User user, String ip, String userAgent) {
+    public void loginSuccess(String eventId, User user, String ip, String userAgent) {
         user.login();
 
         userRepository.saveAndFlush(user);
 
         try {
             outboxService.save(
+                    eventId,
                     OutboxAggregateType.USER,
                     String.valueOf(user.getId()),
                     OutboxEventType.AUDIT_EVENT,
                     new AuditEvent(
+                            eventId,
                             user.getId(),
                             null,
                             user.getLoginId(),

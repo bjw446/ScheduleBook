@@ -29,23 +29,29 @@ public class FriendAcceptedProcessor implements NotificationEventProcessor<Frien
             notificationService.createFriendAcceptedNotification(event.requesterId(), event.accepterNickname(), event.friendId());
 
         } catch (Exception e) {
-            saveNotificationRetry(outboxId, event.requesterId(), event, e);
+            saveNotificationRetry(outboxId, event, e);
         }
 
     }
 
     private void saveNotificationRetry(
             Long outboxId,
-            Long receiverId,
-            Object event,
+            FriendAcceptedEvent event,
             Exception e
     ) {
         try {
-            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, NotificationType.FRIEND_ACCEPTED, e);
+            log.error(
+                    "Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}",
+                    outboxId,
+                    event.requesterId(),
+                    NotificationType.FRIEND_ACCEPTED,
+                    e
+            );
 
             notificationRetryService.save(
+                    event.eventId(),
                     outboxId,
-                    receiverId,
+                    event.requesterId(),
                     NotificationType.FRIEND_ACCEPTED,
                     event,
                     e.getMessage()

@@ -29,23 +29,29 @@ public class FriendRequestProcessor implements NotificationEventProcessor<Friend
             notificationService.createFriendRequestNotification(event.receiverId(), event.requesterNickname(), event.friendId());
 
         } catch (Exception e) {
-            saveNotificationRetry(outboxId, event.receiverId(), event, e);
+            saveNotificationRetry(outboxId, event, e);
         }
 
     }
 
     private void saveNotificationRetry(
             Long outboxId,
-            Long receiverId,
-            Object event,
+            FriendRequestedEvent event,
             Exception e
     ) {
         try {
-            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, NotificationType.FRIEND_REQUEST, e);
+            log.error(
+                    "Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}",
+                    outboxId,
+                    event.receiverId(),
+                    NotificationType.FRIEND_REQUEST,
+                    e
+            );
 
             notificationRetryService.save(
+                    event.eventId(),
                     outboxId,
-                    receiverId,
+                    event.receiverId(),
                     NotificationType.FRIEND_REQUEST,
                     event,
                     e.getMessage()

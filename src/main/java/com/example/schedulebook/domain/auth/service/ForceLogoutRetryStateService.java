@@ -34,7 +34,8 @@ public class ForceLogoutRetryStateService {
                     forceLogoutRetry.getPayload(),
                     e.getMessage(),
                     e.getClass().getSimpleName(),
-                    forceLogoutRetry.getRetryCount() + 1
+                    forceLogoutRetry.getRetryCount() + 1,
+                    forceLogoutRetry.getEventId()
             );
 
         } catch (Exception dlqException) {

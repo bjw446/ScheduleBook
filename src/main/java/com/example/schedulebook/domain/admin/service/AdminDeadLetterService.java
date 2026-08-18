@@ -56,11 +56,11 @@ public class AdminDeadLetterService {
     public void recoverDeadLetter(Long currentUserId, Long deadLetterId) {
         userValidator.validateActiveAdmin(currentUserId);
 
+        String claimToken = deadLetterService.markProcessing(deadLetterId);
+
         DeadLetterQueue deadLetterQueue = deadLetterRepository.findById(deadLetterId).orElseThrow(
                 () -> new BaseException(ErrorEnum.DEAD_LETTER_NOT_FOUND)
         );
-
-        String claimToken = deadLetterService.markProcessing(deadLetterId);
 
         try {
             switch (deadLetterQueue.getDeadLetterAggregateType()) {

@@ -71,6 +71,9 @@ public class DeadLetterQueue {
     @Column(name = "claim_token")
     private String claimToken;
 
+    @Column(name = "event_id", unique = true)
+    private String eventId;
+
     public static DeadLetterQueue create(
             DeadLetterType deadLetterType,
             DeadLetterSource deadLetterSource,
@@ -80,7 +83,8 @@ public class DeadLetterQueue {
             String payload,
             String reason,
             String exceptionType,
-            int retryCount
+            int retryCount,
+            String eventId
     ) {
         DeadLetterQueue deadLetterQueue = new DeadLetterQueue();
 
@@ -95,6 +99,7 @@ public class DeadLetterQueue {
         deadLetterQueue.exceptionType = exceptionType;
         deadLetterQueue.retryCount = retryCount;
         deadLetterQueue.failedAt = LocalDateTime.now();
+        deadLetterQueue.eventId = eventId;
 
         return deadLetterQueue;
     }

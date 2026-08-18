@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -116,9 +117,12 @@ public class ScheduleService {
 
         scheduleReminderService.refresh(schedule);
 
-        ScheduleUpdatedEvent scheduleUpdatedEvent = new ScheduleUpdatedEvent(schedule.getId());
+        String eventId = UUID.randomUUID().toString();
+
+        ScheduleUpdatedEvent scheduleUpdatedEvent = new ScheduleUpdatedEvent(eventId, schedule.getId());
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.SCHEDULE,
                 String.valueOf(schedule.getId()),
                 OutboxEventType.SCHEDULE_UPDATED,
@@ -135,9 +139,12 @@ public class ScheduleService {
 
         schedule.delete();
 
-        ScheduleDeletedEvent scheduleDeletedEvent = new ScheduleDeletedEvent(schedule.getId());
+        String eventId = UUID.randomUUID().toString();
+
+        ScheduleDeletedEvent scheduleDeletedEvent = new ScheduleDeletedEvent(eventId, schedule.getId());
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.SCHEDULE,
                 String.valueOf(schedule.getId()),
                 OutboxEventType.SCHEDULE_DELETED,

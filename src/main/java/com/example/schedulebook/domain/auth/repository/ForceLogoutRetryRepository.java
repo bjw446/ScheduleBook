@@ -71,4 +71,6 @@ public interface ForceLogoutRetryRepository extends JpaRepository<ForceLogoutRet
     @Query("SELECT COUNT(f) FROM ForceLogoutRetry f WHERE f.forceLogoutRetryStatus = " +
             "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.PENDING")
     long countPending();
+
+    Optional<ForceLogoutRetry> findByEventId(String eventId);
 }

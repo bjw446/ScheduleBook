@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -73,7 +74,10 @@ public class ScheduleReminderService {
             return false;
         }
 
+        String eventId = UUID.randomUUID().toString();
+
         ScheduleReminderEvent reminderEvent = new ScheduleReminderEvent(
+                eventId,
                 scheduleReminder.getSchedule().getId(),
                 scheduleReminder.getSchedule().getUser().getId(),
                 scheduleReminder.getSchedule().getTitle(),
@@ -81,6 +85,7 @@ public class ScheduleReminderService {
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.SCHEDULE,
                 String.valueOf(scheduleReminder.getSchedule().getId()),
                 OutboxEventType.SCHEDULE_REMINDER,

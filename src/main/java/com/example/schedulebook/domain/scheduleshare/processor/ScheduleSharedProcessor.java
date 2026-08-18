@@ -29,23 +29,28 @@ public class ScheduleSharedProcessor implements NotificationEventProcessor<Sched
             notificationService.createScheduleSharedNotification(event.receiverId(), event.ownerNickname(), event.shareId());
 
         } catch (Exception e) {
-            saveNotificationRetry(outboxId, event.receiverId(), event, e);
+            saveNotificationRetry(outboxId, event, e);
         }
-
     }
 
     private void saveNotificationRetry(
             Long outboxId,
-            Long receiverId,
-            Object event,
+            ScheduleSharedEvent event,
             Exception e
     ) {
         try {
-            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, NotificationType.SCHEDULE_SHARED, e);
+            log.error(
+                    "Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}",
+                    outboxId,
+                    event.receiverId(),
+                    NotificationType.SCHEDULE_SHARED,
+                    e
+            );
 
             notificationRetryService.save(
+                    event.eventId(),
                     outboxId,
-                    receiverId,
+                    event.receiverId(),
                     NotificationType.SCHEDULE_SHARED,
                     event,
                     e.getMessage()

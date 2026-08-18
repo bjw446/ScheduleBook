@@ -20,10 +20,12 @@ public interface DeadLetterRepository extends JpaRepository<DeadLetterQueue, Lon
     @Modifying
     @Query("UPDATE DeadLetterQueue d SET d.deadLetterStatus = " +
             "com.example.schedulebook.domain.deadletter.enums.DeadLetterStatus.PROCESSING," +
-            "d.processingAt = CURRENT_TIMESTAMP, d.claimToken = :claimToken " +
+            "d.processingAt = :leaseUntil, d.claimToken = :claimToken " +
             "WHERE d.id = :deadLetterId AND d.deadLetterStatus = " +
             "com.example.schedulebook.domain.deadletter.enums.DeadLetterStatus.PENDING")
-    int markProcessing(@Param("deadLetterId") Long deadLetterId, @Param("claimToken") String claimToken);
+    int markProcessing(@Param("deadLetterId") Long deadLetterId,
+                       @Param("claimToken") String claimToken,
+                       @Param("leaseUntil") LocalDateTime leaseUntil);
 
     @Modifying
     @Query("UPDATE DeadLetterQueue d SET d.deadLetterStatus = " +
@@ -33,11 +35,22 @@ public interface DeadLetterRepository extends JpaRepository<DeadLetterQueue, Lon
             "com.example.schedulebook.domain.deadletter.enums.DeadLetterStatus.PROCESSING")
     int markPending(@Param("deadLetterId") Long deadLetterId, @Param("claimToken") String claimToken);
 
+    // PROCESSING 상태의 lease 만료 시각을 기준으로 재시도 가능 상태로 회수
+    // processingAt은 실제 처리 시작 시간이 아니라
+    // PROCESSING 상태의 lease 만료 시각을 의미
     @Modifying
     @Query("UPDATE DeadLetterQueue d SET d.deadLetterStatus = " +
             "com.example.schedulebook.domain.deadletter.enums.DeadLetterStatus.PENDING, " +
             "d.processingAt = NULL, d.claimToken = NULL  WHERE d.deadLetterStatus = " +
             "com.example.schedulebook.domain.deadletter.enums.DeadLetterStatus.PROCESSING " +
-            "AND d.processingAt < :expiredAt")
-    int reclaimExpiredProcessing(@Param("expiredAt") LocalDateTime expiredAt);
+            "AND d.processingAt < CURRENT_TIMESTAMP")
+    int reclaimExpiredProcessing();
+
+    @Modifying
+    @Query("UPDATE DeadLetterQueue d SET d.processingAt = :leaseUntil WHERE d.id = :deadLetterId " +
+            "AND d.claimToken = :claimToken AND d.deadLetterStatus = " +
+            "com.example.schedulebook.domain.deadletter.enums.DeadLetterStatus.PROCESSING")
+    int renewLease(@Param("deadLetterId") Long deadLetterId,
+                   @Param("claimToken") String claimToken,
+                   @Param("leaseUntil") LocalDateTime leaseUntil);
 }

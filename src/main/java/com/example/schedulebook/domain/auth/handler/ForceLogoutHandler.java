@@ -29,7 +29,7 @@ public class ForceLogoutHandler {
                     e
             );
 
-            forceLogoutRetryService.save(event.sessionId(), event.userId(), event, e.getMessage());
+            forceLogoutRetryService.save(event, e.getMessage());
         }
     }
 }
