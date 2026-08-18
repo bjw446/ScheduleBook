@@ -83,10 +83,10 @@ public class AuthService {
 
         String userAgent = getUserAgent(servletRequest);
 
-        String eventId = UUID.randomUUID().toString();
+        String loginFailureEventId = UUID.randomUUID().toString();
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            loginFailureService.handleFailure(eventId, request.loginId(), ip, userAgent);
+            loginFailureService.handleFailure(loginFailureEventId, request.loginId(), ip, userAgent);
 
             throw new BaseException(ErrorEnum.LOGIN_FAILED);
         }
@@ -109,13 +109,15 @@ public class AuthService {
             try {
                 processLogin(user, ip, userAgent);
 
+                String sessionLogoutEventId = UUID.randomUUID().toString();
+
                 outboxService.save(
-                        eventId,
+                        sessionLogoutEventId,
                         OutboxAggregateType.USER,
                         String.valueOf(user.getId()),
                         OutboxEventType.AUDIT_EVENT,
                         new AuditEvent(
-                                eventId,
+                                sessionLogoutEventId,
                                 user.getId(),
                                 null,
                                 user.getLoginId(),
@@ -127,8 +129,10 @@ public class AuthService {
 
                 LoginToken token = sessionService.createSession(user.getId(), sessionId, ip, userAgent, user.getUserRole());
 
+                String sessionReplaceCleanupEventId = UUID.randomUUID().toString();
+
                 outboxService.save(
-                        eventId,
+                        sessionReplaceCleanupEventId,
                         OutboxAggregateType.SESSION,
                         request.replaceSessionId(),
                         OutboxEventType.SESSION_REPLACE_CLEANUP,
