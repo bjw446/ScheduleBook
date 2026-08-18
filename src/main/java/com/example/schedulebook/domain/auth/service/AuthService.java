@@ -107,7 +107,7 @@ public class AuthService {
             }
 
             try {
-                processLogin(eventId, user, ip, userAgent);
+                processLogin(user, ip, userAgent);
 
                 outboxService.save(
                         eventId,
@@ -158,7 +158,7 @@ public class AuthService {
 
                 reserved = true;
 
-                processLogin(eventId, user, ip, userAgent);
+                processLogin(user, ip, userAgent);
 
                 LoginToken token = sessionService.createSession(user.getId(), sessionId, ip, userAgent, user.getUserRole());
 
@@ -263,9 +263,9 @@ public class AuthService {
         );
     }
 
-    private void processLogin(String eventId, User user, String ip, String userAgent) {
+    private void processLogin(User user, String ip, String userAgent) {
         try {
-            loginSuccessService.loginSuccess(eventId, user, ip, userAgent);
+            loginSuccessService.loginSuccess(user, ip, userAgent);
 
         } catch (ObjectOptimisticLockingFailureException e) {
             throw new BaseException(ErrorEnum.LOGIN_CONFLICT, e);

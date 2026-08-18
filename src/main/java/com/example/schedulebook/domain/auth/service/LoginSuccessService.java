@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -23,10 +25,12 @@ public class LoginSuccessService {
     private final OutboxService outboxService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void loginSuccess(String eventId, User user, String ip, String userAgent) {
+    public void loginSuccess(User user, String ip, String userAgent) {
         user.login();
 
         userRepository.saveAndFlush(user);
+
+        String eventId = UUID.randomUUID().toString();
 
         try {
             outboxService.save(

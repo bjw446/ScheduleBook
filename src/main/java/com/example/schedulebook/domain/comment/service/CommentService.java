@@ -54,25 +54,27 @@ public class CommentService {
 
         int commentCount = getCurrentCommentCount(scheduleId);
 
-        String eventId = UUID.randomUUID().toString();
+        String commentEventId = UUID.randomUUID().toString();
 
         CommentEventResponse commentEventResponse = CommentEventResponse.from(
                 savedComment,
-                eventId,
+                commentEventId,
                 CommentEventType.CREATED,
                 commentCount
         );
 
         outboxService.save(
-                eventId,
+                commentEventId,
                 OutboxAggregateType.COMMENT,
                 String.valueOf(savedComment.getId()),
                 OutboxEventType.COMMENT_EVENT,
                 commentEventResponse
         );
 
+        String commentCreatedEventId = UUID.randomUUID().toString();
+
         CommentCreatedEvent createdEvent = new CommentCreatedEvent(
-                eventId,
+                commentCreatedEventId,
                 scheduleId,
                 user.getId(),
                 user.getNickname(),
@@ -80,7 +82,7 @@ public class CommentService {
         );
 
         outboxService.save(
-                eventId,
+                commentCreatedEventId,
                 OutboxAggregateType.COMMENT,
                 String.valueOf(savedComment.getId()),
                 OutboxEventType.COMMENT_CREATED,
