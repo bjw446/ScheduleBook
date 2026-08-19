@@ -27,11 +27,12 @@ public class NotificationRetryService {
     private final ObjectMapper objectMapper;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void save(Long outboxId, Long receiverId, NotificationType notificationType, Object event, String reason) {
+    public void save(String eventId, Long outboxId, Long receiverId, NotificationType notificationType, Object event, String reason) {
         try {
             String json = objectMapper.writeValueAsString(event);
 
             notificationRetryRepository.save(NotificationRetry.create(
+                    eventId,
                     outboxId,
                     receiverId,
                     notificationType,

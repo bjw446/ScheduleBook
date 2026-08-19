@@ -34,7 +34,8 @@ public class ForceLogoutRetryStateService {
                     forceLogoutRetry.getPayload(),
                     e.getMessage(),
                     e.getClass().getSimpleName(),
-                    forceLogoutRetry.getRetryCount() + 1
+                    forceLogoutRetry.getRetryCount() + 1,
+                    forceLogoutRetry.getEventId()
             );
 
         } catch (Exception dlqException) {
@@ -44,7 +45,7 @@ public class ForceLogoutRetryStateService {
         }
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void completeSuccess(ForceLogoutRetry forceLogoutRetry, String claimToken) {
         forceLogoutRetryService.markSuccess(forceLogoutRetry.getId(), claimToken);
     }

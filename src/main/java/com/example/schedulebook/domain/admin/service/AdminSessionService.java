@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -39,13 +40,17 @@ public class AdminSessionService {
 
         String userAgent = getUserAgent(servletRequest);
 
+        String eventId = UUID.randomUUID().toString();
+
         sessionService.forceLogoutSession(userId, sessionId);
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.USER,
                 String.valueOf(userId),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
+                        eventId,
                         userId,
                         adminId,
                         null,
@@ -65,11 +70,15 @@ public class AdminSessionService {
 
         String userAgent = getUserAgent(servletRequest);
 
+        String eventId = UUID.randomUUID().toString();
+
         outboxService.save(
+                eventId,
                 OutboxAggregateType.USER,
                 String.valueOf(userId),
                 OutboxEventType.AUDIT_EVENT,
                 new AuditEvent(
+                        eventId,
                         userId,
                         adminId,
                         null,

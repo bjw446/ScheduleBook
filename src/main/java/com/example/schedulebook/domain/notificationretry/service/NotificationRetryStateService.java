@@ -41,7 +41,8 @@ public class NotificationRetryStateService {
                     notificationRetry.getPayload(),
                     e.getMessage(),
                     e.getClass().getSimpleName(),
-                    notificationRetry.getRetryCount() + 1
+                    notificationRetry.getRetryCount() + 1,
+                    notificationRetry.getEventId()
             );
 
         } catch (Exception dlqException) {

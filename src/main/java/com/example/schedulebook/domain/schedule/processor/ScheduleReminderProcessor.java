@@ -33,22 +33,28 @@ public class ScheduleReminderProcessor implements NotificationEventProcessor<Sch
             );
 
         } catch (Exception e) {
-            saveNotificationRetry(outboxId, event.receiverId(), event, e);
+            saveNotificationRetry(outboxId, event, e);
         }
     }
 
     private void saveNotificationRetry(
             Long outboxId,
-            Long receiverId,
-            Object event,
+            ScheduleReminderEvent event,
             Exception e
     ) {
         try {
-            log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, NotificationType.SCHEDULE_REMINDER, e);
+            log.error(
+                    "Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}",
+                    outboxId,
+                    event.receiverId(),
+                    NotificationType.SCHEDULE_REMINDER,
+                    e
+            );
 
             notificationRetryService.save(
+                    event.eventId(),
                     outboxId,
-                    receiverId,
+                    event.receiverId(),
                     NotificationType.SCHEDULE_REMINDER,
                     event,
                     e.getMessage()

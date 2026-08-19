@@ -65,7 +65,8 @@ public class OutboxTransactionService {
                         outbox.getPayload(),
                         normalizeMessage(e),
                         e.getClass().getSimpleName(),
-                        nextRetry
+                        nextRetry,
+                        outbox.getEventId()
                 );
 
             } catch (Exception exception) {
@@ -118,7 +119,8 @@ public class OutboxTransactionService {
                             outbox.getPayload(),
                             errorMessage,
                             "LEASE_TIMEOUT",
-                            nextRetry
+                            nextRetry,
+                            outbox.getEventId()
                     );
 
                 } catch (Exception e) {
@@ -174,7 +176,8 @@ public class OutboxTransactionService {
             String payload,
             String reason,
             String exceptionType,
-            int retryCount
+            int retryCount,
+            String eventId
     ) {
         deadLetterService.save(
                 DeadLetterType.OUTBOX,
@@ -185,7 +188,8 @@ public class OutboxTransactionService {
                 payload,
                 reason,
                 exceptionType,
-                retryCount
+                retryCount,
+                eventId
         );
     }
 

@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -132,13 +133,17 @@ public class FriendService {
 
         friend.acceptFriend();
 
+        String eventId = UUID.randomUUID().toString();
+
         FriendAcceptedEvent friendAcceptedEvent = new FriendAcceptedEvent(
+                eventId,
                 friend.getRequester().getId(),
                 friend.getReceiver().getNickname(),
                 friend.getId()
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.FRIEND,
                 String.valueOf(friend.getId()),
                 OutboxEventType.FRIEND_ACCEPTED,
@@ -187,13 +192,17 @@ public class FriendService {
     }
 
     private FriendResponse completeFriendRequest(Friend friend, User requester, User receiver) {
+        String eventId = UUID.randomUUID().toString();
+
         FriendRequestedEvent friendRequestedEvent = new FriendRequestedEvent(
+                eventId,
                 receiver.getId(),
                 requester.getNickname(),
                 friend.getId()
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.FRIEND,
                 String.valueOf(friend.getId()),
                 OutboxEventType.FRIEND_REQUESTED,

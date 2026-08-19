@@ -3,6 +3,7 @@ package com.example.schedulebook.domain.auth.event;
 import com.example.schedulebook.domain.auth.enums.AuditEventType;
 
 public record AuditEvent(
+        String eventId,
         Long userId,
         Long adminId,
         String loginId,

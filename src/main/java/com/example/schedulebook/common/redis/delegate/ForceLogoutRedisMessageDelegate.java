@@ -1,6 +1,7 @@
 package com.example.schedulebook.common.redis.delegate;
 
 import com.example.schedulebook.common.redis.subscriber.RedisSubscriber;
+import com.example.schedulebook.common.util.JsonMessageUtils;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
@@ -27,6 +28,8 @@ public class ForceLogoutRedisMessageDelegate {
         } catch (JsonProcessingException e) {
             log.error("강제 로그아웃 역직렬화 실패", e);
 
+            String eventId = JsonMessageUtils.extractEventId(objectMapper, message);
+
             deadLetterRetryService.saveDeadLetterWithRetry(
                     DeadLetterType.FORCE_LOGOUT,
                     DeadLetterSource.FORCE_LOGOUT_REDIS_MESSAGE_DELEGATE,
@@ -34,7 +37,8 @@ public class ForceLogoutRedisMessageDelegate {
                     null,
                     null,
                     message,
-                    e
+                    e,
+                    eventId
             );
 
         } catch (Exception e) {

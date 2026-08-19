@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -133,8 +134,11 @@ public class NotificationService {
 
         notification.read();
 
+        String eventId = UUID.randomUUID().toString();
+
         NotificationEventResponse notificationEventResponse = new NotificationEventResponse(
                 NotificationEventType.READ,
+                eventId,
                 currentUserId,
                 notificationId,
                 null,
@@ -145,6 +149,7 @@ public class NotificationService {
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.NOTIFICATION,
                 String.valueOf(currentUserId),
                 OutboxEventType.NOTIFICATION_EVENT,
@@ -157,8 +162,11 @@ public class NotificationService {
 
         notificationRepository.readAllNotifications(currentUserId);
 
+        String eventId = UUID.randomUUID().toString();
+
         NotificationEventResponse notificationEventResponse = new NotificationEventResponse(
                 NotificationEventType.ALL_READ,
+                eventId,
                 currentUserId,
                 null,
                 null,
@@ -169,6 +177,7 @@ public class NotificationService {
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.NOTIFICATION,
                 String.valueOf(currentUserId),
                 OutboxEventType.NOTIFICATION_EVENT,
@@ -197,8 +206,11 @@ public class NotificationService {
 
         notificationRepository.save(notification);
 
+        String eventId = UUID.randomUUID().toString();
+
         NotificationEventResponse notificationEventResponse = new NotificationEventResponse(
                 NotificationEventType.CREATED,
+                eventId,
                 receiver.getId(),
                 notification.getId(),
                 notificationType.name(),
@@ -209,6 +221,7 @@ public class NotificationService {
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.NOTIFICATION,
                 String.valueOf(notification.getId()),
                 OutboxEventType.NOTIFICATION_EVENT,

@@ -27,13 +27,20 @@ public class ForceLogoutRetryService {
     private final ObjectMapper objectMapper;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void save(String sessionId, Long userId, ForceLogoutSessionEvent event, String reason) {
+    public void save(ForceLogoutSessionEvent event, String reason) {
+        if (forceLogoutRetryRepository.findByEventId(event.eventId()).isPresent()) {
+            log.info("이미 존재하는 ForceLogoutRetry eventId = {}", event.eventId());
+
+            return;
+        }
+
         try {
             String json = objectMapper.writeValueAsString(event);
 
             forceLogoutRetryRepository.save(ForceLogoutRetry.create(
-                    sessionId,
-                    userId,
+                    event.eventId(),
+                    event.sessionId(),
+                    event.userId(),
                     json,
                     reason
             ));
@@ -44,14 +51,14 @@ public class ForceLogoutRetryService {
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markSuccess(Long forceLogoutRetryId, String claimToken) {
         if (forceLogoutRetryRepository.markSuccess(forceLogoutRetryId, claimToken) != 1) {
             throw new BaseException(ErrorEnum.FORCE_LOGOUT_RETRY_NOT_FOUND);
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void markFailed(Long forceLogoutRetryId, String reason, String claimToken) {
         if (forceLogoutRetryRepository.markFailed(forceLogoutRetryId, reason, claimToken) != 1) {
             throw new BaseException(ErrorEnum.FORCE_LOGOUT_RETRY_NOT_FOUND);

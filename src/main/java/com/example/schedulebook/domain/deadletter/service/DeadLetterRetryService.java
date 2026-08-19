@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 public class DeadLetterRetryService {
     private final DeadLetterService deadLetterService;
 
-
     public void saveDeadLetterWithRetry(
             DeadLetterType deadLetterType,
             DeadLetterSource deadLetterSource,
@@ -21,7 +20,8 @@ public class DeadLetterRetryService {
             String aggregateId,
             Long userId,
             String payload,
-            Exception e
+            Exception e,
+            String eventId
     ) {
         for (int i = 0; i < 3; i++) {
             try {
@@ -34,7 +34,8 @@ public class DeadLetterRetryService {
                         payload,
                         e.getMessage(),
                         e.getClass().getSimpleName(),
-                        i + 1
+                        i + 1,
+                        eventId
                 );
 
                 return;

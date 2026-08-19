@@ -34,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -186,12 +187,16 @@ public class ScheduleShareService {
 
         scheduleShare.cancelShare();
 
+        String eventId = UUID.randomUUID().toString();
+
         ScheduleCanceledEvent scheduleCanceledEvent = new ScheduleCanceledEvent(
-                        scheduleShare.getSchedule().getId(),
-                        scheduleShare.getSharedUser().getId()
+                eventId,
+                scheduleShare.getSchedule().getId(),
+                scheduleShare.getSharedUser().getId()
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.SCHEDULE,
                 String.valueOf(scheduleShare.getSchedule().getId()),
                 OutboxEventType.SCHEDULE_CANCELED,
@@ -217,13 +222,17 @@ public class ScheduleShareService {
     }
 
     private ScheduleShareResponse completeShare(Schedule schedule, User friendUser, ScheduleShare scheduleShare) {
+        String eventId = UUID.randomUUID().toString();
+
         ScheduleSharedEvent scheduleSharedEvent = new ScheduleSharedEvent(
-                        friendUser.getId(),
-                        schedule.getUser().getNickname(),
-                        scheduleShare.getId()
+                eventId,
+                friendUser.getId(),
+                schedule.getUser().getNickname(),
+                scheduleShare.getId()
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.SCHEDULE,
                 String.valueOf(schedule.getId()),
                 OutboxEventType.SCHEDULE_SHARED,

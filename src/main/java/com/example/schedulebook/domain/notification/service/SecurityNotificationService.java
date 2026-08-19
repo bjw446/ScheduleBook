@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +54,8 @@ public class SecurityNotificationService {
 
         String loginId = event.loginId() == null ? "UNKNOWN" : event.loginId();
 
+        String eventId = UUID.randomUUID().toString();
+
         if (notificationType == NotificationType.REFRESH_REPLAY_ADMIN) {
             message = loginId + notificationType.getDefaultMessage();
 
@@ -72,6 +75,7 @@ public class SecurityNotificationService {
 
         NotificationEventResponse notificationEventResponse = new NotificationEventResponse(
                 NotificationEventType.CREATED,
+                eventId,
                 user.getId(),
                 notification.getId(),
                 notificationType.name(),
@@ -82,6 +86,7 @@ public class SecurityNotificationService {
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.NOTIFICATION,
                 String.valueOf(notification.getId()),
                 OutboxEventType.NOTIFICATION_EVENT,

@@ -61,6 +61,7 @@ public class RefreshReplayDetectedProcessor {
             );
 
             notificationRetryService.save(
+                    event.eventId(),
                     outboxId,
                     receiverId,
                     notificationType,

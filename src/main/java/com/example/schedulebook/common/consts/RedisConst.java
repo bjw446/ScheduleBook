@@ -7,6 +7,7 @@ public final class RedisConst {
 
     public static final String NOTIFICATION = "notification";
     public static final String COMMENT = "comment";
+    public static final String FORCE_LOGOUT = "auth:force-logout";
     public static final String REFRESH_PREFIX = "refresh:";
     public static final String BLACKLIST_PREFIX = "blacklist:";
     public static final String REFRESH_ROTATE_SCRIPT = """

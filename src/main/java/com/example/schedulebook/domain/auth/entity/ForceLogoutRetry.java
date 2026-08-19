@@ -19,6 +19,9 @@ public class ForceLogoutRetry extends ModifyEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "event_id", nullable = false, unique = true)
+    private String eventId;
+
     @Column(name = "session_id", nullable = false)
     private String sessionId;
 
@@ -44,9 +47,10 @@ public class ForceLogoutRetry extends ModifyEntity {
     @Column(name = "claim_token")
     private String claimToken;
 
-    public static ForceLogoutRetry create(String sessionId, Long userId, String payload, String reason) {
+    public static ForceLogoutRetry create(String eventId, String sessionId, Long userId, String payload, String reason) {
         ForceLogoutRetry forceLogoutRetry = new ForceLogoutRetry();
 
+        forceLogoutRetry.eventId = eventId;
         forceLogoutRetry.sessionId = sessionId;
         forceLogoutRetry.userId = userId;
         forceLogoutRetry.payload = payload;

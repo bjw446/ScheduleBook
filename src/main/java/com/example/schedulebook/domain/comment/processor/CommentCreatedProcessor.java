@@ -85,13 +85,14 @@ public class CommentCreatedProcessor implements NotificationEventProcessor<Comme
             Long outboxId,
             Long receiverId,
             NotificationType notificationType,
-            Object event,
+            CommentCreatedEvent event,
             Exception e
     ) {
         try {
             log.error("Notification Retry 저장 outboxId = {}, receiverId = {}, type = {}", outboxId, receiverId, notificationType, e);
 
             notificationRetryService.save(
+                    event.eventId(),
                     outboxId,
                     receiverId,
                     notificationType,

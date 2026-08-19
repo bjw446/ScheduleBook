@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.outbox.handler;
 
+import com.example.schedulebook.common.consts.RedisConst;
 import com.example.schedulebook.common.redis.publisher.RedisEventPublisher;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
@@ -23,6 +24,6 @@ public class ForceLogoutOutboxHandler implements OutboxEventHandler<ForceLogoutS
 
     @Override
     public void handle(Long outboxId, ForceLogoutSessionEvent payload) {
-        redisEventPublisher.publish(payload);
+        redisEventPublisher.publish(RedisConst.FORCE_LOGOUT, payload);
     }
 }

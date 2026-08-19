@@ -29,6 +29,9 @@ public class Outbox extends ModifyEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "event_id", nullable = false, unique = true)
+    private String eventId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "aggregate_type", nullable = false)
     private OutboxAggregateType aggregateType;
@@ -62,9 +65,16 @@ public class Outbox extends ModifyEntity {
     @Column(name = "processing_at")
     private LocalDateTime processingAt;
 
-    public static Outbox create(OutboxAggregateType aggregateType, String aggregateId, OutboxEventType eventType, String payload) {
+    public static Outbox create(
+            String eventId,
+            OutboxAggregateType aggregateType,
+            String aggregateId,
+            OutboxEventType eventType,
+            String payload
+    ) {
         Outbox outbox = new Outbox();
 
+        outbox.eventId = eventId;
         outbox.aggregateType = aggregateType;
         outbox.aggregateId = aggregateId;
         outbox.eventType = eventType;

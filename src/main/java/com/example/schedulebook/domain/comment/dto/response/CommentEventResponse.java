@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public record CommentEventResponse(
         CommentEventType commentEventType,
         Long id,
+        String eventId,
         Long scheduleId,
         Long parentId,
         Long writerId,
@@ -18,10 +19,11 @@ public record CommentEventResponse(
         LocalDateTime createdAt,
         int commentCount
 ) {
-    public static CommentEventResponse from(Comment comment, CommentEventType commentEventType, int commentCount) {
+    public static CommentEventResponse from(Comment comment, String eventId, CommentEventType commentEventType, int commentCount) {
         return new CommentEventResponse(
                 commentEventType,
                 comment.getId(),
+                eventId,
                 comment.getSchedule().getId(),
                 comment.getParent() == null ? null : comment.getParent().getId(),
                 comment.getWriter().getId(),

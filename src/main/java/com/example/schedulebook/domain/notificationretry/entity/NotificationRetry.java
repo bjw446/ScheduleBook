@@ -20,6 +20,9 @@ public class NotificationRetry extends ModifyEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "event_id", nullable = false, unique = true)
+    private String eventId;
+
     @Column(name = "outbox_id", nullable = false)
     private Long outboxId;
 
@@ -50,6 +53,7 @@ public class NotificationRetry extends ModifyEntity {
     private String claimToken;
 
     public static NotificationRetry create(
+            String eventId,
             Long outboxId,
             Long receiverId,
             NotificationType notificationType,
@@ -58,6 +62,7 @@ public class NotificationRetry extends ModifyEntity {
     ) {
         NotificationRetry notificationRetry = new NotificationRetry();
 
+        notificationRetry.eventId = eventId;
         notificationRetry.outboxId = outboxId;
         notificationRetry.receiverId = receiverId;
         notificationRetry.notificationType = notificationType;

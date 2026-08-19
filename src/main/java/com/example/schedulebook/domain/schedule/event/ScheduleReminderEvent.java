@@ -5,6 +5,7 @@ import com.example.schedulebook.domain.notification.event.NotificationEventMarke
 import java.time.LocalDateTime;
 
 public record ScheduleReminderEvent(
+        String eventId,
         Long scheduleId,
         Long receiverId,
         String title,

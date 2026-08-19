@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,12 +30,16 @@ public class LoginSuccessService {
 
         userRepository.saveAndFlush(user);
 
+        String eventId = UUID.randomUUID().toString();
+
         try {
             outboxService.save(
+                    eventId,
                     OutboxAggregateType.USER,
                     String.valueOf(user.getId()),
                     OutboxEventType.AUDIT_EVENT,
                     new AuditEvent(
+                            eventId,
                             user.getId(),
                             null,
                             user.getLoginId(),

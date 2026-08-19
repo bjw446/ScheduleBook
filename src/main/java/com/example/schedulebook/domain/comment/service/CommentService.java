@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,20 +54,27 @@ public class CommentService {
 
         int commentCount = getCurrentCommentCount(scheduleId);
 
+        String commentEventId = UUID.randomUUID().toString();
+
         CommentEventResponse commentEventResponse = CommentEventResponse.from(
                 savedComment,
+                commentEventId,
                 CommentEventType.CREATED,
                 commentCount
         );
 
         outboxService.save(
+                commentEventId,
                 OutboxAggregateType.COMMENT,
                 String.valueOf(savedComment.getId()),
                 OutboxEventType.COMMENT_EVENT,
                 commentEventResponse
         );
 
+        String commentCreatedEventId = UUID.randomUUID().toString();
+
         CommentCreatedEvent createdEvent = new CommentCreatedEvent(
+                commentCreatedEventId,
                 scheduleId,
                 user.getId(),
                 user.getNickname(),
@@ -74,6 +82,7 @@ public class CommentService {
         );
 
         outboxService.save(
+                commentCreatedEventId,
                 OutboxAggregateType.COMMENT,
                 String.valueOf(savedComment.getId()),
                 OutboxEventType.COMMENT_CREATED,
@@ -101,13 +110,17 @@ public class CommentService {
 
         comment.updateComment(request.content());
 
+        String eventId = UUID.randomUUID().toString();
+
         CommentEventResponse commentEventResponse = CommentEventResponse.from(
                 comment,
+                eventId,
                 CommentEventType.UPDATED,
                 comment.getSchedule().getCommentCount()
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.COMMENT,
                 String.valueOf(commentId),
                 OutboxEventType.COMMENT_EVENT,
@@ -126,13 +139,17 @@ public class CommentService {
 
         int commentCount = getCurrentCommentCount(comment.getSchedule().getId());
 
+        String eventId = UUID.randomUUID().toString();
+
         CommentEventResponse commentEventResponse = CommentEventResponse.from(
                 comment,
+                eventId,
                 CommentEventType.DELETED,
                 commentCount
         );
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.COMMENT,
                 String.valueOf(commentId),
                 OutboxEventType.COMMENT_EVENT,

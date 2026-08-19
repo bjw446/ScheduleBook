@@ -18,6 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -66,9 +68,12 @@ public class UserService {
 
         userRepository.saveAndFlush(user);
 
-        UserWithdrawEvent userWithdrawEvent = new UserWithdrawEvent(user.getId(), loginId);
+        String eventId = UUID.randomUUID().toString();
+
+        UserWithdrawEvent userWithdrawEvent = new UserWithdrawEvent(eventId, user.getId(), loginId);
 
         outboxService.save(
+                eventId,
                 OutboxAggregateType.USER,
                 String.valueOf(user.getId()),
                 OutboxEventType.USER_WITHDRAW,

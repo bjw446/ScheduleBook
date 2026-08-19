@@ -4,6 +4,7 @@ import com.example.schedulebook.domain.notification.enums.NotificationEventType;
 
 public record NotificationEventResponse(
         NotificationEventType eventType,
+        String eventId,
         Long receiverId,
         Long notificationId,
         String type,

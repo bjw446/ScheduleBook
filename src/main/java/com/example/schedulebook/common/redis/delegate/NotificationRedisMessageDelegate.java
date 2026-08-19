@@ -1,6 +1,7 @@
 package com.example.schedulebook.common.redis.delegate;
 
 import com.example.schedulebook.common.redis.subscriber.RedisSubscriber;
+import com.example.schedulebook.common.util.JsonMessageUtils;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
@@ -28,6 +29,8 @@ public class NotificationRedisMessageDelegate {
         } catch (JsonProcessingException e) {
             log.error("Redis 메시지 역직렬화 실패, 메시지 : {}", message, e);
 
+            String eventId = JsonMessageUtils.extractEventId(objectMapper, message);
+
             deadLetterRetryService.saveDeadLetterWithRetry(
                     DeadLetterType.NOTIFICATION,
                     DeadLetterSource.NOTIFICATION_REDIS_MESSAGE_DELEGATE,
@@ -35,7 +38,8 @@ public class NotificationRedisMessageDelegate {
                     null,
                     null,
                     message,
-                    e
+                    e,
+                    eventId
             );
 
         } catch (Exception e) {
