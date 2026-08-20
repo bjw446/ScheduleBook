@@ -58,9 +58,9 @@ public interface ForceLogoutRetryRepository extends JpaRepository<ForceLogoutRet
 
     @Query("SELECT f FROM ForceLogoutRetry f WHERE (f.forceLogoutRetryStatus = " +
             "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.PENDING " +
-            "AND (f.nextRetryAt IS NULL OR f.nextRetryAt <= CURRENT_TIMESTAMP)) OR (f.forceLogoutRetryStatus = " +
-            "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.PROCESSING " +
-            "AND f.updatedAt <= :timeout) ORDER BY f.nextRetryAt, f.retryCount, f.id ASC")
+            "AND (f.nextRetryAt IS NULL OR f.nextRetryAt <= CURRENT_TIMESTAMP)) OR ( " +
+            "f.forceLogoutRetryStatus = com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.PROCESSING " +
+            "AND f.processingAt <= :timeout) ORDER BY f.nextRetryAt, f.retryCount, f.id ASC")
     Page<ForceLogoutRetry> findRetryTargets(@Param("timeout") LocalDateTime timeout, Pageable pageable);
 
     @Modifying
