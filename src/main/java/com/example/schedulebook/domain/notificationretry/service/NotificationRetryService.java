@@ -5,6 +5,7 @@ import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
+import com.example.schedulebook.domain.notificationretry.enums.NotificationRetryStatus;
 import com.example.schedulebook.domain.notificationretry.repository.NotificationRetryRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -103,6 +104,26 @@ public class NotificationRetryService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recover(Long notificationRetryId) {
+        NotificationRetry notificationRetry = notificationRetryRepository.findById(notificationRetryId).orElseThrow(
+                () -> new BaseException(ErrorEnum.NOTIFICATION_RETRY_NOT_FOUND)
+        );
+
+        if (notificationRetry.getNotificationRetryStatus() == NotificationRetryStatus.PENDING) {
+            log.info("이미 복구된 NotificationRetry 상태 입니다. notificationRetryId = {}", notificationRetry.getId());
+
+            return;
+        }
+
+        if (notificationRetry.getNotificationRetryStatus() != NotificationRetryStatus.FAILED) {
+            log.warn(
+                    "복구 불가능한 NotificationRetry 상태 notificationRetryId = {}, status = {}",
+                    notificationRetryId,
+                    notificationRetry.getNotificationRetryStatus()
+            );
+
+            throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
+        }
+
         int updated = notificationRetryRepository.updateRecover(notificationRetryId);
 
         if (updated != 1) {

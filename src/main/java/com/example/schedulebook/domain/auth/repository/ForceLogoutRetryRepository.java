@@ -23,10 +23,11 @@ public interface ForceLogoutRetryRepository extends JpaRepository<ForceLogoutRet
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE ForceLogoutRetry f SET f.forceLogoutRetryStatus = " +
             "com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus.FAILED, " +
-            "f.reason = :reason, f.nextRetryAt = NULL, f.claimToken = NULL, " +
-            "f.updatedAt = CURRENT_TIMESTAMP, f.processingAt = NULL" +
+            "f.reason = :reason, f.nextRetryAt = NULL, " +
+            "f.updatedAt = CURRENT_TIMESTAMP, f.processingAt = NULL " +
             "WHERE f.id = :forceLogoutRetryId AND f.claimToken = :claimToken")
-    int markFailed(@Param("forceLogoutRetryId") Long forceLogoutRetryId, @Param("reason") String reason,
+    int markFailed(@Param("forceLogoutRetryId") Long forceLogoutRetryId,
+                   @Param("reason") String reason,
                    @Param("claimToken") String claimToken);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
