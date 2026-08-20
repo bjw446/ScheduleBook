@@ -4,6 +4,7 @@ import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.auth.entity.ForceLogoutRetry;
+import com.example.schedulebook.domain.auth.enums.ForceLogoutRetryStatus;
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import com.example.schedulebook.domain.auth.repository.ForceLogoutRetryRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -127,9 +128,23 @@ public class ForceLogoutRetryService {
                 () -> new BaseException(ErrorEnum.FORCE_LOGOUT_RETRY_NOT_FOUND)
         );
 
+        if (forceLogoutRetry.getForceLogoutRetryStatus() == ForceLogoutRetryStatus.PENDING) {
+            log.info(
+                    "ForceLogoutRetry {} 이미 PENDING 상태",
+                    forceLogoutRetry.getId()
+            );
+
+            return;
+        }
+
+        if (forceLogoutRetry.getForceLogoutRetryStatus() != ForceLogoutRetryStatus.FAILED) {
+            throw new BaseException(ErrorEnum.INVALID_FORCE_LOGOUT_RETRY_STATUS);
+        }
+
+
         int updated = forceLogoutRetryRepository.updateRecover(forceLogoutRetry.getId(), forceLogoutRetry.getClaimToken());
 
-        if (updated == 0) {
+        if (updated != 1) {
             log.warn("강제 로그아웃 재시도 {} 복구 건너뜀 : 이미 다른 트랜잭션에서 상태 변경됨", forceLogoutRetry.getId());
 
             throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);

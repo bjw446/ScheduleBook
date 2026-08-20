@@ -101,6 +101,19 @@ public class NotificationRetryService {
         );
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recover(Long notificationRetryId) {
+        int updated = notificationRetryRepository.updateRecover(notificationRetryId);
+
+        if (updated != 1) {
+            log.warn("NotificationRetry 복구 실패 notificationRetryId = {}", notificationRetryId);
+
+            throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
+        }
+
+        log.info("NotificationRetry DLQ 복구 성공 notificationRetryId = {}", notificationRetryId);
+    }
+
     private long nextDelaySeconds(int retryCount) {
         int safeRetry = Math.max(0, Math.min(retryCount, 10));
 

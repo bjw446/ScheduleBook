@@ -35,8 +35,8 @@ public class NotificationRetryStateService {
             deadLetterService.save(
                     DeadLetterType.NOTIFICATION_RETRY,
                     DeadLetterSource.NOTIFICATION_RETRY_SCHEDULER,
-                    DeadLetterAggregateType.OUTBOX,
-                    String.valueOf(notificationRetry.getOutboxId()),
+                    DeadLetterAggregateType.NOTIFICATION_RETRY,
+                    String.valueOf(notificationRetry.getId()),
                     notificationRetry.getReceiverId(),
                     notificationRetry.getPayload(),
                     e.getMessage(),

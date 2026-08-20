@@ -7,10 +7,12 @@ import com.example.schedulebook.domain.admin.dto.response.DeadLetterDetailRespon
 import com.example.schedulebook.domain.admin.dto.response.DeadLetterSummaryResponse;
 import com.example.schedulebook.domain.auth.service.ForceLogoutRetryService;
 import com.example.schedulebook.domain.deadletter.entity.DeadLetterQueue;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterStatus;
 import com.example.schedulebook.domain.deadletter.repository.DeadLetterRepository;
 import com.example.schedulebook.domain.deadletter.service.DeadLetterDeserializationRecoveryService;
 import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
+import com.example.schedulebook.domain.notificationretry.service.NotificationRetryService;
 import com.example.schedulebook.domain.outbox.service.OutboxTransactionService;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ public class AdminDeadLetterService {
     private final OutboxTransactionService outboxTransactionService;
     private final DeadLetterService deadLetterService;
     private final DeadLetterDeserializationRecoveryService deadLetterDeserializationRecoveryService;
+    private final NotificationRetryService notificationRetryService;
 
     @Transactional(readOnly = true)
     public PageResponse<DeadLetterSummaryResponse> findAllDeadLetters(Long currentUserId, Pageable pageable) {
@@ -52,38 +55,35 @@ public class AdminDeadLetterService {
         return DeadLetterDetailResponse.from(deadLetterQueue);
     }
 
-    @Transactional
     public void recoverDeadLetter(Long currentUserId, Long deadLetterId) {
         userValidator.validateActiveAdmin(currentUserId);
 
         String claimToken = deadLetterService.markProcessing(deadLetterId);
 
-        DeadLetterQueue deadLetterQueue = deadLetterRepository.findById(deadLetterId).orElseThrow(
-                () -> new BaseException(ErrorEnum.DEAD_LETTER_NOT_FOUND)
-        );
+        DeadLetterQueue deadLetterQueue = deadLetterRepository.findByIdAndClaimTokenAndDeadLetterStatus(
+                deadLetterId,
+                claimToken,
+                DeadLetterStatus.PROCESSING
+        ).orElseThrow(() -> new BaseException(ErrorEnum.DEAD_LETTER_CLAIM_FAILED));
 
         try {
-            switch (deadLetterQueue.getDeadLetterAggregateType()) {
-                case SESSION ->
-                        forceLogoutRetryService.recover(deadLetterQueue.getAggregateId());
+            recover(deadLetterQueue);
 
-                case OUTBOX ->
-                        outboxTransactionService.recover(Long.valueOf(deadLetterQueue.getAggregateId()));
-
-                case DESERIALIZATION_ERROR ->
-                        deadLetterDeserializationRecoveryService.recover(deadLetterQueue);
-
-                default -> throw new BaseException(ErrorEnum.INVALID_DEAD_LETTER_AGGREGATE_TYPE);
-            }
-
-            deadLetterService.markRecovered(deadLetterId, claimToken);
+            deadLetterService.markRecovered(
+                    deadLetterId,
+                    claimToken
+            );
 
         } catch (Exception e) {
             try {
-                deadLetterService.markPending(deadLetterId, claimToken);
+                deadLetterService.markPending(
+                        deadLetterId,
+                        claimToken
+                );
 
             } catch (Exception recoveryException) {
-                log.error("DeadLetter 상태 복구 자체 실패 deadLetterId = {}, originalError={}",
+                log.error(
+                        "DeadLetter 상태 복구 자체 실패 deadLetterId = {}, originalError={}",
                         deadLetterId,
                         e.getMessage(),
                         recoveryException
@@ -91,6 +91,24 @@ public class AdminDeadLetterService {
             }
 
             throw e;
+        }
+    }
+
+    private void recover(DeadLetterQueue deadLetterQueue) {
+        switch (deadLetterQueue.getDeadLetterAggregateType()) {
+            case SESSION ->
+                    forceLogoutRetryService.recover(deadLetterQueue.getAggregateId());
+
+            case OUTBOX ->
+                    outboxTransactionService.recover(Long.valueOf(deadLetterQueue.getAggregateId()));
+
+            case NOTIFICATION_RETRY ->
+                notificationRetryService.recover(Long.valueOf(deadLetterQueue.getAggregateId()));
+
+            case DESERIALIZATION_ERROR ->
+                    deadLetterDeserializationRecoveryService.recover(deadLetterQueue);
+
+            default -> throw new BaseException(ErrorEnum.INVALID_DEAD_LETTER_TYPE);
         }
     }
 }

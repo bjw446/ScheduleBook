@@ -20,7 +20,7 @@ public class NotificationRetry extends ModifyEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "event_id", nullable = false, unique = true)
+    @Column(name = "event_id", nullable = false)
     private String eventId;
 
     @Column(name = "outbox_id", nullable = false)

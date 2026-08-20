@@ -150,9 +150,22 @@ public class OutboxTransactionService {
     public void recover(Long outboxId) {
         Outbox outbox = findById(outboxId);
 
-        int updated = outboxRepository.updateRecover(outbox.getId());
+        if (outbox.getStatus() == OutboxStatus.PENDING) {
+            log.info("Outbox {} 이미 PENDING 상태", outboxId);
+            return;
+        }
 
-        recoverLog(outboxId, OutboxStatus.PENDING, updated, true);
+        if (outbox.getStatus() != OutboxStatus.DEAD) {
+            throw new BaseException(ErrorEnum.INVALID_OUTBOX_STATUS);
+        }
+
+        int updated = outboxRepository.updateRecover(outboxId);
+
+        if (updated != 1) {
+            throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
+        }
+
+        log.info("Outbox {} DEAD → PENDING 복구", outboxId);
     }
 
     public Outbox findById(Long outboxId) {

@@ -39,6 +39,7 @@ public enum ErrorEnum {
     SESSION_LIMIT_EXCEEDED(429, "로그인 가능한 환경 수를 초과했습니다. 다른 기기에서 로그아웃 후 다시 시도해주세요."),
     USER_WITHDRAW_PROCESS_FAILED(500, "회원 탈퇴 후처리에 실패했습니다."),
     FORCE_LOGOUT_RETRY_NOT_FOUND(404, "강제 로그아웃 재시도가 존재하지 않습니다"),
+    INVALID_FORCE_LOGOUT_RETRY_STATUS(400, "잘못된 강제 로그아웃 재시도 상태 입니다."),
 
     // Token
     TOKEN_EXPIRED(401, "만료된 토큰입니다."),
@@ -152,7 +153,9 @@ public enum ErrorEnum {
     INVALID_DEAD_LETTER_TYPE(400, "잘못된 DeadLetter 타입 입니다."),
     DEAD_LETTER_RECOVER_FAILED(409, "DeadLetter 복구에 실패 했습니다."),
     DEAD_LETTER_SAVE_FAILED(409, "DeadLetter 저장에 실패 했습니다."),
-    DEAD_LETTER_ALREADY_RECOVERED(409, "이미 복구된 DeadLetterQueue 입니다.");
+    DEAD_LETTER_CLAIM_FAILED(409, "DeadLetter 소유에 실패 했습니다."),
+    DEAD_LETTER_ALREADY_RECOVERED(409, "이미 복구된 DeadLetterQueue 입니다."),
+    DEAD_LETTER_ALREADY_PROCESSING(409, "이미 처리중인 DeadLetterQueue 입니다.");
 
     private final int status;
     private final String message;
