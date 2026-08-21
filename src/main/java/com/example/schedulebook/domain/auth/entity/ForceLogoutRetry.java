@@ -47,6 +47,9 @@ public class ForceLogoutRetry extends ModifyEntity {
     @Column(name = "claim_token")
     private String claimToken;
 
+    @Column(name = "processing_at")
+    private LocalDateTime processingAt;
+
     public static ForceLogoutRetry create(String eventId, String sessionId, Long userId, String payload, String reason) {
         ForceLogoutRetry forceLogoutRetry = new ForceLogoutRetry();
 

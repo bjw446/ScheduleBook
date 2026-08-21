@@ -6,6 +6,7 @@ import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.deadletter.entity.DeadLetterQueue;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterAggregateType;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterSource;
+import com.example.schedulebook.domain.deadletter.enums.DeadLetterStatus;
 import com.example.schedulebook.domain.deadletter.enums.DeadLetterType;
 import com.example.schedulebook.domain.deadletter.repository.DeadLetterRepository;
 import lombok.RequiredArgsConstructor;
@@ -57,12 +58,30 @@ public class DeadLetterService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String markProcessing(Long deadLetterId) {
+        if (!deadLetterRepository.existsById(deadLetterId)) {
+            throw new BaseException(ErrorEnum.DEAD_LETTER_NOT_FOUND);
+        }
+
         String claimToken = UUID.randomUUID().toString();
 
         LocalDateTime leaseUntil = LocalDateTime.now().plusMinutes(CommonConst.DEAD_LETTER_PROCESSING_LEASE_MINUTES);
 
-        if (deadLetterRepository.markProcessing(deadLetterId, claimToken, leaseUntil) != 1) {
-            throw new BaseException(ErrorEnum.DEAD_LETTER_RECOVER_FAILED);
+        int updated = deadLetterRepository.markProcessing(deadLetterId, claimToken, leaseUntil);
+
+        if (updated == 1) {
+            return claimToken;
+        }
+
+        DeadLetterQueue deadLetterQueue = deadLetterRepository.findById(deadLetterId).orElseThrow(
+                () -> new BaseException(ErrorEnum.DEAD_LETTER_NOT_FOUND)
+        );
+
+        if (deadLetterQueue.getDeadLetterStatus() == DeadLetterStatus.RECOVERED) {
+            throw new BaseException(ErrorEnum.DEAD_LETTER_ALREADY_RECOVERED);
+        }
+
+        if (deadLetterQueue.getDeadLetterStatus() == DeadLetterStatus.PROCESSING) {
+            throw new BaseException(ErrorEnum.DEAD_LETTER_ALREADY_PROCESSING);
         }
 
         return claimToken;

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 public interface NotificationRetryRepository extends JpaRepository<NotificationRetry, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -21,9 +22,10 @@ public interface NotificationRetryRepository extends JpaRepository<NotificationR
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE NotificationRetry n SET n.notificationRetryStatus = " +
             "com.example.schedulebook.domain.notificationretry.enums.NotificationRetryStatus.FAILED, " +
-            "n.reason = :reason, n.nextRetryAt = NULL, n.updatedAt = CURRENT_TIMESTAMP " +
+            "n.reason = :reason, n.nextRetryAt = NULL, n.claimToken = NULL, n.updatedAt = CURRENT_TIMESTAMP " +
             "WHERE n.id = :notificationRetryId AND n.claimToken = :claimToken")
-    int markFailed(@Param("notificationRetryId") Long notificationRetryId, @Param("reason") String reason,
+    int markFailed(@Param("notificationRetryId") Long notificationRetryId,
+                   @Param("reason") String reason,
                    @Param("claimToken") String claimToken);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -59,4 +61,15 @@ public interface NotificationRetryRepository extends JpaRepository<NotificationR
     @Query("SELECT COUNT(n) FROM NotificationRetry n WHERE n.notificationRetryStatus = " +
             "com.example.schedulebook.domain.notificationretry.enums.NotificationRetryStatus.PENDING")
     long countPending();
+
+    Optional<NotificationRetry> findByOutboxIdAndReceiverId(Long outboxId, Long receiverId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE NotificationRetry n SET n.notificationRetryStatus = " +
+            "com.example.schedulebook.domain.notificationretry.enums.NotificationRetryStatus.PENDING, " +
+            "n.retryCount = 0, n.nextRetryAt = CURRENT_TIMESTAMP, n.reason = NULL, " +
+            "n.claimToken = NULL, n.updatedAt = CURRENT_TIMESTAMP " +
+            "WHERE n.id = :notificationRetryId AND n.notificationRetryStatus = " +
+            "com.example.schedulebook.domain.notificationretry.enums.NotificationRetryStatus.FAILED")
+    int updateRecover(@Param("notificationRetryId") Long notificationRetryId);
 }

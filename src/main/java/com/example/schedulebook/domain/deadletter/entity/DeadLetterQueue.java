@@ -17,8 +17,8 @@ import java.time.LocalDateTime;
         name = "dead_letter_queues",
         indexes = {
                 @Index(
-                        name = "idx_dlq_status_processing_at",
-                        columnList = "dead_letter_status, processing_at"
+                        name = "idx_dlq_status_lease_until",
+                        columnList = "dead_letter_status, lease_until"
                 )
         }
 )
@@ -65,8 +65,8 @@ public class DeadLetterQueue {
     @Column(name = "failed_at", nullable = false)
     private LocalDateTime failedAt;
 
-    @Column(name = "processing_at")
-    private LocalDateTime processingAt;
+    @Column(name = "lease_until")
+    private LocalDateTime leaseUntil;
 
     @Column(name = "claim_token")
     private String claimToken;
