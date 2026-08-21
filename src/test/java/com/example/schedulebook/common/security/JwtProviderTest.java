@@ -68,7 +68,10 @@ class JwtProviderTest {
 
         assertNotNull(claims.getIssuedAt());
         assertNotNull(claims.getExpiration());
-        assertTrue(claims.getExpiration().after(claims.getIssuedAt()));
+
+        long remainingTime = claims.getExpiration().getTime() - claims.getIssuedAt().getTime();
+
+        assertEquals(ACCESS_TOKEN_EXPIRATION, remainingTime);
     }
 
     @Test
@@ -96,18 +99,9 @@ class JwtProviderTest {
         assertEquals(sessionId, claims.get("sessionId", String.class));
         assertEquals(userRole.name(), claims.get("userRole", String.class));
 
-        long remainingTime =
-                claims.getExpiration().getTime() - claims.getIssuedAt().getTime();
+        long remainingTime = claims.getExpiration().getTime() - claims.getIssuedAt().getTime();
 
-        assertTrue(
-                remainingTime >= REFRESH_TOKEN_EXPIRATION - 1_000,
-                "refresh token expiration이 예상보다 짧습니다."
-        );
-
-        assertTrue(
-                remainingTime <= REFRESH_TOKEN_EXPIRATION + 1_000,
-                "refresh token expiration이 예상보다 깁니다."
-        );
+        assertEquals(REFRESH_TOKEN_EXPIRATION, remainingTime);
     }
 
     @Test
@@ -332,7 +326,10 @@ class JwtProviderTest {
                 userRole
         );
 
-        String tamperedToken = token.substring(0, token.length() - 1) + "x";
+        int signatureStart = token.lastIndexOf('.') + 1;
+        char original = token.charAt(signatureStart);
+        char replacement = original == 'A' ? 'B' : 'A';
+        String tamperedToken = token.substring(0, signatureStart) + replacement + token.substring(signatureStart + 1);
 
         // when & then
         BaseException exception = assertThrows(
@@ -419,10 +416,6 @@ class JwtProviderTest {
 
         assertEquals(ErrorEnum.TOKEN_INVALID, exception.getErrorEnum());
     }
-
-
-
-
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(
