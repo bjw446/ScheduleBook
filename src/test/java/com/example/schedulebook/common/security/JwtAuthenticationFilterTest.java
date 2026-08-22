@@ -11,6 +11,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -62,10 +64,13 @@ class JwtAuthenticationFilterTest {
     @Mock
     private FilterChain filterChain;
 
+    @Mock
+    private PrintWriter responseWriter;
+
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws IOException {
         jwtAuthenticationFilter = new JwtAuthenticationFilter(
                 jwtProvider,
                 objectMapper,
@@ -74,6 +79,13 @@ class JwtAuthenticationFilterTest {
                 sessionBlockStore
         );
 
+        lenient().when(response.getWriter()).thenReturn(responseWriter);
+
+        SecurityContextHolder.clearContext();
+    }
+
+    @AfterEach
+    void tearDown() {
         SecurityContextHolder.clearContext();
     }
 
@@ -505,6 +517,8 @@ class JwtAuthenticationFilterTest {
 
         verify(filterChain, never())
                 .doFilter(any(), any());
+
+        verify(objectMapper).writeValue(same(responseWriter), any());
     }
 
     @Test
@@ -538,5 +552,7 @@ class JwtAuthenticationFilterTest {
 
         verify(filterChain, never())
                 .doFilter(any(), any());
+
+        verify(objectMapper).writeValue(same(responseWriter), any());
     }
 }
