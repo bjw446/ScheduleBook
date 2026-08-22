@@ -531,9 +531,7 @@ class JwtAuthenticationFilterTest {
                 .thenReturn("Bearer " + TOKEN);
 
         when(redisBlacklistService.isBlacklisted(TOKEN))
-                .thenThrow(
-                        new RuntimeException("Redis connection failed")
-                );
+                .thenThrow(new RuntimeException("Redis connection failed"));
 
         // when
         jwtAuthenticationFilter.doFilterInternal(
@@ -549,6 +547,12 @@ class JwtAuthenticationFilterTest {
 
         verify(response)
                 .setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
+        verify(response)
+                .setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+        verify(response)
+                .setCharacterEncoding("UTF-8");
 
         verify(filterChain, never())
                 .doFilter(any(), any());
