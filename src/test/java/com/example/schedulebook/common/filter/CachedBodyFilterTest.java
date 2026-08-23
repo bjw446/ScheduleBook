@@ -1,7 +1,9 @@
 package com.example.schedulebook.common.filter;
 
 import com.example.schedulebook.common.consts.RedisConst;
+import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.security.CachedBodyHttpServletRequest;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,17 +14,19 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class CachedBodyFilterTest {
 
     private CachedBodyFilter cachedBodyFilter;
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
 
-        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper = new ObjectMapper();
 
         objectMapper.registerModule(
                 new JavaTimeModule()
@@ -211,7 +215,7 @@ class CachedBodyFilterTest {
     }
 
     @Test
-    @DisplayName("Request Body가 최대 크기를 초과하면 에러 응답을 반환하고 FilterChain을 진행하지 않는다")
+    @DisplayName("Request Body가 최대 크기를 초과하면 413과 ApiResponse.fail 계약을 반환하고 FilterChain을 진행하지 않는다")
     void givenOversizedRequestBody_whenDoFilter_thenReturnErrorResponse()
             throws Exception {
 
@@ -240,7 +244,7 @@ class CachedBodyFilterTest {
 
         // then
         assertEquals(
-                413,
+                ErrorEnum.REQUEST_BODY_TOO_LARGE.getStatus(),
                 response.getStatus()
         );
 
@@ -254,10 +258,50 @@ class CachedBodyFilterTest {
                 response.getCharacterEncoding()
         );
 
-        assertNotNull(
-                response.getContentAsString()
+        // 응답 본문을 실제 JSON으로 파싱한다.
+        String responseBody =
+                response.getContentAsString();
+
+        JsonNode json =
+                objectMapper.readTree(responseBody);
+
+        // ApiResponse.fail(ErrorEnum.REQUEST_BODY_TOO_LARGE)
+        // 계약을 검증한다.
+        assertFalse(
+                json.get("success").asBoolean()
         );
 
+        assertEquals(
+                ErrorEnum.REQUEST_BODY_TOO_LARGE.getStatus(),
+                json.get("status").asInt()
+        );
+
+        assertEquals(
+                ErrorEnum.REQUEST_BODY_TOO_LARGE.getMessage(),
+                json.get("message").asText()
+        );
+
+        assertNotNull(
+                json.get("timestamp")
+        );
+
+        assertFalse(
+                json.get("timestamp").isNull()
+        );
+
+        LocalDateTime timestamp =
+                objectMapper.treeToValue(
+                        json.get("timestamp"),
+                        LocalDateTime.class
+                );
+
+        assertNotNull(timestamp);
+
+        assertTrue(
+                json.get("data").isNull()
+        );
+
+        // 예외가 발생했으므로 FilterChain은 진행되지 않아야 한다.
         assertNull(
                 filterChain.getRequest()
         );
