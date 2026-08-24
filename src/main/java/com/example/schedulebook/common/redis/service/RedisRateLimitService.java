@@ -30,7 +30,7 @@ public class RedisRateLimitService {
             return result != null && result == 1L;
 
         } catch (RedisConnectionFailureException e) {
-            throw new BaseException(ErrorEnum.REDIS_UNAVAILABLE);
+            throw new BaseException(ErrorEnum.REDIS_UNAVAILABLE, e);
         }
     }
 }
