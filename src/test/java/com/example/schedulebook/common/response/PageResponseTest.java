@@ -1,5 +1,7 @@
 package com.example.schedulebook.common.response;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -179,6 +181,95 @@ class PageResponseTest {
 
         assertTrue(
                 response.isLast()
+        );
+    }
+
+    @Test
+    @DisplayName("PageResponse가 JSON 응답 계약에 맞게 직렬화된다")
+    void givenPageResponse_whenSerialize_thenReturnExpectedJsonContract()
+            throws Exception {
+
+        // given
+        List<String> content =
+                List.of(
+                        "item1",
+                        "item2",
+                        "item3"
+                );
+
+        Pageable pageable =
+                PageRequest.of(
+                        0,
+                        3
+                );
+
+        PageImpl<String> page =
+                new PageImpl<>(
+                        content,
+                        pageable,
+                        10
+                );
+
+        PageResponse<String> response =
+                PageResponse.register(page);
+
+        ObjectMapper objectMapper =
+                new ObjectMapper();
+
+        // when
+        String json =
+                objectMapper.writeValueAsString(response);
+
+        JsonNode root =
+                objectMapper.readTree(json);
+
+        // then
+        assertTrue(
+                root.get("content").isArray()
+        );
+
+        assertEquals(
+                3,
+                root.get("content").size()
+        );
+
+        assertEquals(
+                "item1",
+                root.get("content").get(0).asText()
+        );
+
+        assertEquals(
+                "item2",
+                root.get("content").get(1).asText()
+        );
+
+        assertEquals(
+                "item3",
+                root.get("content").get(2).asText()
+        );
+
+        assertEquals(
+                1,
+                root.get("currentPage").asInt()
+        );
+
+        assertEquals(
+                4,
+                root.get("totalPages").asInt()
+        );
+
+        assertEquals(
+                10,
+                root.get("totalElements").asLong()
+        );
+
+        assertEquals(
+                3,
+                root.get("size").asInt()
+        );
+
+        assertFalse(
+                root.get("isLast").asBoolean()
         );
     }
 }

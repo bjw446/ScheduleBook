@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.Iterator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -253,6 +254,21 @@ class ApiResponseTest {
         assertFalse(
                 root.get("timestamp").asText().isBlank()
         );
+
+        Iterator<String> fieldNames =
+                root.fieldNames();
+
+        assertEquals("success", fieldNames.next());
+
+        assertEquals("status", fieldNames.next());
+
+        assertEquals("message", fieldNames.next());
+
+        assertEquals("data", fieldNames.next());
+
+        assertEquals("timestamp", fieldNames.next());
+
+        assertFalse(fieldNames.hasNext());
     }
 
     @Test
@@ -303,5 +319,20 @@ class ApiResponseTest {
         assertFalse(
                 root.get("timestamp").asText().isBlank()
         );
+
+        Iterator<String> fieldNames =
+                root.fieldNames();
+
+        assertEquals("success", fieldNames.next());
+
+        assertEquals("status", fieldNames.next());
+
+        assertEquals("message", fieldNames.next());
+
+        assertEquals("data", fieldNames.next());
+
+        assertEquals("timestamp", fieldNames.next());
+
+        assertFalse(fieldNames.hasNext());
     }
 }
