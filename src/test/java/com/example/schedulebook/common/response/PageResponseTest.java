@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Iterator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -271,5 +272,21 @@ class PageResponseTest {
         assertFalse(
                 root.get("isLast").asBoolean()
         );
+
+        Iterator<String> fieldNames = root.fieldNames();
+
+        assertEquals("content", fieldNames.next());
+
+        assertEquals("currentPage", fieldNames.next());
+
+        assertEquals("totalPages", fieldNames.next());
+
+        assertEquals("totalElements", fieldNames.next());
+
+        assertEquals("size", fieldNames.next());
+
+        assertEquals("isLast", fieldNames.next());
+
+        assertFalse(fieldNames.hasNext());
     }
 }
