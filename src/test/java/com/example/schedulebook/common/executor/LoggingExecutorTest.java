@@ -1,8 +1,14 @@
 package com.example.schedulebook.common.executor;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -12,11 +18,39 @@ class LoggingExecutorTest {
 
     private LoggingExecutor loggingExecutor;
 
+    private Logger logger;
+
+    private ListAppender<ILoggingEvent> listAppender;
+
     @BeforeEach
     void setUp() {
 
         loggingExecutor =
                 new LoggingExecutor();
+
+        logger =
+                (Logger) LoggerFactory.getLogger(
+                        LoggingExecutor.class
+                );
+
+        listAppender =
+                new ListAppender<>();
+
+        listAppender.start();
+
+        logger.addAppender(
+                listAppender
+        );
+    }
+
+    @AfterEach
+    void tearDown() {
+
+        logger.detachAppender(
+                listAppender
+        );
+
+        listAppender.stop();
     }
 
     @Test
@@ -117,6 +151,73 @@ class LoggingExecutorTest {
                         "Dashboard Update",
                         action
                 )
+        );
+    }
+
+    @Test
+    @DisplayName("실패 시 outboxId, name, 예외 메시지가 error 로그에 기록된다")
+    void givenActionThrowsException_whenExecute_thenLogError() {
+
+        // given
+        Long outboxId =
+                100L;
+
+        String name =
+                "Dashboard Update";
+
+        String exceptionMessage =
+                "execution failed";
+
+        Runnable action =
+                () -> {
+                    throw new RuntimeException(
+                            exceptionMessage
+                    );
+                };
+
+        // when
+        boolean result =
+                loggingExecutor.execute(
+                        outboxId,
+                        name,
+                        action
+                );
+
+        // then
+        assertFalse(
+                result
+        );
+
+        assertEquals(
+                1,
+                listAppender.list.size()
+        );
+
+        ILoggingEvent logEvent =
+                listAppender.list.get(0);
+
+        assertEquals(
+                Level.ERROR,
+                logEvent.getLevel()
+        );
+
+        assertTrue(
+                logEvent.getFormattedMessage()
+                        .contains(name)
+        );
+
+        assertTrue(
+                logEvent.getFormattedMessage()
+                        .contains(exceptionMessage)
+        );
+
+        assertTrue(
+                logEvent.getFormattedMessage()
+                        .contains(outboxId.toString())
+        );
+
+        assertNotNull(
+                logEvent.getThrowableProxy()
         );
     }
 }
