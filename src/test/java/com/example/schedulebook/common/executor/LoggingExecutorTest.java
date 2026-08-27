@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -188,13 +189,24 @@ class LoggingExecutorTest {
                 result
         );
 
+        List<ILoggingEvent> matchedLogs =
+                listAppender.list.stream()
+                        .filter(event ->
+                                event.getFormattedMessage()
+                                        .contains(name)
+                                        &&
+                                        event.getFormattedMessage()
+                                                .contains(outboxId.toString())
+                        )
+                        .toList();
+
         assertEquals(
                 1,
-                listAppender.list.size()
+                matchedLogs.size()
         );
 
         ILoggingEvent logEvent =
-                listAppender.list.get(0);
+                matchedLogs.get(0);
 
         assertEquals(
                 Level.ERROR,
