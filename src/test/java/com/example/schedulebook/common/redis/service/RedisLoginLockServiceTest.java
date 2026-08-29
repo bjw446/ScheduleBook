@@ -278,7 +278,7 @@ class RedisLoginLockServiceTest {
                 valueOperations.increment(
                         RedisConst.LOGIN_FAIL_PREFIX + loginId
                 )
-        ).thenReturn(4L);
+        ).thenReturn((long) (CommonConst.MAX_LOGIN_FAIL - 1));
 
         // when
         redisLoginLockService.recordFailure(
