@@ -75,6 +75,11 @@ class RedisPresenceServiceImplTest {
                         presenceRegisterScript,
                         deleteAllPresenceScript
                 );
+
+        // setUp()에서 발생한 Mockito interaction 기록 제거
+        clearInvocations(
+                stringRedisTemplate
+        );
     }
 
     @Test
