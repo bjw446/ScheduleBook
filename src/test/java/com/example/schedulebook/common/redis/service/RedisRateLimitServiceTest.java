@@ -137,6 +137,17 @@ class RedisRateLimitServiceTest {
         assertFalse(
                 result
         );
+
+        verify(
+                stringRedisTemplate
+        ).execute(
+                eq(rateLimitScript),
+                eq(List.of(key)),
+                anyString(),
+                eq(String.valueOf(windowMillis)),
+                eq(String.valueOf(limit)),
+                eq(member)
+        );
     }
 
     @Test
@@ -159,10 +170,10 @@ class RedisRateLimitServiceTest {
         when(
                 stringRedisTemplate.execute(
                         eq(rateLimitScript),
-                        anyList(),
+                        eq(List.of(key)),
                         anyString(),
-                        anyString(),
-                        anyString(),
+                        eq(String.valueOf(windowMillis)),
+                        eq(String.valueOf(limit)),
                         eq(member)
                 )
         ).thenReturn(
@@ -181,6 +192,17 @@ class RedisRateLimitServiceTest {
         // then
         assertFalse(
                 result
+        );
+
+        verify(
+                stringRedisTemplate
+        ).execute(
+                eq(rateLimitScript),
+                eq(List.of(key)),
+                anyString(),
+                eq(String.valueOf(windowMillis)),
+                eq(String.valueOf(limit)),
+                eq(member)
         );
     }
 
@@ -204,10 +226,10 @@ class RedisRateLimitServiceTest {
         when(
                 stringRedisTemplate.execute(
                         eq(rateLimitScript),
-                        anyList(),
+                        eq(List.of(key)),
                         anyString(),
-                        anyString(),
-                        anyString(),
+                        eq(String.valueOf(windowMillis)),
+                        eq(String.valueOf(limit)),
                         eq(member)
                 )
         ).thenThrow(
@@ -231,6 +253,17 @@ class RedisRateLimitServiceTest {
         assertEquals(
                 ErrorEnum.REDIS_UNAVAILABLE,
                 exception.getErrorEnum()
+        );
+
+        verify(
+                stringRedisTemplate
+        ).execute(
+                eq(rateLimitScript),
+                eq(List.of(key)),
+                anyString(),
+                eq(String.valueOf(windowMillis)),
+                eq(String.valueOf(limit)),
+                eq(member)
         );
     }
 }
