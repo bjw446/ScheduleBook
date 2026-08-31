@@ -5,6 +5,7 @@ import com.example.schedulebook.common.exception.BaseException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -124,6 +125,9 @@ class RedisRateLimitServiceTest {
                 0L
         );
 
+        long before =
+                System.currentTimeMillis();
+
         // when
         boolean result =
                 redisRateLimitService.allowRequest(
@@ -133,20 +137,36 @@ class RedisRateLimitServiceTest {
                         member
                 );
 
+        long after =
+                System.currentTimeMillis();
+
         // then
         assertFalse(
                 result
         );
+
+        ArgumentCaptor<String> timestampCaptor =
+                ArgumentCaptor.forClass(String.class);
 
         verify(
                 stringRedisTemplate
         ).execute(
                 eq(rateLimitScript),
                 eq(List.of(key)),
-                anyString(),
+                timestampCaptor.capture(),
                 eq(String.valueOf(windowMillis)),
                 eq(String.valueOf(limit)),
                 eq(member)
+        );
+
+        long actualTimestamp =
+                Long.parseLong(
+                        timestampCaptor.getValue()
+                );
+
+        assertTrue(
+                actualTimestamp >= before &&
+                        actualTimestamp <= after
         );
     }
 
@@ -180,6 +200,9 @@ class RedisRateLimitServiceTest {
                 null
         );
 
+        long before =
+                System.currentTimeMillis();
+
         // when
         boolean result =
                 redisRateLimitService.allowRequest(
@@ -189,20 +212,36 @@ class RedisRateLimitServiceTest {
                         member
                 );
 
+        long after =
+                System.currentTimeMillis();
+
         // then
         assertFalse(
                 result
         );
+
+        ArgumentCaptor<String> timestampCaptor =
+                ArgumentCaptor.forClass(String.class);
 
         verify(
                 stringRedisTemplate
         ).execute(
                 eq(rateLimitScript),
                 eq(List.of(key)),
-                anyString(),
+                timestampCaptor.capture(),
                 eq(String.valueOf(windowMillis)),
                 eq(String.valueOf(limit)),
                 eq(member)
+        );
+
+        long actualTimestamp =
+                Long.parseLong(
+                        timestampCaptor.getValue()
+                );
+
+        assertTrue(
+                actualTimestamp >= before &&
+                        actualTimestamp <= after
         );
     }
 
@@ -238,6 +277,9 @@ class RedisRateLimitServiceTest {
                 )
         );
 
+        long before =
+                System.currentTimeMillis();
+
         // when & then
         BaseException exception =
                 assertThrows(
@@ -250,20 +292,36 @@ class RedisRateLimitServiceTest {
                         )
                 );
 
+        long after =
+                System.currentTimeMillis();
+
         assertEquals(
                 ErrorEnum.REDIS_UNAVAILABLE,
                 exception.getErrorEnum()
         );
+
+        ArgumentCaptor<String> timestampCaptor =
+                ArgumentCaptor.forClass(String.class);
 
         verify(
                 stringRedisTemplate
         ).execute(
                 eq(rateLimitScript),
                 eq(List.of(key)),
-                anyString(),
+                timestampCaptor.capture(),
                 eq(String.valueOf(windowMillis)),
                 eq(String.valueOf(limit)),
                 eq(member)
+        );
+
+        long actualTimestamp =
+                Long.parseLong(
+                        timestampCaptor.getValue()
+                );
+
+        assertTrue(
+                actualTimestamp >= before &&
+                        actualTimestamp <= after
         );
     }
 }
