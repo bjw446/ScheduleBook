@@ -90,8 +90,8 @@ class NotificationRedisMessageDelegateTest {
     }
 
     @Test
-    @DisplayName("Redis 메시지 역직렬화에 실패하면 Dead Letter를 저장한다")
-    void givenInvalidJson_whenHandleMessage_thenSaveDeadLetter() throws Exception {
+    @DisplayName("손상된 JSON의 역직렬화와 eventId 추출이 모두 실패하면 eventId 없이 Dead Letter를 저장한다")
+    void givenInvalidJson_whenHandleMessage_thenSaveDeadLetterWithoutEventId() throws Exception {
 
         // given
         String message =
@@ -99,12 +99,6 @@ class NotificationRedisMessageDelegateTest {
 
         JsonProcessingException exception =
                 mock(JsonProcessingException.class);
-
-        JsonNode rootNode =
-                mock(JsonNode.class);
-
-        JsonNode eventIdNode =
-                mock(JsonNode.class);
 
         when(
                 objectMapper.readValue(
@@ -115,24 +109,15 @@ class NotificationRedisMessageDelegateTest {
                 exception
         );
 
+        /*
+         * 손상된 JSON이므로 extractEventId 내부의 readTree()도 실패한다.
+         */
         when(
                 objectMapper.readTree(
                         message
                 )
-        ).thenReturn(
-                rootNode
-        );
-
-        when(
-                rootNode.get("eventId")
-        ).thenReturn(
-                eventIdNode
-        );
-
-        when(
-                eventIdNode.asText()
-        ).thenReturn(
-                "event-1"
+        ).thenThrow(
+                exception
         );
 
         // when
@@ -155,16 +140,6 @@ class NotificationRedisMessageDelegateTest {
         );
 
         verify(
-                rootNode
-        ).get(
-                "eventId"
-        );
-
-        verify(
-                eventIdNode
-        ).asText();
-
-        verify(
                 deadLetterRetryService
         ).saveDeadLetterWithRetry(
                 eq(DeadLetterType.NOTIFICATION),
@@ -174,7 +149,7 @@ class NotificationRedisMessageDelegateTest {
                 isNull(),
                 eq(message),
                 eq(exception),
-                eq("event-1")
+                isNull()
         );
 
         verifyNoInteractions(
@@ -187,8 +162,12 @@ class NotificationRedisMessageDelegateTest {
     void givenDeserializationFailure_whenHandleMessage_thenExtractEventId() throws Exception {
 
         // given
+        /*
+         * JSON 자체는 정상이다.
+         * 따라서 readTree()는 정상적으로 eventId를 추출할 수 있다.
+         */
         String message =
-                "{\"eventId\":\"event-123\",\"receiverId\":}";
+                "{\"eventId\":\"event-123\",\"receiverId\":1}";
 
         JsonProcessingException exception =
                 mock(JsonProcessingException.class);
@@ -199,6 +178,9 @@ class NotificationRedisMessageDelegateTest {
         JsonNode eventIdNode =
                 mock(JsonNode.class);
 
+        /*
+         * 실제 이벤트 역직렬화만 실패시킨다.
+         */
         when(
                 objectMapper.readValue(
                         message,
@@ -208,6 +190,9 @@ class NotificationRedisMessageDelegateTest {
                 exception
         );
 
+        /*
+         * eventId 추출은 성공한다.
+         */
         when(
                 objectMapper.readTree(
                         message
@@ -217,7 +202,9 @@ class NotificationRedisMessageDelegateTest {
         );
 
         when(
-                rootNode.get("eventId")
+                rootNode.get(
+                        "eventId"
+                )
         ).thenReturn(
                 eventIdNode
         );
@@ -234,6 +221,13 @@ class NotificationRedisMessageDelegateTest {
         );
 
         // then
+        verify(
+                objectMapper
+        ).readValue(
+                message,
+                NotificationEventResponse.class
+        );
+
         verify(
                 objectMapper
         ).readTree(
