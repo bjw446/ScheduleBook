@@ -66,6 +66,39 @@ class RedisCleanupProcessorTest {
     }
 
     @Test
+    void Redis_Session_정리_Runnable에_userId가_전달된다() {
+        // given
+        ArgumentCaptor<Runnable> runnableCaptor =
+                ArgumentCaptor.forClass(Runnable.class);
+
+        when(loggingExecutor.execute(
+                eq(outboxId),
+                eq("Redis Session 정리"),
+                any(Runnable.class)
+        )).thenReturn(true);
+
+        when(loggingExecutor.execute(
+                eq(outboxId),
+                eq("Presence 삭제"),
+                any(Runnable.class)
+        )).thenReturn(true);
+
+        // when
+        redisCleanupProcessor.process(outboxId, userId);
+
+        // then
+        verify(loggingExecutor).execute(
+                eq(outboxId),
+                eq("Redis Session 정리"),
+                runnableCaptor.capture()
+        );
+
+        runnableCaptor.getValue().run();
+
+        verify(redisSessionService).deleteAllSessions(userId);
+    }
+
+    @Test
     void Presence_정리_작업을_LoggingExecutor에_위임한다() {
         // given
         when(loggingExecutor.execute(
@@ -89,6 +122,39 @@ class RedisCleanupProcessorTest {
                 eq("Presence 삭제"),
                 any(Runnable.class)
         );
+    }
+
+    @Test
+    void Presence_삭제_Runnable에_userId가_전달된다() {
+        // given
+        ArgumentCaptor<Runnable> runnableCaptor =
+                ArgumentCaptor.forClass(Runnable.class);
+
+        when(loggingExecutor.execute(
+                eq(outboxId),
+                eq("Redis Session 정리"),
+                any(Runnable.class)
+        )).thenReturn(true);
+
+        when(loggingExecutor.execute(
+                eq(outboxId),
+                eq("Presence 삭제"),
+                any(Runnable.class)
+        )).thenReturn(true);
+
+        // when
+        redisCleanupProcessor.process(outboxId, userId);
+
+        // then
+        verify(loggingExecutor).execute(
+                eq(outboxId),
+                eq("Presence 삭제"),
+                runnableCaptor.capture()
+        );
+
+        runnableCaptor.getValue().run();
+
+        verify(redisPresenceService).removeAll(userId);
     }
 
     @Test
@@ -221,39 +287,5 @@ class RedisCleanupProcessorTest {
                 eq("Presence 삭제"),
                 any(Runnable.class)
         );
-    }
-
-    @Test
-    void outboxId와_userId가_올바르게_전달된다() {
-        // given
-        when(loggingExecutor.execute(
-                anyLong(),
-                anyString(),
-                any(Runnable.class)
-        )).thenReturn(true);
-
-        // when
-        redisCleanupProcessor.process(outboxId, userId);
-
-        // then
-        ArgumentCaptor<Long> outboxIdCaptor =
-                ArgumentCaptor.forClass(Long.class);
-        ArgumentCaptor<String> nameCaptor =
-                ArgumentCaptor.forClass(String.class);
-
-        verify(loggingExecutor, times(2)).execute(
-                outboxIdCaptor.capture(),
-                nameCaptor.capture(),
-                any(Runnable.class)
-        );
-
-        assertThat(outboxIdCaptor.getAllValues())
-                .containsExactly(outboxId, outboxId);
-
-        assertThat(nameCaptor.getAllValues())
-                .containsExactly(
-                        "Redis Session 정리",
-                        "Presence 삭제"
-                );
     }
 }
