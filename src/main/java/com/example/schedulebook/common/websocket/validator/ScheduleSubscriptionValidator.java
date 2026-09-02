@@ -32,14 +32,20 @@ public class ScheduleSubscriptionValidator implements SubscriptionValidator{
             throw new BaseException(ErrorEnum.INVALID_INPUT);
         }
 
-        Long scheduleId = Long.parseLong(matcher.group(1));
+        try {
+            Long scheduleId = Long.parseLong(matcher.group(1));
 
-        if (scheduleRepository.existsByIdAndUser_Id(scheduleId, userId)) {
-            return;
+            if (scheduleRepository.existsByIdAndUser_Id(scheduleId, userId)) {
+                return;
+            }
+
+            scheduleShareRepository.findActiveRelation(scheduleId, userId, ScheduleShareStatus.ACTIVE).orElseThrow(
+                    () -> new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN)
+            );
+
+        } catch (NumberFormatException e) {
+            throw new BaseException(ErrorEnum.INVALID_INPUT, e);
         }
 
-        scheduleShareRepository.findActiveRelation(scheduleId, userId, ScheduleShareStatus.ACTIVE).orElseThrow(
-                () -> new BaseException(ErrorEnum.SCHEDULE_FORBIDDEN)
-        );
     }
 }
