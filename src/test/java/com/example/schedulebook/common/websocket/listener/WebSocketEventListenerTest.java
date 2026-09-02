@@ -132,20 +132,31 @@ class WebSocketEventListenerTest {
     }
 
     @Test
-    void DISCONNECT_시_조회된_userId와_sessionId로_세션을_제거한다() {
+    void DISCONNECT_중_세션_제거에서_Redis_예외가_발생해도_예외를_전파하지_않는다() {
         // given
         when(redisPresenceService.findUser(sessionId))
                 .thenReturn(userId);
 
+        doThrow(new RuntimeException("Redis unavailable"))
+                .when(redisPresenceService)
+                .remove(userId, sessionId);
+
         SessionDisconnectEvent event =
                 createDisconnectEvent();
 
-        // when
-        listener.handleWebSocketDisconnect(event);
+        // when & then
+        assertDoesNotThrow(
+                () -> listener.handleWebSocketDisconnect(event)
+        );
 
-        // then
+        verify(redisPresenceService)
+                .findUser(sessionId);
+
         verify(redisPresenceService)
                 .remove(userId, sessionId);
+
+        verify(redisPresenceService, never())
+                .getSessionCount(anyLong());
     }
 
     private Message<byte[]> createConnectedMessage() {
