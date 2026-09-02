@@ -249,7 +249,7 @@ class SubscriptionAuthorizationInterceptorTest {
     }
 
     @Test
-    void AuthenticationToken의_principal이_UserPrincipal이_아니면_ClassCastException이_발생한다() {
+    void AuthenticationToken의_principal이_UserPrincipal이_아니면_TOKEN_INVALID를_던진다() {
         // given
         String destination = "/user/queue/notification";
 
@@ -266,9 +266,14 @@ class SubscriptionAuthorizationInterceptorTest {
         );
 
         // when & then
-        assertThrows(
-                ClassCastException.class,
+        BaseException exception = assertThrows(
+                BaseException.class,
                 () -> interceptor.preSend(message, channel)
+        );
+
+        assertEquals(
+                ErrorEnum.TOKEN_INVALID,
+                exception.getErrorEnum()
         );
 
         verifyNoInteractions(subscriptionValidator);

@@ -59,6 +59,10 @@ public class SubscriptionAuthorizationInterceptor implements ChannelInterceptor 
             throw new BaseException(ErrorEnum.TOKEN_INVALID);
         }
 
-        return ((UserPrincipal) authentication.getPrincipal()).userId();
+        if (!(authentication.getPrincipal() instanceof UserPrincipal userPrincipal)) {
+            throw new BaseException(ErrorEnum.TOKEN_INVALID);
+        }
+
+        return userPrincipal.userId();
     }
 }
