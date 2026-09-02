@@ -166,4 +166,21 @@ class ScheduleSubscriptionValidatorTest {
                 .existsByIdAndUser_Id(scheduleId, userId);
         verifyNoInteractions(scheduleShareRepository);
     }
+
+    @Test
+    void Long_범위를_초과하는_scheduleId는_INVALID_INPUT을_던진다() {
+        // given
+        String invalidDestination =
+                "/topic/schedule/9223372036854775808";
+
+        // when & then
+        assertThatThrownBy(
+                () -> validator.validate(userId, invalidDestination)
+        )
+                .isInstanceOf(BaseException.class)
+                .extracting("errorEnum")
+                .isEqualTo(ErrorEnum.INVALID_INPUT);
+
+        verifyNoInteractions(scheduleRepository, scheduleShareRepository);
+    }
 }
