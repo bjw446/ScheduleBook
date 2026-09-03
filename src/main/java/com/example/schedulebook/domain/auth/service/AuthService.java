@@ -3,7 +3,6 @@ package com.example.schedulebook.domain.auth.service;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.exception.SessionLimitException;
-import com.example.schedulebook.common.redis.service.RedisSessionService;
 import com.example.schedulebook.common.security.JwtProvider;
 import com.example.schedulebook.domain.auth.dto.request.LoginRequest;
 import com.example.schedulebook.domain.auth.dto.request.RefreshRequest;
@@ -45,7 +44,6 @@ public class AuthService {
     private final SessionLimitService sessionLimitService;
     private final OutboxService outboxService;
     private final AuditEventOutboxService auditEventOutboxService;
-    private final RedisSessionService redisSessionService;
 
     public SignupResponse signup(SignupRequest request) {
         userValidator.validateDuplicateUser(
