@@ -14,10 +14,12 @@ import com.example.schedulebook.domain.auth.dto.response.SessionLimitResult;
 import com.example.schedulebook.domain.auth.dto.token.LoginToken;
 import com.example.schedulebook.domain.auth.enums.AuditEventType;
 import com.example.schedulebook.domain.auth.event.AuditEvent;
+import com.example.schedulebook.domain.auth.event.ReplaceSessionCleanupEvent;
 import com.example.schedulebook.domain.outbox.enums.OutboxAggregateType;
 import com.example.schedulebook.domain.outbox.enums.OutboxEventType;
 import com.example.schedulebook.domain.outbox.service.OutboxService;
 import com.example.schedulebook.domain.user.entity.User;
+import com.example.schedulebook.domain.user.enums.UserRole;
 import com.example.schedulebook.domain.user.repository.UserRepository;
 import com.example.schedulebook.domain.user.validator.UserValidator;
 import jakarta.servlet.http.HttpServletRequest;
@@ -615,48 +617,53 @@ class AuthServiceTest {
     // ============================================================
 
     @Test
-    void given교체할_세션이_있는_정상_로그인_whenLogin_then새_세션을_생성하고_CleanupOutbox를_저장한다() {
+    void given유효한_교체세션정보_when로그인_then기존세션정리와_감사이벤트를_각각_Outbox에_저장한다() {
         // given
+        String newSessionId = "new-session-id";
         String oldSessionId = "old-session-id";
 
-        LoginRequest request =
-                new LoginRequest(loginId, password, oldSessionId);
+        UserRole userRole = user.getUserRole();
 
-        LoginToken token = new LoginToken(
+        LoginToken loginToken = new LoginToken(
                 userId,
-                sessionId,
+                newSessionId,
                 accessToken,
                 refreshToken
         );
 
+        LoginRequest request = new LoginRequest(
+                loginId,
+                password,
+                oldSessionId
+        );
+
+        doNothing().when(loginFailureService)
+                .validateNotLocked(loginId);
         when(userRepository.findByLoginId(loginId))
                 .thenReturn(Optional.of(user));
-
         when(sessionService.generateSessionId())
-                .thenReturn(sessionId);
-
-        when(passwordEncoder.matches(password, encodedPassword))
-                .thenReturn(true);
-
+                .thenReturn(newSessionId);
         when(sessionLimitService.replaceSession(
                 eq(userId),
-                eq(user.getUserRole()),
+                eq(userRole),
                 eq(oldSessionId),
-                eq(sessionId),
+                eq(newSessionId),
                 anyString()
-        )).thenReturn(SessionLimitResult.available());
+        )).thenReturn(new SessionLimitResult(false, List.of()));
+
+        when(passwordEncoder.matches(password, user.getPassword()))
+                .thenReturn(true);
 
         when(sessionService.createSession(
                 eq(userId),
-                eq(sessionId),
-                eq("UNKNOWN"),
-                eq("UNKNOWN"),
-                eq(user.getUserRole())
-        )).thenReturn(token);
+                eq(newSessionId),
+                anyString(),
+                anyString(),
+                eq(userRole)
+        )).thenReturn(loginToken);
 
         // when
-        LoginResponse response =
-                authService.login(request, servletRequest);
+        LoginResponse response = authService.login(request, servletRequest);
 
         // then
         assertThat(response.accessToken())
@@ -665,37 +672,81 @@ class AuthServiceTest {
         assertThat(response.refreshToken())
                 .isEqualTo(refreshToken);
 
-        verify(sessionLimitService).replaceSession(
-                eq(userId),
-                eq(user.getUserRole()),
-                eq(oldSessionId),
-                eq(sessionId),
-                anyString()
+        ArgumentCaptor<String> eventIdCaptor =
+                ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<OutboxAggregateType> aggregateTypeCaptor =
+                ArgumentCaptor.forClass(OutboxAggregateType.class);
+        ArgumentCaptor<String> aggregateIdCaptor =
+                ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<OutboxEventType> eventTypeCaptor =
+                ArgumentCaptor.forClass(OutboxEventType.class);
+        ArgumentCaptor<Object> payloadCaptor =
+                ArgumentCaptor.forClass(Object.class);
+
+        verify(outboxService, times(2)).save(
+                eventIdCaptor.capture(),
+                aggregateTypeCaptor.capture(),
+                aggregateIdCaptor.capture(),
+                eventTypeCaptor.capture(),
+                payloadCaptor.capture()
         );
 
-        verify(loginSuccessService)
-                .loginSuccess(
-                        user,
-                        "UNKNOWN",
-                        "UNKNOWN"
-                );
+        List<OutboxEventType> eventTypes = eventTypeCaptor.getAllValues();
+        List<OutboxAggregateType> aggregateTypes =
+                aggregateTypeCaptor.getAllValues();
+        List<String> aggregateIds =
+                aggregateIdCaptor.getAllValues();
+        List<Object> payloads =
+                payloadCaptor.getAllValues();
 
-        verify(sessionService).createSession(
-                userId,
-                sessionId,
-                "UNKNOWN",
-                "UNKNOWN",
-                user.getUserRole()
-        );
+        // 기존 세션 로그아웃 감사 이벤트
+        assertThat(eventTypes)
+                .contains(OutboxEventType.AUDIT_EVENT);
 
-        verify(outboxService, times(2))
-                .save(
-                        anyString(),
-                        any(OutboxAggregateType.class),
-                        anyString(),
-                        any(OutboxEventType.class),
-                        any()
-                );
+        int auditIndex = eventTypes.indexOf(OutboxEventType.AUDIT_EVENT);
+
+        assertThat(aggregateTypes.get(auditIndex))
+                .isEqualTo(OutboxAggregateType.USER);
+
+        assertThat(aggregateIds.get(auditIndex))
+                .isEqualTo(String.valueOf(userId));
+
+        assertThat(payloads.get(auditIndex))
+                .isInstanceOf(AuditEvent.class);
+
+        AuditEvent auditEvent =
+                (AuditEvent) payloads.get(auditIndex);
+
+        assertThat(auditEvent.userId())
+                .isEqualTo(userId);
+
+        assertThat(auditEvent.eventType())
+                .isEqualTo(AuditEventType.SESSION_LOGOUT);
+
+        // 기존 세션 정리 이벤트
+        assertThat(eventTypes)
+                .contains(OutboxEventType.SESSION_REPLACE_CLEANUP);
+
+        int cleanupIndex =
+                eventTypes.indexOf(OutboxEventType.SESSION_REPLACE_CLEANUP);
+
+        assertThat(aggregateTypes.get(cleanupIndex))
+                .isEqualTo(OutboxAggregateType.SESSION);
+
+        assertThat(aggregateIds.get(cleanupIndex))
+                .isEqualTo(oldSessionId);
+
+        assertThat(payloads.get(cleanupIndex))
+                .isInstanceOf(ReplaceSessionCleanupEvent.class);
+
+        ReplaceSessionCleanupEvent cleanupEvent =
+                (ReplaceSessionCleanupEvent) payloads.get(cleanupIndex);
+
+        assertThat(cleanupEvent.userId())
+                .isEqualTo(userId);
+
+        assertThat(cleanupEvent.oldSessionId())
+                .isEqualTo(oldSessionId);
     }
 
     @Test
