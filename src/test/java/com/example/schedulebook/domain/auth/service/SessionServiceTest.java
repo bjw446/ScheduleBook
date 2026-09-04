@@ -139,7 +139,7 @@ class SessionServiceTest {
     }
 
     @Test
-    void givenIP와_UserAgent가_null_when세션생성_thenunknown으로_저장한다() {
+    void givenIP와_UserAgent가_null_when세션생성_then_unknown으로_저장한다() {
         when(jwtProvider.generateAccessToken(userId, sessionId, userRole))
                 .thenReturn(accessToken);
 
@@ -231,7 +231,7 @@ class SessionServiceTest {
     }
 
     @Test
-    void given유효한_refreshToken_when갱신_thenrefreshToken을_rotation하고_세션정보를_갱신한다() {
+    void given유효한_refreshToken_when갱신_then_refreshToken을_rotation하고_세션정보를_갱신한다() {
         when(jwtProvider.extractUserId(refreshToken)).thenReturn(userId);
         when(jwtProvider.extractSessionId(refreshToken)).thenReturn(sessionId);
         when(jwtProvider.extractUserRole(refreshToken)).thenReturn(userRole);
@@ -361,7 +361,7 @@ class SessionServiceTest {
     }
 
     @Test
-    void givenrefreshToken_rotation중_토큰이_불일치하면_when갱신_then전체세션을_삭제하고_REPLAY를_던진다() {
+    void given_refreshToken_rotation중_토큰이_불일치하면_when갱신_then전체세션을_삭제하고_REPLAY를_던진다() {
         when(jwtProvider.extractUserId(refreshToken)).thenReturn(userId);
         when(jwtProvider.extractSessionId(refreshToken)).thenReturn(sessionId);
         when(jwtProvider.extractUserRole(refreshToken)).thenReturn(userRole);
@@ -400,7 +400,7 @@ class SessionServiceTest {
     }
 
     @Test
-    void givenrefresh_중_TTL연장에서_예외가_발생해도_when갱신_then정상적으로_토큰을_반환한다() {
+    void given_refresh_중_TTL연장에서_예외가_발생해도_when갱신_then정상적으로_토큰을_반환한다() {
         when(jwtProvider.extractUserId(refreshToken)).thenReturn(userId);
         when(jwtProvider.extractSessionId(refreshToken)).thenReturn(sessionId);
         when(jwtProvider.extractUserRole(refreshToken)).thenReturn(userRole);
@@ -431,16 +431,24 @@ class SessionServiceTest {
                 .when(redisSessionService)
                 .extendSessionTTL(userId, sessionId, refreshExpiration);
 
+        // when
         LoginToken result = sessionService.refresh(refreshToken);
 
+        // then
         assertThat(result.accessToken()).isEqualTo(accessToken);
         assertThat(result.refreshToken()).isEqualTo(newRefreshToken);
+
+        verify(redisSessionService).extendSessionTTL(
+                userId,
+                sessionId,
+                refreshExpiration
+        );
 
         verify(redisSessionService).updateLastAccess(sessionId);
     }
 
     @Test
-    void givenrefresh_중_최근접근시간_갱신에서_예외가_발생해도_when갱신_then정상적으로_토큰을_반환한다() {
+    void given_refresh_중_최근접근시간_갱신에서_예외가_발생해도_when갱신_then정상적으로_토큰을_반환한다() {
         when(jwtProvider.extractUserId(refreshToken)).thenReturn(userId);
         when(jwtProvider.extractSessionId(refreshToken)).thenReturn(sessionId);
         when(jwtProvider.extractUserRole(refreshToken)).thenReturn(userRole);
@@ -471,18 +479,24 @@ class SessionServiceTest {
                 .when(redisSessionService)
                 .updateLastAccess(sessionId);
 
-        assertThatCode(() -> sessionService.refresh(refreshToken))
-                .doesNotThrowAnyException();
+        // when
+        LoginToken result = sessionService.refresh(refreshToken);
+
+        // then
+        assertThat(result.accessToken()).isEqualTo(accessToken);
+        assertThat(result.refreshToken()).isEqualTo(newRefreshToken);
 
         verify(redisSessionService).extendSessionTTL(
                 userId,
                 sessionId,
                 refreshExpiration
         );
+
+        verify(redisSessionService).updateLastAccess(sessionId);
     }
 
     @Test
-    void given여러_세션이_존재할때_when내_세션조회_thenloginAt_내림차순으로_반환한다() {
+    void given여러_세션이_존재할때_when내_세션조회_then_loginAt_내림차순으로_반환한다() {
         LocalDateTime olderLoginAt = LocalDateTime.of(
                 2026, 9, 3, 14, 0
         );
@@ -782,7 +796,7 @@ class SessionServiceTest {
     }
 
     @Test
-    void given사용자와_세션ID_when세션삭제_thenrefreshToken과_세션정보와_세션목록에서_모두삭제한다() {
+    void given사용자와_세션ID_when세션삭제_then_refreshToken과_세션정보와_세션목록에서_모두삭제한다() {
         sessionService.removeSession(userId, sessionId);
 
         verify(redisRefreshTokenService)
@@ -847,6 +861,7 @@ class SessionServiceTest {
                 refreshExpiration
         )).thenReturn(false);
 
+        // when & then
         assertThatCode(() ->
                 sessionService.rollbackReplacedSession(
                         userId,
@@ -856,16 +871,21 @@ class SessionServiceTest {
                 )
         ).doesNotThrowAnyException();
 
-        verify(redisSessionService).removeSession(
-                userId,
-                newSessionId
-        );
+        verify(redisRefreshTokenService)
+                .deleteRefreshToken(newSessionId);
 
-        verify(redisSessionService).deleteReplacePendingIfOwner(
-                userId,
-                oldSessionId,
-                operationId
-        );
+        verify(redisSessionService)
+                .deleteSessionInfo(newSessionId);
+
+        verify(redisSessionService)
+                .removeSession(userId, newSessionId);
+
+        verify(redisSessionService)
+                .deleteReplacePendingIfOwner(
+                        userId,
+                        oldSessionId,
+                        operationId
+                );
     }
 
     @Test
@@ -878,6 +898,7 @@ class SessionServiceTest {
                 refreshExpiration
         )).thenThrow(new RuntimeException("Redis unavailable"));
 
+        // when & then
         assertThatCode(() ->
                 sessionService.rollbackReplacedSession(
                         userId,
@@ -886,6 +907,12 @@ class SessionServiceTest {
                         operationId
                 )
         ).doesNotThrowAnyException();
+
+        verify(redisRefreshTokenService)
+                .deleteRefreshToken(newSessionId);
+
+        verify(redisSessionService)
+                .deleteSessionInfo(newSessionId);
 
         verify(redisSessionService)
                 .removeSession(userId, newSessionId);
@@ -899,7 +926,7 @@ class SessionServiceTest {
     }
 
     @Test
-    void givenrollback중_신규세션_삭제에서_예외가_발생해도_when롤백_thenpending_정리를_계속_수행한다() {
+    void given_rollback중_신규세션_삭제에서_예외가_발생해도_when롤백_thenpending_정리를_계속_수행한다() {
         when(redisSessionService.revertReplaceSession(
                 anyLong(),
                 anyString(),
@@ -912,6 +939,7 @@ class SessionServiceTest {
                 .when(redisSessionService)
                 .removeSession(userId, newSessionId);
 
+        // when & then
         assertThatCode(() ->
                 sessionService.rollbackReplacedSession(
                         userId,
@@ -920,6 +948,15 @@ class SessionServiceTest {
                         operationId
                 )
         ).doesNotThrowAnyException();
+
+        verify(redisRefreshTokenService)
+                .deleteRefreshToken(newSessionId);
+
+        verify(redisSessionService)
+                .deleteSessionInfo(newSessionId);
+
+        verify(redisSessionService)
+                .removeSession(userId, newSessionId);
 
         verify(redisSessionService)
                 .deleteReplacePendingIfOwner(
@@ -930,7 +967,7 @@ class SessionServiceTest {
     }
 
     @Test
-    void givenrollback중_pending_삭제에서_예외가_발생해도_when롤백_then예외를_전파하지_않는다() {
+    void given_rollback중_pending_삭제에서_예외가_발생해도_when롤백_then예외를_전파하지_않는다() {
         when(redisSessionService.revertReplaceSession(
                 anyLong(),
                 anyString(),
@@ -947,6 +984,7 @@ class SessionServiceTest {
                         operationId
                 );
 
+        // when & then
         assertThatCode(() ->
                 sessionService.rollbackReplacedSession(
                         userId,
@@ -956,12 +994,25 @@ class SessionServiceTest {
                 )
         ).doesNotThrowAnyException();
 
+        verify(redisRefreshTokenService)
+                .deleteRefreshToken(newSessionId);
+
+        verify(redisSessionService)
+                .deleteSessionInfo(newSessionId);
+
         verify(redisSessionService)
                 .removeSession(userId, newSessionId);
+
+        verify(redisSessionService)
+                .deleteReplacePendingIfOwner(
+                        userId,
+                        oldSessionId,
+                        operationId
+                );
     }
 
     @Test
-    void given기존_세션ID_when교체세션_cleanup_thenrefreshToken과_세션정보를_삭제한다() {
+    void given기존_세션ID_when교체세션_cleanup_then_refreshToken과_세션정보를_삭제한다() {
         sessionService.cleanupReplacedSession(oldSessionId);
 
         verify(redisRefreshTokenService)
