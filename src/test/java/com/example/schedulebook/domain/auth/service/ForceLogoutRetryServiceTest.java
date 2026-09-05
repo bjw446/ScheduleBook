@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.auth.service;
 
+import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.auth.entity.ForceLogoutRetry;
@@ -274,13 +275,9 @@ class ForceLogoutRetryServiceTest {
                 any(LocalDateTime.class)
         )).thenReturn(1);
 
-        LocalDateTime before = LocalDateTime.now();
-
         // when
         String result =
                 forceLogoutRetryService.markProcessing(retryId);
-
-        LocalDateTime after = LocalDateTime.now();
 
         // then
         assertThat(result)
@@ -356,8 +353,10 @@ class ForceLogoutRetryServiceTest {
 // =========================================================
 
     @Test
-    void givenRetryFailure_whenMarkRetry_thenUpdatePendingWithNextRetryTime() {
+    void givenRetryFailure_whenMarkRetry_thenUpdatePendingWithCalculatedNextRetryTime() {
         // given
+        int retryCount = 2;
+
         when(forceLogoutRetryRepository.markRetry(
                 eq(retryId),
                 eq(reason),
@@ -370,11 +369,17 @@ class ForceLogoutRetryServiceTest {
 
         LocalDateTime before = LocalDateTime.now();
 
+        long expectedDelaySeconds =
+                CommonConst.NEXT_RETRY_DELAY * (1L << (retryCount + 1));
+
+        LocalDateTime expectedNextRetryAt =
+                before.plusSeconds(expectedDelaySeconds);
+
         // when
         forceLogoutRetryService.markRetry(
                 retryId,
                 reason,
-                2,
+                retryCount,
                 claimToken
         );
 
@@ -390,10 +395,93 @@ class ForceLogoutRetryServiceTest {
                 );
 
         assertThat(nextRetryAtCaptor.getValue())
-                .isAfter(before);
+                .isBetween(
+                        expectedNextRetryAt.minusSeconds(1),
+                        after.plusSeconds(expectedDelaySeconds + 1)
+                );
+    }
 
-        assertThat(nextRetryAtCaptor.getValue())
-                .isBefore(after.plusHours(1).plusSeconds(1));
+    @Test
+    void givenDifferentRetryCount_whenMarkRetry_thenApplyDifferentRetryDelay() {
+        // given
+        ArgumentCaptor<LocalDateTime> nextRetryAtCaptor =
+                ArgumentCaptor.forClass(LocalDateTime.class);
+
+        when(forceLogoutRetryRepository.markRetry(
+                eq(retryId),
+                eq(reason),
+                any(LocalDateTime.class),
+                eq(claimToken)
+        )).thenReturn(1);
+
+        // when
+        LocalDateTime before = LocalDateTime.now();
+
+        forceLogoutRetryService.markRetry(
+                retryId,
+                reason,
+                0,
+                claimToken
+        );
+
+        forceLogoutRetryService.markRetry(
+                retryId,
+                reason,
+                1,
+                claimToken
+        );
+
+        forceLogoutRetryService.markRetry(
+                retryId,
+                reason,
+                2,
+                claimToken
+        );
+
+        // then
+        verify(forceLogoutRetryRepository, times(3))
+                .markRetry(
+                        eq(retryId),
+                        eq(reason),
+                        nextRetryAtCaptor.capture(),
+                        eq(claimToken)
+                );
+
+        List<LocalDateTime> nextRetryAtValues =
+                nextRetryAtCaptor.getAllValues();
+
+        long delay0 =
+                CommonConst.NEXT_RETRY_DELAY * (1L << 1);
+
+        long delay1 =
+                CommonConst.NEXT_RETRY_DELAY * (1L << 2);
+
+        long delay2 =
+                CommonConst.NEXT_RETRY_DELAY * (1L << 3);
+
+        assertThat(nextRetryAtValues.get(0))
+                .isBetween(
+                        before.plusSeconds(delay0).minusSeconds(1),
+                        before.plusSeconds(delay0).plusSeconds(2)
+                );
+
+        assertThat(nextRetryAtValues.get(1))
+                .isBetween(
+                        before.plusSeconds(delay1).minusSeconds(1),
+                        before.plusSeconds(delay1).plusSeconds(2)
+                );
+
+        assertThat(nextRetryAtValues.get(2))
+                .isBetween(
+                        before.plusSeconds(delay2).minusSeconds(1),
+                        before.plusSeconds(delay2).plusSeconds(2)
+                );
+
+        assertThat(nextRetryAtValues.get(1))
+                .isAfter(nextRetryAtValues.get(0));
+
+        assertThat(nextRetryAtValues.get(2))
+                .isAfter(nextRetryAtValues.get(1));
     }
 
     @Test
