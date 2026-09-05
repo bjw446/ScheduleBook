@@ -10,6 +10,7 @@ import com.example.schedulebook.domain.deadletter.service.DeadLetterService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -123,11 +124,16 @@ class ForceLogoutRetryStateServiceTest {
                 .extracting("errorEnum")
                 .isEqualTo(ErrorEnum.DEAD_LETTER_SAVE_FAILED);
 
-        // 실패 상태 변경은 DLQ 저장보다 먼저 수행되어야 한다.
-        verify(forceLogoutRetryService)
+        // 실패 상태 변경이 DLQ 저장보다 먼저 수행되어야 한다.
+        InOrder inOrder = inOrder(
+                forceLogoutRetryService,
+                deadLetterService
+        );
+
+        inOrder.verify(forceLogoutRetryService)
                 .markFailed(retryId, reason, claimToken);
 
-        verify(deadLetterService).save(
+        inOrder.verify(deadLetterService).save(
                 DeadLetterType.FORCE_LOGOUT,
                 DeadLetterSource.FORCE_LOGOUT_RETRY_SCHEDULER,
                 DeadLetterAggregateType.SESSION,
