@@ -60,6 +60,8 @@ class LoginSuccessServiceTest {
     @Test
     void given정상사용자_whenLoginSuccess_then사용자로그인상태변경및정보저장() {
         // given
+        LocalDate beforeLoginDate = LocalDate.now();
+
         assertThat(user.getLoginCount())
                 .isZero();
 
@@ -72,6 +74,8 @@ class LoginSuccessServiceTest {
         // when
         loginSuccessService.loginSuccess(user, ip, userAgent);
 
+        LocalDate afterLoginDate = LocalDate.now();
+
         // then
         assertThat(user.getLoginCount())
                 .isEqualTo(1);
@@ -80,7 +84,7 @@ class LoginSuccessServiceTest {
                 .isEqualTo(1);
 
         assertThat(user.getLastLoginDate())
-                .isEqualTo(LocalDate.now());
+                .isIn(beforeLoginDate, afterLoginDate);
 
         verify(userRepository)
                 .saveAndFlush(user);
