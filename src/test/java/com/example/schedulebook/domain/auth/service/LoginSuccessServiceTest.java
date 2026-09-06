@@ -16,6 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,24 +58,32 @@ class LoginSuccessServiceTest {
     }
 
     @Test
-    void given정상사용자_whenLoginSuccess_then사용자정보저장및로그인잠금해제() {
+    void given정상사용자_whenLoginSuccess_then사용자로그인상태변경및정보저장() {
         // given
+        assertThat(user.getLoginCount())
+                .isZero();
+
+        assertThat(user.getLoginStreak())
+                .isZero();
+
+        assertThat(user.getLastLoginDate())
+                .isNull();
 
         // when
         loginSuccessService.loginSuccess(user, ip, userAgent);
 
         // then
+        assertThat(user.getLoginCount())
+                .isEqualTo(1);
+
+        assertThat(user.getLoginStreak())
+                .isEqualTo(1);
+
+        assertThat(user.getLastLoginDate())
+                .isEqualTo(LocalDate.now());
+
         verify(userRepository)
                 .saveAndFlush(user);
-
-        verify(outboxService)
-                .save(
-                        anyString(),
-                        eq(OutboxAggregateType.USER),
-                        anyString(),
-                        eq(OutboxEventType.AUDIT_EVENT),
-                        any(AuditEvent.class)
-                );
 
         verify(redisLoginLockService)
                 .clear(user.getLoginId());
