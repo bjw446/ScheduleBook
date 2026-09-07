@@ -242,8 +242,13 @@ class SessionLimitServiceTest {
     }
 
     @Test
-    void given세션교체불가_whenReplaceSession_then세션목록과함께제한초과() {
+    void given세션교체불가_whenReplaceSession_then조회된세션목록을결과에반환() {
         // given
+        List<SessionInfoResponse> sessions = List.of(
+                mock(SessionInfoResponse.class),
+                mock(SessionInfoResponse.class)
+        );
+
         when(sessionLimitProperties.getLimit(userRole))
                 .thenReturn(sessionLimit);
 
@@ -259,6 +264,9 @@ class SessionLimitServiceTest {
                 refreshTokenExpiration
         )).thenReturn(false);
 
+        when(sessionService.findSessions(userId))
+                .thenReturn(sessions);
+
         // when
         SessionLimitResult result =
                 sessionLimitService.replaceSession(
@@ -272,6 +280,9 @@ class SessionLimitServiceTest {
         // then
         assertThat(result.exceeded())
                 .isTrue();
+
+        assertThat(result.sessionInfoResponses())
+                .isEqualTo(sessions);
 
         verify(redisSessionService)
                 .replaceSessionIfAvailable(
