@@ -130,4 +130,38 @@ class AuditLogServiceTest {
         verify(auditLogRepository).existsByOutboxId(outboxId);
         verify(auditLogRepository).save(any(AuditLog.class));
     }
+
+    @Test
+    void given관리자감사이벤트_whenSave_thenAdminId정상매핑() {
+        // given
+        Long outboxId = 1L;
+        Long adminId = 99L;
+
+        AuditEvent event = new AuditEvent(
+                "event-id",
+                null,
+                adminId,
+                "adminUser",
+                AuditEventType.LOGIN_SUCCESS,
+                "127.0.0.1",
+                "Mozilla/5.0"
+        );
+
+        given(auditLogRepository.existsByOutboxId(outboxId))
+                .willReturn(false);
+
+        // when
+        auditLogService.save(outboxId, event);
+
+        // then
+        ArgumentCaptor<AuditLog> captor =
+                ArgumentCaptor.forClass(AuditLog.class);
+
+        verify(auditLogRepository).save(captor.capture());
+
+        AuditLog auditLog = captor.getValue();
+
+        assertThat(auditLog.getAdminId())
+                .isEqualTo(adminId);
+    }
 }
