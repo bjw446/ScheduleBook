@@ -38,7 +38,7 @@ class ForceLogoutDispatcherImplTest {
     private ForceLogoutDispatcherImpl forceLogoutDispatcher;
 
     @Test
-    void given강제로그아웃이벤트_whenDispatch_then세션차단() {
+    void given오프라인사용자강제로그아웃이벤트_whenDispatch_then세션차단및메시지미전송() {
         // given
         Long userId = 1L;
         String sessionId = "session-123";
@@ -116,41 +116,6 @@ class ForceLogoutDispatcherImplTest {
                 .isEqualTo(AuditEventType.FORCE_LOGOUT.toString());
         assertThat(response.message())
                 .isEqualTo("다른 환경에서 로그아웃되었습니다.");
-    }
-
-    @Test
-    void given오프라인사용자_whenDispatch_then강제로그아웃메시지전송하지않음() {
-        // given
-        Long userId = 1L;
-        String sessionId = "session-123";
-        long accessTokenExpiration = 60_000L;
-
-        ForceLogoutSessionEvent event = new ForceLogoutSessionEvent(
-                "event-123",
-                userId,
-                sessionId,
-                accessTokenExpiration
-        );
-
-        given(redisPresenceService.isOnline(userId))
-                .willReturn(false);
-
-        // when
-        forceLogoutDispatcher.dispatch(event);
-
-        // then
-        verify(sessionBlockStore)
-                .block(sessionId, accessTokenExpiration);
-
-        verify(redisPresenceService)
-                .isOnline(userId);
-
-        verify(simpMessagingTemplate, never())
-                .convertAndSendToUser(
-                        anyString(),
-                        anyString(),
-                        any()
-                );
     }
 
     @Test
