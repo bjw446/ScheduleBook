@@ -13,6 +13,7 @@ import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -410,6 +411,85 @@ class ForceLogoutRetrySchedulerTest {
     }
 
     @Test
+    void given첫번째CompleteSuccess실패_whenProcess_then두번째대상계속처리() {
+        // given
+        ForceLogoutRetry firstRetry = createRetry(1L, 0);
+        ForceLogoutRetry secondRetry = createRetry(2L, 0);
+
+        String firstClaimToken = "first-claim-token";
+        String secondClaimToken = "second-claim-token";
+
+        ForceLogoutSessionEvent firstEvent = createEvent();
+        ForceLogoutSessionEvent secondEvent = createEvent();
+
+        RuntimeException exception =
+                new RuntimeException("complete success failed");
+
+        given(forceLogoutRetryService.findRetryTargets(CommonConst.BATCH_SIZE))
+                .willReturn(List.of(firstRetry, secondRetry))
+                .willReturn(List.of());
+
+        given(forceLogoutRetryService.markProcessing(firstRetry.getId()))
+                .willReturn(firstClaimToken);
+
+        given(forceLogoutRetryService.markProcessing(secondRetry.getId()))
+                .willReturn(secondClaimToken);
+
+        given(forceLogoutRetryService.deserialize(firstRetry))
+                .willReturn(firstEvent);
+
+        given(forceLogoutRetryService.deserialize(secondRetry))
+                .willReturn(secondEvent);
+
+        doThrow(exception)
+                .when(forceLogoutRetryStateService)
+                .completeSuccess(firstRetry, firstClaimToken);
+
+        // when
+        forceLogoutRetryScheduler.process();
+
+        // then
+        InOrder inOrder = inOrder(
+                forceLogoutRetryStateService,
+                forceLogoutRetryService,
+                forceLogoutDispatcher
+        );
+
+        // 첫 번째 대상 처리
+        inOrder.verify(forceLogoutRetryService)
+                .markProcessing(firstRetry.getId());
+
+        inOrder.verify(forceLogoutRetryService)
+                .deserialize(firstRetry);
+
+        inOrder.verify(forceLogoutDispatcher)
+                .dispatch(firstEvent);
+
+        inOrder.verify(forceLogoutRetryStateService)
+                .completeSuccess(firstRetry, firstClaimToken);
+
+        // 첫 번째 대상의 completeSuccess 실패 이후
+        // 두 번째 대상도 정상적으로 계속 처리
+        inOrder.verify(forceLogoutRetryService)
+                .markProcessing(secondRetry.getId());
+
+        inOrder.verify(forceLogoutRetryService)
+                .deserialize(secondRetry);
+
+        inOrder.verify(forceLogoutDispatcher)
+                .dispatch(secondEvent);
+
+        inOrder.verify(forceLogoutRetryStateService)
+                .completeSuccess(secondRetry, secondClaimToken);
+
+        verify(retrySchedulerMetrics)
+                .error("force_logout");
+
+        verify(retrySchedulerMetrics)
+                .success("force_logout");
+    }
+
+    @Test
     void givenCompleteFailure실패_whenProcess_thenErrorMetric만기록() {
         // given
         ForceLogoutRetry retry = createRetry(1L, 0);
@@ -450,6 +530,7 @@ class ForceLogoutRetrySchedulerTest {
                 );
 
         verify(retrySchedulerMetrics, times(2)).error("force_logout");
+
         verify(retrySchedulerMetrics, never()).dlq("force_logout");
     }
 
