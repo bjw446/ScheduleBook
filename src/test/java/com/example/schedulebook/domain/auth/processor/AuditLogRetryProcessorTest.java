@@ -5,14 +5,13 @@ import com.example.schedulebook.domain.auth.event.AuditEvent;
 import com.example.schedulebook.domain.auth.service.AuditLogService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuditLogRetryProcessorTest {
@@ -66,8 +65,16 @@ class AuditLogRetryProcessorTest {
         auditLogRetryProcessor.process(outboxId, event);
 
         // then
-        verify(auditLogService).save(outboxId, event);
-        verify(refreshReplayDetectedProcessor).process(outboxId, event);
+        InOrder inOrder = inOrder(
+                auditLogService,
+                refreshReplayDetectedProcessor
+        );
+
+        inOrder.verify(auditLogService)
+                .save(outboxId, event);
+
+        inOrder.verify(refreshReplayDetectedProcessor)
+                .process(outboxId, event);
     }
 
     @Test
