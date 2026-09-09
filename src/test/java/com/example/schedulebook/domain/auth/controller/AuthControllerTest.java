@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -238,6 +241,9 @@ class AuthControllerTest {
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+
+        verify(authService, times(1))
+                .logout(eq(accessToken), any(HttpServletRequest.class));
     }
 
     @Test
@@ -331,6 +337,13 @@ class AuthControllerTest {
                         .with(authentication(authenticatedUser(userId))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+
+        verify(authService)
+                .logoutSession(
+                        eq(userId),
+                        eq(sessionId),
+                        any(HttpServletRequest.class)
+                );
     }
 
     @Test
