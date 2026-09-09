@@ -12,13 +12,16 @@ import com.example.schedulebook.domain.auth.service.ForceLogoutRetryStateService
 import com.example.schedulebook.domain.auth.event.ForceLogoutSessionEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.util.function.Supplier;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
@@ -361,7 +364,7 @@ class ForceLogoutRetrySchedulerTest {
     }
 
     @Test
-    void givenCompleteSuccess실패_whenProcess_thenErrorMetric만기록() {
+    void givenCompleteSuccess실패_whenProcess_thenErrorMetric기록및추가상태변경하지않음() {
         // given
         ForceLogoutRetry retry = createRetry(1L, 0);
         String claimToken = "claim-token";
@@ -392,8 +395,18 @@ class ForceLogoutRetrySchedulerTest {
         verify(forceLogoutRetryStateService)
                 .completeSuccess(retry, claimToken);
 
-        verify(retrySchedulerMetrics).error("force_logout");
-        verify(retrySchedulerMetrics, never()).success("force_logout");
+        verify(retrySchedulerMetrics)
+                .error("force_logout");
+
+        verify(retrySchedulerMetrics, never())
+                .success("force_logout");
+
+        // completeSuccess 실패 이후 별도의 retry / DLQ 처리를 하지 않음
+        verify(forceLogoutRetryService, never())
+                .markRetry(anyLong(), anyString(), anyInt(), anyString());
+
+        verify(forceLogoutRetryStateService, never())
+                .completeFailure(any(), anyString(), anyString(), any());
     }
 
     @Test
@@ -441,8 +454,16 @@ class ForceLogoutRetrySchedulerTest {
     }
 
     @Test
-    void givenMetrics등록_whenRegisterMetrics_thenPendingGauge등록() {
+    void givenMetrics등록_whenRegisterMetrics_thenPendingGauge가RepositoryCount를반환() {
         // given
+        long pendingCount = 42L;
+
+        given(forceLogoutRetryRepository.countPending())
+                .willReturn(pendingCount);
+
+        ArgumentCaptor<Supplier<Number>> supplierCaptor =
+                ArgumentCaptor.forClass(Supplier.class);
+
         // when
         forceLogoutRetryScheduler.registerMetrics();
 
@@ -450,8 +471,16 @@ class ForceLogoutRetrySchedulerTest {
         verify(retrySchedulerMetrics)
                 .registerPendingGauge(
                         eq("force_logout"),
-                        any()
+                        supplierCaptor.capture()
                 );
+
+        Supplier<Number> supplier = supplierCaptor.getValue();
+
+        assertThat(supplier.get())
+                .isEqualTo(pendingCount);
+
+        verify(forceLogoutRetryRepository)
+                .countPending();
     }
 
     private ForceLogoutRetry createRetry(Long id, int retryCount) {
