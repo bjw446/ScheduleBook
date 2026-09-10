@@ -143,6 +143,40 @@ class UserValidatorTest {
     }
 
     @Test
+    void 프로필_수정_중복_검증_변경된_모든_값이_중복되지_않으면_정상_통과한다() {
+        // given
+        UpdateUserRequest request = new UpdateUserRequest(
+                "새닉네임",
+                "new@example.com",
+                "010-9999-8888"
+        );
+
+        given(userRepository.existsByNickname(request.nickname()))
+                .willReturn(false);
+
+        given(userRepository.existsByEmail(request.email()))
+                .willReturn(false);
+
+        given(userRepository.existsByPhoneNumber(request.phoneNumber()))
+                .willReturn(false);
+
+        // when & then
+        assertThatCode(() ->
+                userValidator.validateDuplicate(request, user)
+        )
+                .doesNotThrowAnyException();
+
+        then(userRepository).should()
+                .existsByNickname(request.nickname());
+
+        then(userRepository).should()
+                .existsByEmail(request.email());
+
+        then(userRepository).should()
+                .existsByPhoneNumber(request.phoneNumber());
+    }
+
+    @Test
     void 프로필_수정_닉네임이_중복되면_예외가_발생한다() {
         // given
         UpdateUserRequest request = new UpdateUserRequest(
@@ -479,6 +513,12 @@ class UserValidatorTest {
 
         then(userRepository).should(never())
                 .existsByEmail(anyString());
+
+        then(userRepository).should(never())
+                .existsByNickname(anyString());
+
+        then(userRepository).should(never())
+                .existsByPhoneNumber(anyString());
     }
 
     @Test
@@ -518,6 +558,9 @@ class UserValidatorTest {
 
         then(userRepository).should(never())
                 .existsByNickname(anyString());
+
+        then(userRepository).should(never())
+                .existsByPhoneNumber(anyString());
     }
 
     @Test
