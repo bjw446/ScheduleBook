@@ -639,6 +639,50 @@ class UserValidatorTest {
     }
 
     @Test
+    void 회원가입_중복_검증에서_모든_값이_중복되지_않으면_정상_통과한다() {
+        // given
+        String loginId = "newuser";
+        String email = "new@example.com";
+        String nickname = "새닉네임";
+        String phoneNumber = "010-1111-2222";
+
+        given(userRepository.existsByLoginId(loginId))
+                .willReturn(false);
+
+        given(userRepository.existsByEmail(email))
+                .willReturn(false);
+
+        given(userRepository.existsByNickname(nickname))
+                .willReturn(false);
+
+        given(userRepository.existsByPhoneNumber(phoneNumber))
+                .willReturn(false);
+
+        // when & then
+        assertThatCode(() ->
+                userValidator.validateDuplicateUser(
+                        loginId,
+                        email,
+                        nickname,
+                        phoneNumber
+                )
+        )
+                .doesNotThrowAnyException();
+
+        then(userRepository).should()
+                .existsByLoginId(loginId);
+
+        then(userRepository).should()
+                .existsByEmail(email);
+
+        then(userRepository).should()
+                .existsByNickname(nickname);
+
+        then(userRepository).should()
+                .existsByPhoneNumber(phoneNumber);
+    }
+
+    @Test
     void 로그인_사용자_상태가_ACTIVE이면_정상_통과한다() {
         // given
         ReflectionTestUtils.setField(
