@@ -18,9 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserWithdrawProcessorTest {
@@ -79,9 +77,10 @@ class UserWithdrawProcessorTest {
         given(chatRoomCleanupProcessor.process(outboxId, userId)).willReturn(true);
         given(redisCleanupProcessor.process(outboxId, userId)).willReturn(true);
 
-        // when & then
+        // when
         userWithdrawProcessor.process(outboxId, event);
 
+        // then
         InOrder inOrder = inOrder(
                 friendCleanupProcessor,
                 commentCleanupProcessor,
@@ -97,6 +96,15 @@ class UserWithdrawProcessorTest {
         inOrder.verify(notificationCleanupProcessor).process(outboxId, userId);
         inOrder.verify(chatRoomCleanupProcessor).process(outboxId, userId);
         inOrder.verify(redisCleanupProcessor).process(outboxId, userId);
+
+        verifyNoMoreInteractions(
+                friendCleanupProcessor,
+                commentCleanupProcessor,
+                scheduleCleanupProcessor,
+                notificationCleanupProcessor,
+                chatRoomCleanupProcessor,
+                redisCleanupProcessor
+        );
     }
 
     @Test
