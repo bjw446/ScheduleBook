@@ -383,4 +383,28 @@ class AdminOutboxServiceTest {
 
         return outbox;
     }
+
+    @Test
+    void 관리자_권한_검증에_실패하면_Failed_Outbox를_조회하지_않는다() {
+        // given
+        Pageable pageable = PageRequest.of(0, 10);
+
+        BaseException exception =
+                new BaseException(ErrorEnum.ADMIN_NOT_FOUND);
+
+        doThrow(exception)
+                .when(userValidator)
+                .validateActiveAdmin(ADMIN_ID);
+
+        // when & then
+        assertThatThrownBy(() ->
+                adminOutboxService.findAllFailedOutboxes(
+                        ADMIN_ID,
+                        pageable
+                )
+        ).isSameAs(exception);
+
+        verify(userValidator).validateActiveAdmin(ADMIN_ID);
+        verifyNoInteractions(outboxRepository);
+    }
 }
