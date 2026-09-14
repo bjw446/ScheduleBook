@@ -102,6 +102,22 @@ class AdminDeadLetterServiceTest {
         // then
         assertThat(result).isNotNull();
 
+        DeadLetterSummaryResponse response = result.content().get(0);
+
+        assertThat(response.deadLetterId()).isEqualTo(deadLetterQueue.getId());
+
+        assertThat(response.deadLetterType()).isEqualTo(deadLetterQueue.getDeadLetterType());
+
+        assertThat(response.deadLetterSource()).isEqualTo(deadLetterQueue.getDeadLetterSource());
+
+        assertThat(response.deadLetterAggregateType()).isEqualTo(deadLetterQueue.getDeadLetterAggregateType());
+
+        assertThat(response.deadLetterStatus()).isEqualTo(deadLetterQueue.getDeadLetterStatus());
+
+        assertThat(response.aggregateId()).isEqualTo(deadLetterQueue.getAggregateId());
+
+        assertThat(response.failedAt()).isEqualTo(deadLetterQueue.getFailedAt());
+
         verify(userValidator)
                 .validateActiveAdmin(ADMIN_ID);
 
@@ -166,6 +182,42 @@ class AdminDeadLetterServiceTest {
         // then
         assertThat(result).isNotNull();
 
+        assertThat(result.deadLetterId())
+                .isEqualTo(deadLetterQueue.getId());
+
+        assertThat(result.deadLetterType())
+                .isEqualTo(deadLetterQueue.getDeadLetterType());
+
+        assertThat(result.deadLetterSource())
+                .isEqualTo(deadLetterQueue.getDeadLetterSource());
+
+        assertThat(result.deadLetterAggregateType())
+                .isEqualTo(deadLetterQueue.getDeadLetterAggregateType());
+
+        assertThat(result.deadLetterStatus())
+                .isEqualTo(deadLetterQueue.getDeadLetterStatus());
+
+        assertThat(result.aggregateId())
+                .isEqualTo(deadLetterQueue.getAggregateId());
+
+        assertThat(result.userId())
+                .isEqualTo(deadLetterQueue.getUserId());
+
+        assertThat(result.payload())
+                .isEqualTo(deadLetterQueue.getPayload());
+
+        assertThat(result.exceptionType())
+                .isEqualTo(deadLetterQueue.getExceptionType());
+
+        assertThat(result.reason())
+                .isEqualTo(deadLetterQueue.getReason());
+
+        assertThat(result.retryCount())
+                .isEqualTo(deadLetterQueue.getRetryCount());
+
+        assertThat(result.failedAt())
+                .isEqualTo(deadLetterQueue.getFailedAt());
+
         verify(userValidator)
                 .validateActiveAdmin(ADMIN_ID);
 
@@ -199,7 +251,7 @@ class AdminDeadLetterServiceTest {
     }
 
     @Test
-    void SESSION_타입이면_강제_로그아웃_복구를_위임한다() {
+    void SESSION_타입이면_Claim_검증_후_강제_로그아웃_복구를_위임한다() {
 
         // given
         DeadLetterQueue deadLetterQueue = createDeadLetter(
@@ -217,12 +269,24 @@ class AdminDeadLetterServiceTest {
 
         // then
         InOrder inOrder = org.mockito.Mockito.inOrder(
+                userValidator,
                 deadLetterService,
+                deadLetterRepository,
                 forceLogoutRetryService
         );
 
+        inOrder.verify(userValidator)
+                .validateActiveAdmin(ADMIN_ID);
+
         inOrder.verify(deadLetterService)
                 .markProcessing(DEAD_LETTER_ID);
+
+        inOrder.verify(deadLetterRepository)
+                .findByIdAndClaimTokenAndDeadLetterStatus(
+                        DEAD_LETTER_ID,
+                        CLAIM_TOKEN,
+                        DeadLetterStatus.PROCESSING
+                );
 
         inOrder.verify(forceLogoutRetryService)
                 .recover("session-123");
@@ -232,7 +296,7 @@ class AdminDeadLetterServiceTest {
     }
 
     @Test
-    void OUTBOX_타입이면_Outbox_복구를_위임한다() {
+    void OUTBOX_타입이면_Claim_검증_후_Outbox_복구를_위임한다() {
 
         // given
         DeadLetterQueue deadLetterQueue = createDeadLetter(
@@ -249,15 +313,35 @@ class AdminDeadLetterServiceTest {
         );
 
         // then
-        verify(outboxTransactionService)
+        InOrder inOrder = org.mockito.Mockito.inOrder(
+                userValidator,
+                deadLetterService,
+                deadLetterRepository,
+                outboxTransactionService
+        );
+
+        inOrder.verify(userValidator)
+                .validateActiveAdmin(ADMIN_ID);
+
+        inOrder.verify(deadLetterService)
+                .markProcessing(DEAD_LETTER_ID);
+
+        inOrder.verify(deadLetterRepository)
+                .findByIdAndClaimTokenAndDeadLetterStatus(
+                        DEAD_LETTER_ID,
+                        CLAIM_TOKEN,
+                        DeadLetterStatus.PROCESSING
+                );
+
+        inOrder.verify(outboxTransactionService)
                 .recover(456L);
 
-        verify(deadLetterService)
+        inOrder.verify(deadLetterService)
                 .markRecovered(DEAD_LETTER_ID, CLAIM_TOKEN);
     }
 
     @Test
-    void NOTIFICATION_RETRY_타입이면_알림_재시도를_복구한다() {
+    void NOTIFICATION_RETRY_타입이면_Claim_검증_후_알림_재시도_복구를_위임한다() {
 
         // given
         DeadLetterQueue deadLetterQueue = createDeadLetter(
@@ -274,15 +358,35 @@ class AdminDeadLetterServiceTest {
         );
 
         // then
-        verify(notificationRetryService)
+        InOrder inOrder = org.mockito.Mockito.inOrder(
+                userValidator,
+                deadLetterService,
+                deadLetterRepository,
+                notificationRetryService
+        );
+
+        inOrder.verify(userValidator)
+                .validateActiveAdmin(ADMIN_ID);
+
+        inOrder.verify(deadLetterService)
+                .markProcessing(DEAD_LETTER_ID);
+
+        inOrder.verify(deadLetterRepository)
+                .findByIdAndClaimTokenAndDeadLetterStatus(
+                        DEAD_LETTER_ID,
+                        CLAIM_TOKEN,
+                        DeadLetterStatus.PROCESSING
+                );
+
+        inOrder.verify(notificationRetryService)
                 .recover(789L);
 
-        verify(deadLetterService)
+        inOrder.verify(deadLetterService)
                 .markRecovered(DEAD_LETTER_ID, CLAIM_TOKEN);
     }
 
     @Test
-    void DESERIALIZATION_ERROR_타입이면_역직렬화_복구를_위임한다() {
+    void DESERIALIZATION_ERROR_타입이면_Claim_검증_후_역직렬화_복구를_위임한다() {
 
         // given
         DeadLetterQueue deadLetterQueue = createDeadLetter(
@@ -299,10 +403,30 @@ class AdminDeadLetterServiceTest {
         );
 
         // then
-        verify(deadLetterDeserializationRecoveryService)
+        InOrder inOrder = org.mockito.Mockito.inOrder(
+                userValidator,
+                deadLetterService,
+                deadLetterRepository,
+                deadLetterDeserializationRecoveryService
+        );
+
+        inOrder.verify(userValidator)
+                .validateActiveAdmin(ADMIN_ID);
+
+        inOrder.verify(deadLetterService)
+                .markProcessing(DEAD_LETTER_ID);
+
+        inOrder.verify(deadLetterRepository)
+                .findByIdAndClaimTokenAndDeadLetterStatus(
+                        DEAD_LETTER_ID,
+                        CLAIM_TOKEN,
+                        DeadLetterStatus.PROCESSING
+                );
+
+        inOrder.verify(deadLetterDeserializationRecoveryService)
                 .recover(deadLetterQueue);
 
-        verify(deadLetterService)
+        inOrder.verify(deadLetterService)
                 .markRecovered(DEAD_LETTER_ID, CLAIM_TOKEN);
     }
 
@@ -434,6 +558,39 @@ class AdminDeadLetterServiceTest {
                         DeadLetterStatus.PROCESSING
                 ))
                 .thenReturn(Optional.of(deadLetterQueue));
+    }
+
+    @Test
+    void 관리자_권한_검증에_실패하면_DeadLetter_복구를_수행하지_않는다() {
+
+        // given
+        BaseException exception =
+                new BaseException(ErrorEnum.ADMIN_NOT_FOUND);
+
+        doThrow(exception)
+                .when(userValidator)
+                .validateActiveAdmin(ADMIN_ID);
+
+        // when & then
+        assertThatThrownBy(() ->
+                adminDeadLetterService.recoverDeadLetter(
+                        ADMIN_ID,
+                        DEAD_LETTER_ID
+                )
+        )
+                .isSameAs(exception);
+
+        verify(userValidator)
+                .validateActiveAdmin(ADMIN_ID);
+
+        verifyNoInteractions(
+                deadLetterService,
+                deadLetterRepository,
+                forceLogoutRetryService,
+                outboxTransactionService,
+                notificationRetryService,
+                deadLetterDeserializationRecoveryService
+        );
     }
 
     private DeadLetterQueue createDeadLetter(
