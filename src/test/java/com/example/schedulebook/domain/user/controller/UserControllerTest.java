@@ -31,13 +31,13 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
@@ -161,10 +161,14 @@ class UserControllerTest {
                         get("/users/me")
                                 .with(authenticated())
                 )
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nickname").value("테스트유저"))
+                .andExpect(jsonPath("$.data.level").value(3))
+                .andExpect(jsonPath("$.data.exp").value(150));
 
         verify(userService)
                 .findMyProfile(USER_ID);
+
     }
 
     @Test
@@ -192,7 +196,10 @@ class UserControllerTest {
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(authenticated())
                 )
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nickname").value("새닉네임"))
+                .andExpect(jsonPath("$.data.email").value("new@example.com"))
+                .andExpect(jsonPath("$.data.phoneNumber").value("010-9999-8888"));
 
         verify(userService)
                 .updateMyProfile(request, USER_ID);
@@ -290,6 +297,77 @@ class UserControllerTest {
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 권한이_없는_인증_사용자가_관리자_페이지에_접근하면_403을_반환한다() throws Exception {
+        // when & then
+        mockMvc.perform(
+                        get("/admin/test")
+                                .with(authenticated())
+                )
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void 유효하지_않은_프로필_수정_요청이면_400을_반환하고_서비스를_호출하지_않는다() throws Exception {
+        // given
+        UpdateUserRequest request = new UpdateUserRequest(
+                "",
+                "new@example.com",
+                "010-9999-8888"
+        );
+
+        // when & then
+        mockMvc.perform(
+                        put("/users/me")
+                                .contentType("application/json")
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(authenticated())
+                )
+                .andExpect(status().isBadRequest());
+
+        verify(userService, never())
+                .updateMyProfile(any(), any());
+    }
+
+    @Test
+    void 유효하지_않은_비밀번호_변경_요청이면_400을_반환하고_서비스를_호출하지_않는다() throws Exception {
+        // given
+        UpdateUserPasswordRequest request = new UpdateUserPasswordRequest(
+                "",
+                ""
+        );
+
+        // when & then
+        mockMvc.perform(
+                        put("/users/me/password")
+                                .contentType("application/json")
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(authenticated())
+                )
+                .andExpect(status().isBadRequest());
+
+        verify(userService, never())
+                .updateMyPassword(any(), any());
+    }
+
+    @Test
+    void 유효하지_않은_회원탈퇴_요청이면_400을_반환하고_서비스를_호출하지_않는다() throws Exception {
+        // given
+        WithdrawUserRequest request = new WithdrawUserRequest("");
+
+        // when & then
+        mockMvc.perform(
+                        delete("/users/me")
+                                .contentType("application/json")
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(authenticated())
+                )
+                .andExpect(status().isBadRequest());
+
+        verify(userService, never())
+                .withdraw(any(), any());
     }
 
     private RequestPostProcessor authenticated() {
