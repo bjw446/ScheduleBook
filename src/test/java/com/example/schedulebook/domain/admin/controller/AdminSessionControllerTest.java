@@ -12,7 +12,6 @@ import com.example.schedulebook.domain.auth.dto.response.SessionInfoResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +19,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -32,7 +30,10 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -40,7 +41,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AdminSessionController.class)
-@Import(SecurityConfig.class)
+@Import({
+        SecurityConfig.class,
+        CustomAuthenticationEntryPoint.class,
+        CustomAccessDeniedHandler.class
+})
 class AdminSessionControllerTest {
 
     private static final Long ADMIN_ID = 1L;
@@ -53,7 +58,12 @@ class AdminSessionControllerTest {
     @MockitoBean
     private AdminSessionService adminSessionService;
 
-    // SecurityConfig 의 SecurityFilterChain 의존성
+    /*
+     * SecurityConfig의 필터 의존성은 Mock으로 대체한다.
+     *
+     * 각 Mock Filter는 실제 FilterChain으로 요청을 전달하여
+     * SecurityConfig의 인가/인증 처리는 실제 Spring Security가 수행하도록 한다.
+     */
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -66,68 +76,78 @@ class AdminSessionControllerTest {
     @MockitoBean
     private JwtProperties jwtProperties;
 
-    @MockitoBean
-    private CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-
-    @MockitoBean
-    private CustomAccessDeniedHandler customAccessDeniedHandler;
-
     @BeforeEach
     void setUpSecurityFilters() throws Exception {
+
         doAnswer(invocation -> {
-            ServletRequest request = invocation.getArgument(0, ServletRequest.class);
-            ServletResponse response = invocation.getArgument(1, ServletResponse.class);
-            FilterChain chain = invocation.getArgument(2, FilterChain.class);
+
+            ServletRequest request =
+                    invocation.getArgument(0, ServletRequest.class);
+
+            ServletResponse response =
+                    invocation.getArgument(1, ServletResponse.class);
+
+            FilterChain chain =
+                    invocation.getArgument(2, FilterChain.class);
 
             chain.doFilter(request, response);
+
             return null;
-        }).when(cachedBodyFilter).doFilter(any(), any(), any());
+
+        }).when(cachedBodyFilter)
+                .doFilter(any(), any(), any());
 
         doAnswer(invocation -> {
-            ServletRequest request = invocation.getArgument(0, ServletRequest.class);
-            ServletResponse response = invocation.getArgument(1, ServletResponse.class);
-            FilterChain chain = invocation.getArgument(2, FilterChain.class);
+
+            ServletRequest request =
+                    invocation.getArgument(0, ServletRequest.class);
+
+            ServletResponse response =
+                    invocation.getArgument(1, ServletResponse.class);
+
+            FilterChain chain =
+                    invocation.getArgument(2, FilterChain.class);
 
             chain.doFilter(request, response);
+
             return null;
-        }).when(rateLimitFilter).doFilter(any(), any(), any());
+
+        }).when(rateLimitFilter)
+                .doFilter(any(), any(), any());
 
         doAnswer(invocation -> {
-            ServletRequest request = invocation.getArgument(0, ServletRequest.class);
-            ServletResponse response = invocation.getArgument(1, ServletResponse.class);
-            FilterChain chain = invocation.getArgument(2, FilterChain.class);
+
+            ServletRequest request =
+                    invocation.getArgument(0, ServletRequest.class);
+
+            ServletResponse response =
+                    invocation.getArgument(1, ServletResponse.class);
+
+            FilterChain chain =
+                    invocation.getArgument(2, FilterChain.class);
 
             chain.doFilter(request, response);
+
             return null;
-        }).when(jwtAuthenticationFilter).doFilter(any(), any(), any());
 
-        doAnswer(invocation -> {
-            HttpServletResponse response =
-                    invocation.getArgument(1, HttpServletResponse.class);
-
-            response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            return null;
-        }).when(customAuthenticationEntryPoint)
-                .commence(any(), any(), any());
-
-        doAnswer(invocation -> {
-            HttpServletResponse response =
-                    invocation.getArgument(1, HttpServletResponse.class);
-
-            response.setStatus(HttpStatus.FORBIDDEN.value());
-            return null;
-        }).when(customAccessDeniedHandler)
-                .handle(any(), any(), any());
+        }).when(jwtAuthenticationFilter)
+                .doFilter(any(), any(), any());
     }
 
     @Test
-    void 내_세션_목록을_조회한다() throws Exception {
-        // given
-        SessionInfoResponse session1 = mock(SessionInfoResponse.class);
-        SessionInfoResponse session2 = mock(SessionInfoResponse.class);
+    void 관리자_권한으로_사용자의_세션_목록을_조회한다() throws Exception {
 
-        when(adminSessionService.findAllUserSessions(ADMIN_ID, USER_ID))
-                .thenReturn(List.of(session1, session2));
+        // given
+        SessionInfoResponse session1 =
+                org.mockito.Mockito.mock(SessionInfoResponse.class);
+
+        SessionInfoResponse session2 =
+                org.mockito.Mockito.mock(SessionInfoResponse.class);
+
+        when(adminSessionService.findAllUserSessions(
+                ADMIN_ID,
+                USER_ID
+        )).thenReturn(List.of(session1, session2));
 
         // when & then
         mockMvc.perform(
@@ -143,10 +163,14 @@ class AdminSessionControllerTest {
     }
 
     @Test
-    void 세션이_없으면_빈_목록을_반환한다() throws Exception {
+    void 세션이_없는_사용자의_세션_목록을_조회하면_빈_목록을_반환한다()
+            throws Exception {
+
         // given
-        when(adminSessionService.findAllUserSessions(ADMIN_ID, USER_ID))
-                .thenReturn(List.of());
+        when(adminSessionService.findAllUserSessions(
+                ADMIN_ID,
+                USER_ID
+        )).thenReturn(List.of());
 
         // when & then
         mockMvc.perform(
@@ -162,7 +186,9 @@ class AdminSessionControllerTest {
     }
 
     @Test
-    void 특정_사용자의_특정_세션을_로그아웃한다() throws Exception {
+    void 관리자가_특정_사용자의_특정_세션을_로그아웃한다()
+            throws Exception {
+
         // when & then
         mockMvc.perform(
                         delete(
@@ -178,18 +204,22 @@ class AdminSessionControllerTest {
         ArgumentCaptor<HttpServletRequest> requestCaptor =
                 ArgumentCaptor.forClass(HttpServletRequest.class);
 
-        verify(adminSessionService).logoutUserOneSession(
-                eq(ADMIN_ID),
-                eq(USER_ID),
-                eq(SESSION_ID),
-                requestCaptor.capture()
-        );
+        verify(adminSessionService)
+                .logoutUserOneSession(
+                        eq(ADMIN_ID),
+                        eq(USER_ID),
+                        eq(SESSION_ID),
+                        requestCaptor.capture()
+                );
 
-        assertThat(requestCaptor.getValue()).isNotNull();
+        assertThat(requestCaptor.getValue())
+                .isNotNull();
     }
 
     @Test
-    void 특정_사용자의_모든_세션을_로그아웃한다() throws Exception {
+    void 관리자가_특정_사용자의_모든_세션을_로그아웃한다()
+            throws Exception {
+
         // when & then
         mockMvc.perform(
                         delete("/admin/users/{userId}/sessions", USER_ID)
@@ -201,17 +231,21 @@ class AdminSessionControllerTest {
         ArgumentCaptor<HttpServletRequest> requestCaptor =
                 ArgumentCaptor.forClass(HttpServletRequest.class);
 
-        verify(adminSessionService).logoutUserAllSession(
-                eq(ADMIN_ID),
-                eq(USER_ID),
-                requestCaptor.capture()
-        );
+        verify(adminSessionService)
+                .logoutUserAllSession(
+                        eq(ADMIN_ID),
+                        eq(USER_ID),
+                        requestCaptor.capture()
+                );
 
-        assertThat(requestCaptor.getValue()).isNotNull();
+        assertThat(requestCaptor.getValue())
+                .isNotNull();
     }
 
     @Test
-    void 인증되지_않은_사용자는_관리자_세션_조회_API에_접근할_수_없다() throws Exception {
+    void 인증되지_않은_사용자는_관리자_세션_조회_API에_접근할_수_없다()
+            throws Exception {
+
         // when & then
         mockMvc.perform(
                         get("/admin/users/{userId}/sessions", USER_ID)
@@ -222,7 +256,9 @@ class AdminSessionControllerTest {
     }
 
     @Test
-    void 일반_사용자는_관리자_세션_조회_API에_접근할_수_없다() throws Exception {
+    void 일반_사용자는_관리자_세션_조회_API에_접근할_수_없다()
+            throws Exception {
+
         // when & then
         mockMvc.perform(
                         get("/admin/users/{userId}/sessions", USER_ID)
@@ -234,7 +270,9 @@ class AdminSessionControllerTest {
     }
 
     @Test
-    void 일반_사용자는_특정_세션_강제_로그아웃_API에_접근할_수_없다() throws Exception {
+    void 일반_사용자는_특정_세션_강제_로그아웃_API에_접근할_수_없다()
+            throws Exception {
+
         // when & then
         mockMvc.perform(
                         delete(
@@ -250,7 +288,9 @@ class AdminSessionControllerTest {
     }
 
     @Test
-    void 일반_사용자는_모든_세션_강제_로그아웃_API에_접근할_수_없다() throws Exception {
+    void 일반_사용자는_모든_세션_강제_로그아웃_API에_접근할_수_없다()
+            throws Exception {
+
         // when & then
         mockMvc.perform(
                         delete("/admin/users/{userId}/sessions", USER_ID)
@@ -262,7 +302,9 @@ class AdminSessionControllerTest {
     }
 
     @Test
-    void 인증되지_않은_사용자는_특정_세션_강제_로그아웃_API에_접근할_수_없다() throws Exception {
+    void 인증되지_않은_사용자는_특정_세션_강제_로그아웃_API에_접근할_수_없다()
+            throws Exception {
+
         // when & then
         mockMvc.perform(
                         delete(
@@ -277,7 +319,9 @@ class AdminSessionControllerTest {
     }
 
     @Test
-    void 인증되지_않은_사용자는_모든_세션_강제_로그아웃_API에_접근할_수_없다() throws Exception {
+    void 인증되지_않은_사용자는_모든_세션_강제_로그아웃_API에_접근할_수_없다()
+            throws Exception {
+
         // when & then
         mockMvc.perform(
                         delete("/admin/users/{userId}/sessions", USER_ID)
@@ -288,16 +332,22 @@ class AdminSessionControllerTest {
     }
 
     private RequestPostProcessor authenticatedAdmin() {
+
         return authentication(
                 new UsernamePasswordAuthenticationToken(
                         ADMIN_ID,
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))
+                        List.of(
+                                new SimpleGrantedAuthority(
+                                        "ROLE_SUPER_ADMIN"
+                                )
+                        )
                 )
         );
     }
 
     private RequestPostProcessor authenticatedUser() {
+
         return authentication(
                 new UsernamePasswordAuthenticationToken(
                         USER_ID,
