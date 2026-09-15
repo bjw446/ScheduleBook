@@ -22,6 +22,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -41,6 +42,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -236,8 +238,6 @@ class AdminDeadLetterControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").exists())
                 .andExpect(jsonPath("$.data.content").isArray())
-
-                // PageResponse content 검증
                 .andExpect(jsonPath("$.data.content[0].deadLetterId")
                         .value(DEAD_LETTER_ID))
                 .andExpect(jsonPath("$.data.content[0].deadLetterType")
@@ -258,10 +258,29 @@ class AdminDeadLetterControllerTest {
                 .andExpect(jsonPath("$.data.content[0].failedAt")
                         .value("2026-09-15T10:30:00"));
 
+        ArgumentCaptor<Pageable> pageableCaptor =
+                ArgumentCaptor.forClass(Pageable.class);
+
         verify(adminDeadLetterService).findAllDeadLetters(
                 eq(ADMIN_ID),
-                any(Pageable.class)
+                pageableCaptor.capture()
         );
+
+        Pageable capturedPageable = pageableCaptor.getValue();
+
+        assertThat(capturedPageable.getPageNumber())
+                .isEqualTo(0);
+
+        assertThat(capturedPageable.getPageSize())
+                .isEqualTo(10);
+
+        assertThat(capturedPageable.getSort())
+                .isEqualTo(
+                        Sort.by(
+                                Sort.Direction.DESC,
+                                "createdAt"
+                        )
+                );
     }
 
     @Test
