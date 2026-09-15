@@ -1,6 +1,7 @@
 package com.example.schedulebook.domain.admin.controller;
 
 import com.example.schedulebook.common.config.SecurityConfig;
+import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.filter.CachedBodyFilter;
 import com.example.schedulebook.common.filter.RateLimitFilter;
 import com.example.schedulebook.common.security.CustomAccessDeniedHandler;
@@ -19,12 +20,15 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,8 +41,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdminSessionController.class)
 @Import({
@@ -246,11 +249,13 @@ class AdminSessionControllerTest {
     void 인증되지_않은_사용자는_관리자_세션_조회_API에_접근할_수_없다()
             throws Exception {
 
-        // when & then
-        mockMvc.perform(
-                        get("/admin/users/{userId}/sessions", USER_ID)
-                )
-                .andExpect(status().isUnauthorized());
+        // when
+        ResultActions result = mockMvc.perform(
+                get("/admin/users/{userId}/sessions", USER_ID)
+        );
+
+        // then
+        assertUnauthorizedResponse(result);
 
         verifyNoInteractions(adminSessionService);
     }
@@ -259,12 +264,14 @@ class AdminSessionControllerTest {
     void 일반_사용자는_관리자_세션_조회_API에_접근할_수_없다()
             throws Exception {
 
-        // when & then
-        mockMvc.perform(
-                        get("/admin/users/{userId}/sessions", USER_ID)
-                                .with(authenticatedUser())
-                )
-                .andExpect(status().isForbidden());
+        // when
+        ResultActions result = mockMvc.perform(
+                get("/admin/users/{userId}/sessions", USER_ID)
+                        .with(authenticatedUser())
+        );
+
+        // then
+        assertForbiddenResponse(result);
 
         verifyNoInteractions(adminSessionService);
     }
@@ -273,16 +280,18 @@ class AdminSessionControllerTest {
     void 일반_사용자는_특정_세션_강제_로그아웃_API에_접근할_수_없다()
             throws Exception {
 
-        // when & then
-        mockMvc.perform(
-                        delete(
-                                "/admin/users/{userId}/sessions/{sessionId}",
-                                USER_ID,
-                                SESSION_ID
-                        )
-                                .with(authenticatedUser())
+        // when
+        ResultActions result = mockMvc.perform(
+                delete(
+                        "/admin/users/{userId}/sessions/{sessionId}",
+                        USER_ID,
+                        SESSION_ID
                 )
-                .andExpect(status().isForbidden());
+                        .with(authenticatedUser())
+        );
+
+        // then
+        assertForbiddenResponse(result);
 
         verifyNoInteractions(adminSessionService);
     }
@@ -291,12 +300,14 @@ class AdminSessionControllerTest {
     void 일반_사용자는_모든_세션_강제_로그아웃_API에_접근할_수_없다()
             throws Exception {
 
-        // when & then
-        mockMvc.perform(
-                        delete("/admin/users/{userId}/sessions", USER_ID)
-                                .with(authenticatedUser())
-                )
-                .andExpect(status().isForbidden());
+        // when
+        ResultActions result = mockMvc.perform(
+                delete("/admin/users/{userId}/sessions", USER_ID)
+                        .with(authenticatedUser())
+        );
+
+        // then
+        assertForbiddenResponse(result);
 
         verifyNoInteractions(adminSessionService);
     }
@@ -305,15 +316,17 @@ class AdminSessionControllerTest {
     void 인증되지_않은_사용자는_특정_세션_강제_로그아웃_API에_접근할_수_없다()
             throws Exception {
 
-        // when & then
-        mockMvc.perform(
-                        delete(
-                                "/admin/users/{userId}/sessions/{sessionId}",
-                                USER_ID,
-                                SESSION_ID
-                        )
+        // when
+        ResultActions result = mockMvc.perform(
+                delete(
+                        "/admin/users/{userId}/sessions/{sessionId}",
+                        USER_ID,
+                        SESSION_ID
                 )
-                .andExpect(status().isUnauthorized());
+        );
+
+        // then
+        assertUnauthorizedResponse(result);
 
         verifyNoInteractions(adminSessionService);
     }
@@ -322,11 +335,13 @@ class AdminSessionControllerTest {
     void 인증되지_않은_사용자는_모든_세션_강제_로그아웃_API에_접근할_수_없다()
             throws Exception {
 
-        // when & then
-        mockMvc.perform(
-                        delete("/admin/users/{userId}/sessions", USER_ID)
-                )
-                .andExpect(status().isUnauthorized());
+        // when
+        ResultActions result = mockMvc.perform(
+                delete("/admin/users/{userId}/sessions", USER_ID)
+        );
+
+        // then
+        assertUnauthorizedResponse(result);
 
         verifyNoInteractions(adminSessionService);
     }
@@ -355,5 +370,45 @@ class AdminSessionControllerTest {
                         List.of()
                 )
         );
+    }
+
+    private void assertUnauthorizedResponse(ResultActions result)
+            throws Exception {
+
+        result
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_JSON
+                ))
+                .andExpect(content().encoding(
+                        StandardCharsets.UTF_8.name()
+                ))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status")
+                        .value(ErrorEnum.UNAUTHORIZED.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(ErrorEnum.UNAUTHORIZED.getMessage()))
+                .andExpect(jsonPath("$.data").isEmpty())
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    private void assertForbiddenResponse(ResultActions result)
+            throws Exception {
+
+        result
+                .andExpect(status().isForbidden())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_JSON
+                ))
+                .andExpect(content().encoding(
+                        StandardCharsets.UTF_8.name()
+                ))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status")
+                        .value(ErrorEnum.FORBIDDEN.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(ErrorEnum.FORBIDDEN.getMessage()))
+                .andExpect(jsonPath("$.data").isEmpty())
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 }
