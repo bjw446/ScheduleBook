@@ -167,8 +167,23 @@ class ScheduleServiceTest {
         assertThat(schedule.getCommentCount())
                 .isZero();
 
+        ArgumentCaptor<ScheduleParticipant> participantCaptor =
+                ArgumentCaptor.forClass(ScheduleParticipant.class);
+
         verify(scheduleParticipantRepository)
-                .save(any(ScheduleParticipant.class));
+                .save(participantCaptor.capture());
+
+        ScheduleParticipant savedParticipant =
+                participantCaptor.getValue();
+
+        assertThat(savedParticipant.getSchedule())
+                .isSameAs(savedSchedule);
+
+        assertThat(savedParticipant.getUser())
+                .isSameAs(user);
+
+        assertThat(savedParticipant.getAttendanceStatus())
+                .isEqualTo(AttendanceStatus.PENDING);
 
         verify(user)
                 .increaseScheduleCount();
