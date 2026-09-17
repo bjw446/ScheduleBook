@@ -6,6 +6,7 @@ import com.example.schedulebook.domain.scheduleshare.service.ScheduleShareServic
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -74,10 +75,15 @@ class ScheduleCleanupProcessorTest {
         assertThat(result)
                 .isTrue();
 
-        verify(scheduleShareService)
+        InOrder inOrder = inOrder(
+                scheduleShareService,
+                scheduleService
+        );
+
+        inOrder.verify(scheduleShareService)
                 .deleteAllShared(USER_ID);
 
-        verify(scheduleService)
+        inOrder.verify(scheduleService)
                 .deleteAllSchedules(USER_ID);
 
         verify(loggingExecutor, times(2))
@@ -135,10 +141,15 @@ class ScheduleCleanupProcessorTest {
         assertThat(result)
                 .isFalse();
 
-        verify(scheduleShareService)
+        InOrder inOrder = inOrder(
+                scheduleShareService,
+                scheduleService
+        );
+
+        inOrder.verify(scheduleShareService)
                 .deleteAllShared(USER_ID);
 
-        verify(scheduleService)
+        inOrder.verify(scheduleService)
                 .deleteAllSchedules(USER_ID);
 
         verify(loggingExecutor, times(2))
@@ -191,10 +202,15 @@ class ScheduleCleanupProcessorTest {
         assertThat(result)
                 .isFalse();
 
-        verify(scheduleShareService)
+        InOrder inOrder = inOrder(
+                scheduleShareService,
+                scheduleService
+        );
+
+        inOrder.verify(scheduleShareService)
                 .deleteAllShared(USER_ID);
 
-        verify(scheduleService)
+        inOrder.verify(scheduleService)
                 .deleteAllSchedules(USER_ID);
 
         verify(loggingExecutor, times(2))
@@ -256,10 +272,15 @@ class ScheduleCleanupProcessorTest {
         assertThat(result)
                 .isFalse();
 
-        verify(scheduleShareService)
+        InOrder inOrder = inOrder(
+                scheduleShareService,
+                scheduleService
+        );
+
+        inOrder.verify(scheduleShareService)
                 .deleteAllShared(USER_ID);
 
-        verify(scheduleService)
+        inOrder.verify(scheduleService)
                 .deleteAllSchedules(USER_ID);
 
         verify(loggingExecutor, times(2))
