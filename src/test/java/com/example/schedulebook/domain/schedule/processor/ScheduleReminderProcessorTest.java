@@ -235,6 +235,7 @@ class ScheduleReminderProcessorTest {
                 )
         )
                 .isInstanceOf(BaseException.class)
+                .hasCause(retryException)
                 .extracting(e ->
                         ((BaseException) e).getErrorEnum()
                 )
