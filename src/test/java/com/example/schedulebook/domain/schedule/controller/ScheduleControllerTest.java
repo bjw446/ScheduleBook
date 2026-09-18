@@ -149,7 +149,10 @@ class ScheduleControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.status").value(SuccessEnum.CREATE_SUCCESS.getStatus()))
                 .andExpect(jsonPath("$.message").value(SuccessEnum.CREATE_SUCCESS.getMessage()))
-                .andExpect(jsonPath("$.data").exists());
+                .andExpect(jsonPath("$.data.scheduleId").value(SCHEDULE_ID))
+                .andExpect(jsonPath("$.data.title").value("팀 회의"))
+                .andExpect(jsonPath("$.data.commentCount").value(0))
+                .andExpect(jsonPath("$.data.scheduleDate").value(SCHEDULE_DATE.toString()));
 
         ArgumentCaptor<CreateScheduleRequest> requestCaptor = ArgumentCaptor.forClass(CreateScheduleRequest.class);
         verify(scheduleService).createSchedule(requestCaptor.capture(), eq(USER_ID));
@@ -179,7 +182,19 @@ class ScheduleControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.status").value(SuccessEnum.READ_SUCCESS.getStatus()))
                 .andExpect(jsonPath("$.message").value(SuccessEnum.READ_SUCCESS.getMessage()))
-                .andExpect(jsonPath("$.data").exists());
+                .andExpect(jsonPath("$.data.scheduleId").value(SCHEDULE_ID))
+                .andExpect(jsonPath("$.data.title").value("팀 회의"))
+                .andExpect(jsonPath("$.data.content").value("프로젝트 진행 상황을 확인합니다."))
+                .andExpect(jsonPath("$.data.commentCount").value(0))
+                .andExpect(jsonPath("$.data.scheduleDate").value(SCHEDULE_DATE.toString()))
+                .andExpect(jsonPath("$.data.startTime").value("13:00:00"))
+                .andExpect(jsonPath("$.data.endTime").value("14:00:00"))
+                .andExpect(jsonPath("$.data.startTimeSpecified").value(true))
+                .andExpect(jsonPath("$.data.endTimeSpecified").value(true))
+                .andExpect(jsonPath("$.data.participated").value(false))
+                .andExpect(jsonPath("$.data.participantCount").value(0))
+                .andExpect(jsonPath("$.data.participants").isArray())
+                .andExpect(jsonPath("$.data.participants.length()").value(0));
 
         verify(scheduleService).findOneSchedule(eq(SCHEDULE_ID), eq(USER_ID));
     }
@@ -208,7 +223,11 @@ class ScheduleControllerTest {
                 .andExpect(jsonPath("$.status").value(SuccessEnum.READ_SUCCESS.getStatus()))
                 .andExpect(jsonPath("$.message").value(SuccessEnum.READ_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].scheduleId").value(SCHEDULE_ID))
+                .andExpect(jsonPath("$.data[0].title").value("팀 회의"))
+                .andExpect(jsonPath("$.data[0].commentCount").value(0))
+                .andExpect(jsonPath("$.data[0].scheduleDate").value(SCHEDULE_DATE.toString()));
 
         verify(scheduleService).findSchedulesByMonth(eq(year), eq(month), eq(USER_ID));
     }
@@ -235,7 +254,11 @@ class ScheduleControllerTest {
                 .andExpect(jsonPath("$.status").value(SuccessEnum.READ_SUCCESS.getStatus()))
                 .andExpect(jsonPath("$.message").value(SuccessEnum.READ_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].scheduleId").value(SCHEDULE_ID))
+                .andExpect(jsonPath("$.data[0].title").value("팀 회의"))
+                .andExpect(jsonPath("$.data[0].commentCount").value(0))
+                .andExpect(jsonPath("$.data[0].scheduleDate").value(SCHEDULE_DATE.toString()));
 
         verify(scheduleService).findSchedulesByDate(eq(date), eq(USER_ID));
     }
@@ -265,9 +288,27 @@ class ScheduleControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.status").value(SuccessEnum.UPDATE_SUCCESS.getStatus()))
                 .andExpect(jsonPath("$.message").value(SuccessEnum.UPDATE_SUCCESS.getMessage()))
-                .andExpect(jsonPath("$.data").exists());
+                .andExpect(jsonPath("$.data.scheduleId").value(SCHEDULE_ID))
+                .andExpect(jsonPath("$.data.title").value("수정된 팀 회의"))
+                .andExpect(jsonPath("$.data.commentCount").value(0))
+                .andExpect(jsonPath("$.data.scheduleDate").value(SCHEDULE_DATE.toString()));
 
-        verify(scheduleService).updateSchedule(eq(SCHEDULE_ID), any(UpdateScheduleRequest.class), eq(USER_ID));
+        ArgumentCaptor<UpdateScheduleRequest> requestCaptor =
+                ArgumentCaptor.forClass(UpdateScheduleRequest.class);
+
+        verify(scheduleService).updateSchedule(
+                eq(SCHEDULE_ID),
+                requestCaptor.capture(),
+                eq(USER_ID)
+        );
+
+        UpdateScheduleRequest capturedRequest = requestCaptor.getValue();
+
+        assertThat(capturedRequest.title()).isEqualTo(request.title());
+        assertThat(capturedRequest.content()).isEqualTo(request.content());
+        assertThat(capturedRequest.scheduleDate()).isEqualTo(request.scheduleDate());
+        assertThat(capturedRequest.startTime()).isEqualTo(request.startTime());
+        assertThat(capturedRequest.endTime()).isEqualTo(request.endTime());
     }
 
     @Test
