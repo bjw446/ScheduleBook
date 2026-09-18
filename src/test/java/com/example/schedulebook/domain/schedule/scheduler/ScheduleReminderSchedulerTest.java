@@ -1,19 +1,9 @@
 package com.example.schedulebook.domain.schedule.scheduler;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
 import com.example.schedulebook.common.consts.CommonConst;
 import com.example.schedulebook.common.metrics.RetrySchedulerMetrics;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.schedule.entity.ScheduleReminder;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.function.Supplier;
-
 import com.example.schedulebook.domain.schedule.service.ScheduleReminderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +13,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.function.Supplier;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ScheduleReminderSchedulerTest {
@@ -88,7 +88,10 @@ class ScheduleReminderSchedulerTest {
         when(scheduleReminderService.findPendingReminders(
                 any(LocalDateTime.class),
                 eq(PageRequest.of(0, CommonConst.BATCH_SIZE))
-        )).thenReturn(List.of(reminder), List.of());
+        )).thenReturn(
+                List.of(reminder),
+                List.of()
+        );
 
         when(scheduleReminderService.markProcessing(
                 eq(REMINDER_ID),
@@ -101,19 +104,24 @@ class ScheduleReminderSchedulerTest {
                 anyString()
         )).thenReturn(true);
 
+        ArgumentCaptor<String> claimTokenCaptor =
+                ArgumentCaptor.forClass(String.class);
+
         // when
         scheduleReminderScheduler.sendScheduleReminders();
 
         // then
         verify(scheduleReminderService).markProcessing(
                 eq(REMINDER_ID),
-                anyString(),
+                claimTokenCaptor.capture(),
                 any(LocalDateTime.class)
         );
 
+        String claimToken = claimTokenCaptor.getValue();
+
         verify(scheduleReminderService).processReminderSent(
                 eq(REMINDER_ID),
-                anyString()
+                eq(claimToken)
         );
 
         verify(retrySchedulerMetrics).processed(METRIC);
@@ -182,9 +190,18 @@ class ScheduleReminderSchedulerTest {
         scheduleReminderScheduler.sendScheduleReminders();
 
         // then
+        ArgumentCaptor<String> claimTokenCaptor =
+                ArgumentCaptor.forClass(String.class);
+
+        verify(scheduleReminderService).markProcessing(
+                eq(REMINDER_ID),
+                claimTokenCaptor.capture(),
+                any(LocalDateTime.class)
+        );
+
         verify(scheduleReminderService).processReminderSent(
                 eq(REMINDER_ID),
-                anyString()
+                eq(claimTokenCaptor.getValue())
         );
 
         verify(scheduleReminderService, never())
@@ -224,22 +241,33 @@ class ScheduleReminderSchedulerTest {
                 anyString()
         )).thenReturn(true);
 
+        ArgumentCaptor<String> claimTokenCaptor =
+                ArgumentCaptor.forClass(String.class);
+
         // when
         scheduleReminderScheduler.sendScheduleReminders();
 
         // then
+        verify(scheduleReminderService).markProcessing(
+                eq(REMINDER_ID),
+                claimTokenCaptor.capture(),
+                any(LocalDateTime.class)
+        );
+
+        String claimToken = claimTokenCaptor.getValue();
+
         verify(scheduleReminderService).processReminderSent(
                 eq(REMINDER_ID),
-                anyString()
+                eq(claimToken)
+        );
+
+        verify(scheduleReminderService).markPending(
+                eq(REMINDER_ID),
+                eq(claimToken)
         );
 
         verify(retrySchedulerMetrics).processed(METRIC);
         verify(retrySchedulerMetrics).error(METRIC);
-
-        verify(scheduleReminderService).markPending(
-                eq(REMINDER_ID),
-                anyString()
-        );
     }
 
     @Test
@@ -271,13 +299,29 @@ class ScheduleReminderSchedulerTest {
                 anyString()
         )).thenReturn(false);
 
+        ArgumentCaptor<String> claimTokenCaptor =
+                ArgumentCaptor.forClass(String.class);
+
         // when
         scheduleReminderScheduler.sendScheduleReminders();
 
         // then
+        verify(scheduleReminderService).markProcessing(
+                eq(REMINDER_ID),
+                claimTokenCaptor.capture(),
+                any(LocalDateTime.class)
+        );
+
+        String claimToken = claimTokenCaptor.getValue();
+
+        verify(scheduleReminderService).processReminderSent(
+                eq(REMINDER_ID),
+                eq(claimToken)
+        );
+
         verify(scheduleReminderService).markPending(
                 eq(REMINDER_ID),
-                anyString()
+                eq(claimToken)
         );
 
         // 처리 실패 1회 + Pending 복구 실패 1회
@@ -312,24 +356,41 @@ class ScheduleReminderSchedulerTest {
     @Test
     void Stuck_Reminder를_복구한다() {
         // given
-        LocalDateTime threshold = LocalDateTime.now()
-                .minusMinutes(
-                        CommonConst.SCHEDULE_REMINDER_PROCESSING_TIMEOUT_MINUTES
-                );
-
         when(scheduleReminderService.recoverStuckReminders(
                 any(LocalDateTime.class)
         )).thenReturn(3);
 
+        LocalDateTime before = LocalDateTime.now();
+
         // when
         scheduleReminderScheduler.recoverStuckReminders();
+
+        LocalDateTime after = LocalDateTime.now();
 
         // then
         verify(retrySchedulerMetrics).schedulerRun(RECOVERY_METRIC);
 
+        ArgumentCaptor<LocalDateTime> thresholdCaptor =
+                ArgumentCaptor.forClass(LocalDateTime.class);
+
         verify(scheduleReminderService).recoverStuckReminders(
-                any(LocalDateTime.class)
+                thresholdCaptor.capture()
         );
+
+        LocalDateTime actualThreshold = thresholdCaptor.getValue();
+
+        LocalDateTime expectedThresholdFrom =
+                before.minusMinutes(
+                        CommonConst.SCHEDULE_REMINDER_PROCESSING_TIMEOUT_MINUTES
+                );
+
+        LocalDateTime expectedThresholdTo =
+                after.minusMinutes(
+                        CommonConst.SCHEDULE_REMINDER_PROCESSING_TIMEOUT_MINUTES
+                );
+
+        assertThat(actualThreshold)
+                .isBetween(expectedThresholdFrom, expectedThresholdTo);
 
         verify(retrySchedulerMetrics).recovered(
                 RECOVERY_METRIC,
