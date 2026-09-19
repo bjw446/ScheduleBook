@@ -214,7 +214,14 @@ class ScheduleShareControllerTest {
                 .andExpect(jsonPath("$.message")
                         .value(SuccessEnum.READ_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].shareId").value(SHARE_ID))
+                .andExpect(jsonPath("$.data[0].scheduleId").value(SCHEDULE_ID))
+                .andExpect(jsonPath("$.data[0].title").value("팀 회의"))
+                .andExpect(jsonPath("$.data[0].scheduleDate")
+                        .value(SCHEDULE_DATE.toString()))
+                .andExpect(jsonPath("$.data[0].ownerNickname")
+                        .value("일정소유자"));
 
         verify(scheduleShareService)
                 .findAllSharedSchedules(USER_ID);
