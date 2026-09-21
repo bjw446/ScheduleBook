@@ -10,6 +10,7 @@ import com.example.schedulebook.domain.schedulesnapshot.enums.SchedulePreviewSta
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -122,13 +123,18 @@ class ScheduleSharePublisherTest {
     }
 
     @Test
-    void 일정이_수정되면_수정된_상태로_메시지를_발행한다() {
+    void 일정이_수정되면_커밋_이후_수정된_상태로_메시지를_발행한다() {
         // given
         ChatMessage firstMessage = mock(ChatMessage.class);
         ChatMessage secondMessage = mock(ChatMessage.class);
 
         ChatMessageResponse firstResponse = mock(ChatMessageResponse.class);
         ChatMessageResponse secondResponse = mock(ChatMessageResponse.class);
+
+        SchedulePreviewResponse firstPreview =
+                mock(SchedulePreviewResponse.class);
+        SchedulePreviewResponse secondPreview =
+                mock(SchedulePreviewResponse.class);
 
         when(firstResponse.roomId()).thenReturn(ROOM_ID);
         when(secondResponse.roomId()).thenReturn(2L);
@@ -141,11 +147,6 @@ class ScheduleSharePublisherTest {
                 MockedStatic<WebSocketDestination> destinationMock =
                         mockStatic(WebSocketDestination.class)
         ) {
-            SchedulePreviewResponse firstPreview =
-                    mock(SchedulePreviewResponse.class);
-            SchedulePreviewResponse secondPreview =
-                    mock(SchedulePreviewResponse.class);
-
             previewMock.when(() ->
                     SchedulePreviewResponse.from(
                             anyLong(),
@@ -157,17 +158,17 @@ class ScheduleSharePublisherTest {
 
             responseMock.when(() ->
                     ChatMessageResponse.from(
-                            eq(firstMessage),
-                            eq(0),
-                            eq(firstPreview)
+                            firstMessage,
+                            0,
+                            firstPreview
                     )
             ).thenReturn(firstResponse);
 
             responseMock.when(() ->
                     ChatMessageResponse.from(
-                            eq(secondMessage),
-                            eq(0),
-                            eq(secondPreview)
+                            secondMessage,
+                            0,
+                            secondPreview
                     )
             ).thenReturn(secondResponse);
 
@@ -179,36 +180,25 @@ class ScheduleSharePublisherTest {
                     WebSocketDestination.getChatDestination(2L)
             ).thenReturn("/sub/chat/rooms/2");
 
-            doAnswer(invocation -> {
-                Runnable runnable = invocation.getArgument(0);
-                runnable.run();
-                return null;
-            }).when(afterCommitExecutor).execute(any(Runnable.class));
+            // Runnable을 실행하지 않고 캡처한다.
+            ArgumentCaptor<Runnable> runnableCaptor =
+                    ArgumentCaptor.forClass(Runnable.class);
 
             // when
             publisher.publishScheduleUpdated(
                     List.of(firstMessage, secondMessage)
             );
 
-            // then
-            responseMock.verify(() ->
-                    ChatMessageResponse.from(
-                            firstMessage,
-                            0,
-                            firstPreview
-                    )
-            );
-
-            responseMock.verify(() ->
-                    ChatMessageResponse.from(
-                            secondMessage,
-                            0,
-                            secondPreview
-                    ));
-
+            // then - 커밋 콜백 등록까지만 수행되었는지 검증
             verify(afterCommitExecutor)
-                    .execute(any(Runnable.class));
+                    .execute(runnableCaptor.capture());
 
+            verifyNoInteractions(webSocketPublisher);
+
+            // when - 실제 커밋 이후 콜백 실행
+            runnableCaptor.getValue().run();
+
+            // then - 콜백 실행 이후 WebSocket 발행
             verify(webSocketPublisher)
                     .send(CHAT_DESTINATION, firstResponse);
 
@@ -413,11 +403,8 @@ class ScheduleSharePublisherTest {
                     WebSocketDestination.getChatDestination(2L)
             ).thenReturn("/sub/chat/rooms/2");
 
-            doAnswer(invocation -> {
-                Runnable runnable = invocation.getArgument(0);
-                runnable.run();
-                return null;
-            }).when(afterCommitExecutor).execute(any(Runnable.class));
+            ArgumentCaptor<Runnable> runnableCaptor =
+                    ArgumentCaptor.forClass(Runnable.class);
 
             // when
             publisher.publishScheduleShareCanceled(
@@ -426,7 +413,11 @@ class ScheduleSharePublisherTest {
 
             // then
             verify(afterCommitExecutor)
-                    .execute(any(Runnable.class));
+                    .execute(runnableCaptor.capture());
+
+            verifyNoInteractions(webSocketPublisher);
+
+            runnableCaptor.getValue().run();
 
             verify(webSocketPublisher)
                     .send(CHAT_DESTINATION, firstResponse);
@@ -475,11 +466,8 @@ class ScheduleSharePublisherTest {
                     WebSocketDestination.getChatDestination(ROOM_ID)
             ).thenReturn(CHAT_DESTINATION);
 
-            doAnswer(invocation -> {
-                Runnable runnable = invocation.getArgument(0);
-                runnable.run();
-                return null;
-            }).when(afterCommitExecutor).execute(any(Runnable.class));
+            ArgumentCaptor<Runnable> runnableCaptor =
+                    ArgumentCaptor.forClass(Runnable.class);
 
             // when
             publisher.publishSharedScheduleDeleted(
@@ -488,13 +476,14 @@ class ScheduleSharePublisherTest {
 
             // then
             verify(afterCommitExecutor)
-                    .execute(any(Runnable.class));
+                    .execute(runnableCaptor.capture());
+
+            verifyNoInteractions(webSocketPublisher);
+
+            runnableCaptor.getValue().run();
 
             verify(webSocketPublisher)
-                    .send(
-                            CHAT_DESTINATION,
-                            firstResponse
-                    );
+                    .send(CHAT_DESTINATION, firstResponse);
         }
     }
 
