@@ -23,8 +23,8 @@ class ScheduleAttendancePublisherTest {
 
     private ScheduleAttendancePublisher publisher;
 
-    private static final Long SCHEDULE_ID = 1L;
-    private static final String SCHEDULE_DESTINATION = "/topic/schedule/1";
+    private static final Long RESPONSE_SCHEDULE_ID = 100L;
+    private static final String EXPECTED_SCHEDULE_DESTINATION = "/topic/schedule/100";
 
     @BeforeEach
     void setUp() {
@@ -32,29 +32,31 @@ class ScheduleAttendancePublisherTest {
     }
 
     @Test
-    void 출석_상태_변경_응답을_일정_방에_커밋_후_발행한다() {
+    void 출석_상태_변경_응답을_응답의_일정_ID를_기반으로_커밋_후_발행한다() {
         // given
         try (MockedStatic<WebSocketDestination> mockedDestination =
                      org.mockito.Mockito.mockStatic(WebSocketDestination.class)) {
 
-            mockedDestination.when(() ->
-                    WebSocketDestination.getScheduleDestination(SCHEDULE_ID)
-            ).thenReturn(SCHEDULE_DESTINATION);
-
             org.mockito.Mockito.when(response.scheduleId())
-                    .thenReturn(SCHEDULE_ID);
+                    .thenReturn(RESPONSE_SCHEDULE_ID);
+
+            mockedDestination.when(() ->
+                    WebSocketDestination.getScheduleDestination(RESPONSE_SCHEDULE_ID)
+            ).thenReturn(EXPECTED_SCHEDULE_DESTINATION);
 
             // when
             publisher.publishAttendanceUpdated(response);
 
             // then
-            verify(webSocketPublisher).sendAfterCommit(
-                    SCHEDULE_DESTINATION,
-                    response
-            );
+            verify(response).scheduleId();
 
             mockedDestination.verify(() ->
-                    WebSocketDestination.getScheduleDestination(SCHEDULE_ID)
+                    WebSocketDestination.getScheduleDestination(RESPONSE_SCHEDULE_ID)
+            );
+
+            verify(webSocketPublisher).sendAfterCommit(
+                    EXPECTED_SCHEDULE_DESTINATION,
+                    response
             );
         }
     }
