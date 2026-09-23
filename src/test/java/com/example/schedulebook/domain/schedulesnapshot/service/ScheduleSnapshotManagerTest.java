@@ -73,6 +73,6 @@ class ScheduleSnapshotManagerTest {
         verifyNoInteractions(scheduleSnapshotHistoryManager);
 
         verify(chatMessage, never())
-                .updateScheduleSnapshot(any(Schedule.class));
+                .updateScheduleSnapshot(any());
     }
 }
