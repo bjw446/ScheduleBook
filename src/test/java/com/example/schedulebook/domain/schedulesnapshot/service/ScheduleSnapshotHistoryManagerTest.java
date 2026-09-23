@@ -9,6 +9,7 @@ import com.example.schedulebook.domain.schedulesnapshot.repository.ScheduleSnaps
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -51,12 +52,24 @@ class ScheduleSnapshotHistoryManagerTest {
 
     @Test
     void chatMessage의_snapshot을_history로_저장한다() {
+        // given
+        when(chatMessage.currentSnapshot()).thenReturn(currentSnapshot);
+
         // when
         manager.save(chatMessage);
 
         // then
-        verify(scheduleSnapshotHistoryRepository)
-                .save(any(ScheduleSnapshotHistory.class));
+        ArgumentCaptor<ScheduleSnapshotHistory> captor =
+                ArgumentCaptor.forClass(ScheduleSnapshotHistory.class);
+
+        verify(scheduleSnapshotHistoryRepository).save(captor.capture());
+
+        ScheduleSnapshotHistory savedHistory = captor.getValue();
+
+        assertThat(savedHistory.getScheduleSnapshot())
+                .isSameAs(currentSnapshot);
+
+        verify(chatMessage).currentSnapshot();
     }
 
     @Test
