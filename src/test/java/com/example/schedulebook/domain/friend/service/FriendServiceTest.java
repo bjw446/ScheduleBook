@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -64,15 +65,12 @@ class FriendServiceTest {
     private User receiver;
 
     @Mock
-    private Friend friend;
-
-    @Mock
     private FriendResponse friendResponse;
 
     private FriendService friendService;
 
     private static final Long CURRENT_USER_ID = 1L;
-    private static final Long RECEIVER_ID = 2L;
+    private static final Long OTHER_USER_ID = 2L;
     private static final Long FRIEND_ID = 10L;
 
     @BeforeEach
@@ -88,39 +86,43 @@ class FriendServiceTest {
 
     @Test
     void 친구_요청이_정상이면_친구관계를_저장하고_requested_event를_outbox에_저장한다() {
-        // given
-        when(friendRequest.receiverId()).thenReturn(RECEIVER_ID);
 
-        when(requester.getId()).thenReturn(CURRENT_USER_ID);
-        when(receiver.getId()).thenReturn(RECEIVER_ID);
-        when(requester.getNickname()).thenReturn("requester");
+        // given
+        when(friendRequest.receiverId())
+                .thenReturn(OTHER_USER_ID);
+
+        when(requester.getId())
+                .thenReturn(CURRENT_USER_ID);
+
+        when(receiver.getId())
+                .thenReturn(OTHER_USER_ID);
+
+        when(requester.getNickname())
+                .thenReturn("requester");
 
         when(userValidator.validateActiveUser(CURRENT_USER_ID))
                 .thenReturn(requester);
-        when(userValidator.validateActiveUser(RECEIVER_ID))
+
+        when(userValidator.validateActiveUser(OTHER_USER_ID))
                 .thenReturn(receiver);
 
         when(friendRepository.findRelation(
                 CURRENT_USER_ID,
-                RECEIVER_ID
+                OTHER_USER_ID
         )).thenReturn(Optional.empty());
 
-        Friend savedFriend = mock(Friend.class);
+        when(friendRepository.save(any(Friend.class)))
+                .thenAnswer(invocation ->
+                        invocation.getArgument(0));
 
-        when(savedFriend.getId()).thenReturn(FRIEND_ID);
+        try (MockedStatic<FriendResponse> mockedResponse =
+                     mockStatic(FriendResponse.class)) {
 
-        try (MockedStatic<Friend> mockedFriend = mockStatic(Friend.class);
-             MockedStatic<FriendResponse> mockedResponse = mockStatic(FriendResponse.class)) {
-
-            mockedFriend.when(() ->
-                    Friend.request(requester, receiver)
-            ).thenReturn(friend);
-
-            when(friendRepository.save(friend))
-                    .thenReturn(savedFriend);
+            ArgumentCaptor<Friend> friendCaptor =
+                    ArgumentCaptor.forClass(Friend.class);
 
             mockedResponse.when(() ->
-                    FriendResponse.from(savedFriend)
+                    FriendResponse.from(any(Friend.class))
             ).thenReturn(friendResponse);
 
             // when
@@ -131,46 +133,84 @@ class FriendServiceTest {
                     );
 
             // then
-            assertThat(result).isSameAs(friendResponse);
+            assertThat(result)
+                    .isSameAs(friendResponse);
 
             verify(friendValidator)
-                    .validateMyself(RECEIVER_ID, CURRENT_USER_ID);
+                    .validateMyself(
+                            OTHER_USER_ID,
+                            CURRENT_USER_ID
+                    );
+
+            verify(userValidator)
+                    .validateActiveUser(CURRENT_USER_ID);
+
+            verify(userValidator)
+                    .validateActiveUser(OTHER_USER_ID);
 
             verify(friendRepository)
                     .findRelation(
                             CURRENT_USER_ID,
-                            RECEIVER_ID
+                            OTHER_USER_ID
                     );
 
             verify(friendRepository)
-                    .save(friend);
+                    .save(friendCaptor.capture());
+
+            Friend savedFriend =
+                    friendCaptor.getValue();
+
+            /*
+             * 실제 서비스가 생성한 Friend 객체를 검증한다.
+             */
+            assertThat(savedFriend.getId())
+                    .isNull();
+
+            assertThat(savedFriend.getRequester())
+                    .isSameAs(requester);
+
+            assertThat(savedFriend.getReceiver())
+                    .isSameAs(receiver);
+
+            assertThat(savedFriend.getFriendStatus())
+                    .isEqualTo(FriendStatus.PENDING);
+
+            ArgumentCaptor<String> eventIdCaptor =
+                    ArgumentCaptor.forClass(String.class);
 
             ArgumentCaptor<FriendRequestedEvent> eventCaptor =
-                    ArgumentCaptor.forClass(FriendRequestedEvent.class);
+                    ArgumentCaptor.forClass(
+                            FriendRequestedEvent.class
+                    );
 
             verify(outboxService).save(
-                    anyString(),
+                    eventIdCaptor.capture(),
                     eq(OutboxAggregateType.FRIEND),
-                    eq(String.valueOf(FRIEND_ID)),
+                    eq(String.valueOf(savedFriend.getId())),
                     eq(OutboxEventType.FRIEND_REQUESTED),
                     eventCaptor.capture()
             );
 
-            FriendRequestedEvent event = eventCaptor.getValue();
+            FriendRequestedEvent event =
+                    eventCaptor.getValue();
+
+            assertThat(event.eventId())
+                    .isEqualTo(eventIdCaptor.getValue());
 
             assertThat(event.receiverId())
-                    .isEqualTo(RECEIVER_ID);
+                    .isEqualTo(OTHER_USER_ID);
 
             assertThat(event.requesterNickname())
                     .isEqualTo("requester");
 
-            verify(savedFriend, times(2))
-                    .getId();
+            assertThat(event.friendId())
+                    .isEqualTo(savedFriend.getId());
         }
     }
 
     @Test
     void 자기_자신에게_친구_요청하면_이후_로직을_실행하지_않는다() {
+
         // given
         when(friendRequest.receiverId())
                 .thenReturn(CURRENT_USER_ID);
@@ -182,7 +222,8 @@ class FriendServiceTest {
                         CURRENT_USER_ID
                 );
 
-        // when & then
+        // when
+        // then
         assertThatThrownBy(() ->
                 friendService.requestFriend(
                         friendRequest,
@@ -204,31 +245,44 @@ class FriendServiceTest {
 
     @Test
     void 기존_관계가_있으면_새로운_친구관계를_생성하지_않고_재요청한다() {
+
         // given
         when(friendRequest.receiverId())
-                .thenReturn(RECEIVER_ID);
+                .thenReturn(OTHER_USER_ID);
 
         when(requester.getId())
                 .thenReturn(CURRENT_USER_ID);
 
         when(receiver.getId())
-                .thenReturn(RECEIVER_ID);
+                .thenReturn(OTHER_USER_ID);
 
         when(requester.getNickname())
                 .thenReturn("requester");
 
-        when(friend.getId())
-                .thenReturn(FRIEND_ID);
-
         when(userValidator.validateActiveUser(CURRENT_USER_ID))
                 .thenReturn(requester);
 
-        when(userValidator.validateActiveUser(RECEIVER_ID))
+        when(userValidator.validateActiveUser(OTHER_USER_ID))
                 .thenReturn(receiver);
+
+        Friend friend =
+                Friend.request(
+                        requester,
+                        receiver
+                );
+
+        ReflectionTestUtils.setField(
+                friend,
+                "id",
+                FRIEND_ID
+        );
+
+        // 기존 관계를 REJECTED 상태로 만든다.
+        friend.rejectFriend();
 
         when(friendRepository.findRelation(
                 CURRENT_USER_ID,
-                RECEIVER_ID
+                OTHER_USER_ID
         )).thenReturn(Optional.of(friend));
 
         try (MockedStatic<FriendResponse> mockedResponse =
@@ -249,39 +303,70 @@ class FriendServiceTest {
             assertThat(result)
                     .isSameAs(friendResponse);
 
+            assertThat(friend.getFriendStatus())
+                    .isEqualTo(FriendStatus.PENDING);
+
+            assertThat(friend.getRequester())
+                    .isSameAs(requester);
+
+            assertThat(friend.getReceiver())
+                    .isSameAs(receiver);
+
             verify(friendValidator)
                     .validateFriendStatus(friend);
-
-            verify(friend)
-                    .reRequest(requester, receiver);
 
             verify(friendRepository, never())
                     .save(any(Friend.class));
 
+            ArgumentCaptor<String> eventIdCaptor =
+                    ArgumentCaptor.forClass(String.class);
+
+            ArgumentCaptor<FriendRequestedEvent> eventCaptor =
+                    ArgumentCaptor.forClass(
+                            FriendRequestedEvent.class
+                    );
+
             verify(outboxService).save(
-                    anyString(),
+                    eventIdCaptor.capture(),
                     eq(OutboxAggregateType.FRIEND),
                     eq(String.valueOf(FRIEND_ID)),
                     eq(OutboxEventType.FRIEND_REQUESTED),
-                    any(FriendRequestedEvent.class)
+                    eventCaptor.capture()
             );
+
+            FriendRequestedEvent event =
+                    eventCaptor.getValue();
+
+            assertThat(event.eventId())
+                    .isEqualTo(eventIdCaptor.getValue());
+
+            assertThat(event.receiverId())
+                    .isEqualTo(OTHER_USER_ID);
+
+            assertThat(event.requesterNickname())
+                    .isEqualTo("requester");
+
+            assertThat(event.friendId())
+                    .isEqualTo(FRIEND_ID);
         }
     }
 
     @Test
     void 수신_사용자가_존재하지_않으면_친구관계를_생성하지_않는다() {
+
         // given
         when(friendRequest.receiverId())
-                .thenReturn(RECEIVER_ID);
+                .thenReturn(OTHER_USER_ID);
 
         when(userValidator.validateActiveUser(CURRENT_USER_ID))
                 .thenReturn(requester);
 
         doThrow(new BaseException(ErrorEnum.USER_NOT_FOUND))
                 .when(userValidator)
-                .validateActiveUser(RECEIVER_ID);
+                .validateActiveUser(OTHER_USER_ID);
 
-        // when & then
+        // when
+        // then
         assertThatThrownBy(() ->
                 friendService.requestFriend(
                         friendRequest,
@@ -302,66 +387,70 @@ class FriendServiceTest {
 
     @Test
     void 친구관계_저장중_중복_무결성_예외가_발생하면_ALREADY_EXISTS로_변환한다() {
+
         // given
         when(friendRequest.receiverId())
-                .thenReturn(RECEIVER_ID);
+                .thenReturn(OTHER_USER_ID);
 
         when(requester.getId())
                 .thenReturn(CURRENT_USER_ID);
 
         when(receiver.getId())
-                .thenReturn(RECEIVER_ID);
+                .thenReturn(OTHER_USER_ID);
 
         when(userValidator.validateActiveUser(CURRENT_USER_ID))
                 .thenReturn(requester);
 
-        when(userValidator.validateActiveUser(RECEIVER_ID))
+        when(userValidator.validateActiveUser(OTHER_USER_ID))
                 .thenReturn(receiver);
 
         when(friendRepository.findRelation(
                 CURRENT_USER_ID,
-                RECEIVER_ID
+                OTHER_USER_ID
         )).thenReturn(Optional.empty());
 
-        try (MockedStatic<Friend> mockedFriend =
-                     mockStatic(Friend.class)) {
+        when(friendRepository.save(any(Friend.class)))
+                .thenThrow(
+                        new DataIntegrityViolationException(
+                                "duplicate"
+                        )
+                );
 
-            mockedFriend.when(() ->
-                    Friend.request(requester, receiver)
-            ).thenReturn(friend);
+        // when
+        // then
+        assertThatThrownBy(() ->
+                friendService.requestFriend(
+                        friendRequest,
+                        CURRENT_USER_ID
+                )
+        )
+                .isInstanceOf(BaseException.class)
+                .extracting(exception ->
+                        ((BaseException) exception).getErrorEnum()
+                )
+                .isEqualTo(ErrorEnum.FRIEND_ALREADY_EXISTS);
 
-            when(friendRepository.save(friend))
-                    .thenThrow(
-                            new DataIntegrityViolationException("duplicate")
-                    );
+        verify(friendRepository)
+                .save(any(Friend.class));
 
-            // when & then
-            assertThatThrownBy(() ->
-                    friendService.requestFriend(
-                            friendRequest,
-                            CURRENT_USER_ID
-                    )
-            )
-                    .isInstanceOf(BaseException.class)
-                    .extracting(exception ->
-                            ((BaseException) exception).getErrorEnum()
-                    )
-                    .isEqualTo(ErrorEnum.FRIEND_ALREADY_EXISTS);
-
-            verifyNoInteractions(outboxService);
-        }
+        verifyNoInteractions(outboxService);
     }
 
     @Test
     void 친구_목록은_ACCEPTED_친구와_온라인_상태를_반환한다() {
+
         // given
-        User friendUser = mock(User.class);
+        User friendUser =
+                mock(User.class);
+
+        Friend friend =
+                mock(Friend.class);
 
         when(friend.getId())
                 .thenReturn(FRIEND_ID);
 
         when(friendUser.getId())
-                .thenReturn(RECEIVER_ID);
+                .thenReturn(OTHER_USER_ID);
 
         when(friendRepository.findAcceptedFriends(
                 CURRENT_USER_ID,
@@ -374,9 +463,9 @@ class FriendServiceTest {
         )).thenReturn(friendUser);
 
         when(redisPresenceService.getOnlineStatuses(
-                List.of(RECEIVER_ID)
+                List.of(OTHER_USER_ID)
         )).thenReturn(Map.of(
-                RECEIVER_ID,
+                OTHER_USER_ID,
                 true
         ));
 
@@ -421,14 +510,21 @@ class FriendServiceTest {
 
             verify(redisPresenceService)
                     .getOnlineStatuses(
-                            List.of(RECEIVER_ID)
+                            List.of(OTHER_USER_ID)
                     );
         }
     }
 
     @Test
     void 받은_친구_요청은_PENDING_상태로_조회한다() {
+
         // given
+        Friend friend =
+                Friend.request(
+                        requester,
+                        receiver
+                );
+
         when(friendRepository.findReceivedRequests(
                 CURRENT_USER_ID,
                 FriendStatus.PENDING
@@ -467,7 +563,14 @@ class FriendServiceTest {
 
     @Test
     void 보낸_친구_요청은_PENDING_상태로_조회한다() {
+
         // given
+        Friend friend =
+                Friend.request(
+                        requester,
+                        receiver
+                );
+
         when(friendRepository.findSentRequests(
                 CURRENT_USER_ID,
                 FriendStatus.PENDING
@@ -505,22 +608,28 @@ class FriendServiceTest {
     }
 
     @Test
-    void 친구_요청을_수락하면_ACCEPTED로_변경하고_accepted_event를_저장한다() {
+    void 친구_요청을_수락하면_실제_Friend_상태가_ACCEPTED로_변경되고_accepted_event를_저장한다() {
+
         // given
-        when(friend.getRequester())
-                .thenReturn(requester);
-
-        when(friend.getReceiver())
-                .thenReturn(receiver);
-
-        when(friend.getId())
-                .thenReturn(FRIEND_ID);
-
+        // requester = 2L
+        // receiver = 1L = 현재 사용자
         when(requester.getId())
-                .thenReturn(CURRENT_USER_ID);
+                .thenReturn(OTHER_USER_ID);
 
         when(receiver.getNickname())
                 .thenReturn("receiver");
+
+        Friend friend =
+                Friend.request(
+                        requester,
+                        receiver
+                );
+
+        ReflectionTestUtils.setField(
+                friend,
+                "id",
+                FRIEND_ID
+        );
 
         when(friendValidator.validateFriend(FRIEND_ID))
                 .thenReturn(friend);
@@ -546,6 +655,9 @@ class FriendServiceTest {
             assertThat(result)
                     .isSameAs(response);
 
+            assertThat(friend.getFriendStatus())
+                    .isEqualTo(FriendStatus.ACCEPTED);
+
             verify(userValidator)
                     .validateActiveUser(CURRENT_USER_ID);
 
@@ -561,22 +673,49 @@ class FriendServiceTest {
             verify(friendValidator)
                     .validatePending(friend);
 
-            verify(friend)
-                    .acceptFriend();
+            ArgumentCaptor<String> eventIdCaptor =
+                    ArgumentCaptor.forClass(String.class);
+
+            ArgumentCaptor<FriendAcceptedEvent> eventCaptor =
+                    ArgumentCaptor.forClass(
+                            FriendAcceptedEvent.class
+                    );
 
             verify(outboxService).save(
-                    anyString(),
+                    eventIdCaptor.capture(),
                     eq(OutboxAggregateType.FRIEND),
                     eq(String.valueOf(FRIEND_ID)),
                     eq(OutboxEventType.FRIEND_ACCEPTED),
-                    any(FriendAcceptedEvent.class)
+                    eventCaptor.capture()
             );
+
+            FriendAcceptedEvent event =
+                    eventCaptor.getValue();
+
+            assertThat(event.eventId())
+                    .isEqualTo(eventIdCaptor.getValue());
+
+            assertThat(event.requesterId())
+                    .isEqualTo(OTHER_USER_ID);
+
+            assertThat(event.accepterNickname())
+                    .isEqualTo("receiver");
+
+            assertThat(event.friendId())
+                    .isEqualTo(FRIEND_ID);
         }
     }
 
     @Test
-    void 친구_요청을_거절하면_REJECTED로_변경한다() {
+    void 친구_요청을_거절하면_실제_Friend_상태가_REJECTED로_변경된다() {
+
         // given
+        Friend friend =
+                Friend.request(
+                        requester,
+                        receiver
+                );
+
         when(friendValidator.validateFriend(FRIEND_ID))
                 .thenReturn(friend);
 
@@ -587,6 +726,9 @@ class FriendServiceTest {
         );
 
         // then
+        assertThat(friend.getFriendStatus())
+                .isEqualTo(FriendStatus.REJECTED);
+
         verify(userValidator)
                 .validateActiveUser(CURRENT_USER_ID);
 
@@ -602,15 +744,19 @@ class FriendServiceTest {
         verify(friendValidator)
                 .validatePending(friend);
 
-        verify(friend)
-                .rejectFriend();
-
         verifyNoInteractions(outboxService);
     }
 
     @Test
-    void 친구를_차단하면_BLOCKED로_변경한다() {
+    void 친구를_차단하면_실제_Friend_상태가_BLOCKED로_변경된다() {
+
         // given
+        Friend friend =
+                Friend.request(
+                        requester,
+                        receiver
+                );
+
         when(friendValidator.validateFriend(FRIEND_ID))
                 .thenReturn(friend);
 
@@ -621,6 +767,9 @@ class FriendServiceTest {
         );
 
         // then
+        assertThat(friend.getFriendStatus())
+                .isEqualTo(FriendStatus.BLOCKED);
+
         verify(userValidator)
                 .validateActiveUser(CURRENT_USER_ID);
 
@@ -633,15 +782,22 @@ class FriendServiceTest {
                         CURRENT_USER_ID
                 );
 
-        verify(friend)
-                .block();
-
         verifyNoInteractions(outboxService);
     }
 
     @Test
-    void 친구를_삭제하면_DELETED로_변경한다() {
+    void 친구를_삭제하면_실제_Friend_상태가_DELETED로_변경된다() {
+
         // given
+        Friend friend =
+                Friend.request(
+                        requester,
+                        receiver
+                );
+
+        // deleteFriend()는 ACCEPTED 상태에서만 가능
+        friend.acceptFriend();
+
         when(friendValidator.validateFriend(FRIEND_ID))
                 .thenReturn(friend);
 
@@ -652,6 +808,9 @@ class FriendServiceTest {
         );
 
         // then
+        assertThat(friend.getFriendStatus())
+                .isEqualTo(FriendStatus.DELETED);
+
         verify(userValidator)
                 .validateActiveUser(CURRENT_USER_ID);
 
@@ -667,21 +826,20 @@ class FriendServiceTest {
         verify(friendValidator)
                 .validateDeletable(friend);
 
-        verify(friend)
-                .deleteFriend();
-
         verifyNoInteractions(outboxService);
     }
 
     @Test
     void 사용자_탈퇴시_모든_친구관계를_삭제한다() {
+
+        // given
+        Long userId = CURRENT_USER_ID;
+
         // when
-        friendService.removeAllFriendRelations(
-                CURRENT_USER_ID
-        );
+        friendService.removeAllFriendRelations(userId);
 
         // then
         verify(friendRepository)
-                .deleteAllByUserId(CURRENT_USER_ID);
+                .deleteAllByUserId(userId);
     }
 }
