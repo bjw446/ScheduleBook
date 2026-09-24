@@ -112,8 +112,17 @@ class FriendServiceTest {
         )).thenReturn(Optional.empty());
 
         when(friendRepository.save(any(Friend.class)))
-                .thenAnswer(invocation ->
-                        invocation.getArgument(0));
+                .thenAnswer(invocation -> {
+                    Friend savedFriend = invocation.getArgument(0);
+
+                    ReflectionTestUtils.setField(
+                            savedFriend,
+                            "id",
+                            FRIEND_ID
+                    );
+
+                    return savedFriend;
+                });
 
         try (MockedStatic<FriendResponse> mockedResponse =
                      mockStatic(FriendResponse.class)) {
@@ -160,11 +169,8 @@ class FriendServiceTest {
             Friend savedFriend =
                     friendCaptor.getValue();
 
-            /*
-             * 실제 서비스가 생성한 Friend 객체를 검증한다.
-             */
             assertThat(savedFriend.getId())
-                    .isNull();
+                    .isEqualTo(FRIEND_ID);
 
             assertThat(savedFriend.getRequester())
                     .isSameAs(requester);
@@ -186,7 +192,7 @@ class FriendServiceTest {
             verify(outboxService).save(
                     eventIdCaptor.capture(),
                     eq(OutboxAggregateType.FRIEND),
-                    eq(String.valueOf(savedFriend.getId())),
+                    eq(String.valueOf(FRIEND_ID)),
                     eq(OutboxEventType.FRIEND_REQUESTED),
                     eventCaptor.capture()
             );
@@ -197,6 +203,9 @@ class FriendServiceTest {
             assertThat(event.eventId())
                     .isEqualTo(eventIdCaptor.getValue());
 
+            assertThat(eventIdCaptor.getValue())
+                    .isNotBlank();
+
             assertThat(event.receiverId())
                     .isEqualTo(OTHER_USER_ID);
 
@@ -204,7 +213,7 @@ class FriendServiceTest {
                     .isEqualTo("requester");
 
             assertThat(event.friendId())
-                    .isEqualTo(savedFriend.getId());
+                    .isEqualTo(FRIEND_ID);
         }
     }
 
