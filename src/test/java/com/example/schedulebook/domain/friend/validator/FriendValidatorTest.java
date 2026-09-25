@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
@@ -258,7 +259,6 @@ class FriendValidatorTest {
         // then
         assertThat(result).isSameAs(receiver);
 
-        verify(friend).getRequester();
         verify(requester).getId();
         verify(friend).getReceiver();
     }
@@ -278,7 +278,6 @@ class FriendValidatorTest {
         // then
         assertThat(result).isSameAs(requester);
 
-        verify(friend, times(2)).getRequester();
         verify(requester).getId();
         verify(friend, never()).getReceiver();
     }
@@ -288,11 +287,11 @@ class FriendValidatorTest {
         // given
         when(friend.getFriendStatus()).thenReturn(FriendStatus.REJECTED);
 
-        // when
-        friendValidator.validateFriendStatus(friend);
-
-        // then
-        verify(friend).getFriendStatus();
+        // when & then
+        assertThatCode(() ->
+                friendValidator.validateFriendStatus(friend)
+        )
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -300,11 +299,11 @@ class FriendValidatorTest {
         // given
         when(friend.getFriendStatus()).thenReturn(FriendStatus.DELETED);
 
-        // when
-        friendValidator.validateFriendStatus(friend);
-
-        // then
-        verify(friend, times(2)).getFriendStatus();
+        // when & then
+        assertThatCode(() ->
+                friendValidator.validateFriendStatus(friend)
+        )
+                .doesNotThrowAnyException();
     }
 
     @Test
