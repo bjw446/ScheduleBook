@@ -821,10 +821,13 @@ class ChatRoomServiceTest {
 
         // then
         assertThat(response).isNotNull();
+        assertThat(response.roomName())
+                .isEqualTo("알 수 없음");
 
         verify(chatRoomMemberRepository)
                 .findOpponentInfo(ROOM_ID, USER_ID);
     }
+
 
     @Test
     void findChatRoom_1대1_채팅방에서_삭제된_상대방이면_알수없음_닉네임을_사용한다() {
@@ -859,6 +862,8 @@ class ChatRoomServiceTest {
 
         // then
         assertThat(response).isNotNull();
+        assertThat(response.roomName())
+                .isEqualTo("알 수 없음");
 
         verify(opponent)
                 .getUserDeletedAt();
@@ -886,8 +891,7 @@ class ChatRoomServiceTest {
 
         // then
         assertThat(response).isNotNull();
-
-        assertThat(chatRoom.getName())
+        assertThat(response.roomName())
                 .isEqualTo("스터디방");
 
         verify(chatRoomMemberRepository, never())
