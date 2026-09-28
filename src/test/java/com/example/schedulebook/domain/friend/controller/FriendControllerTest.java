@@ -143,7 +143,7 @@ class FriendControllerTest {
         );
 
         when(friendService.requestFriend(
-                any(FriendRequest.class),
+                eq(request),
                 eq(USER_ID)
         )).thenReturn(response);
 
@@ -167,7 +167,7 @@ class FriendControllerTest {
                         .value(FriendStatus.PENDING.name()));
 
         verify(friendService)
-                .requestFriend(any(FriendRequest.class), eq(USER_ID));
+                .requestFriend(eq(request), eq(USER_ID));
     }
 
     @Test
