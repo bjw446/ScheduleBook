@@ -1,6 +1,7 @@
 package com.example.schedulebook.domain.chatroom.service;
 
 import com.example.schedulebook.domain.chatmessage.dto.request.PublishChatMessage;
+import com.example.schedulebook.domain.chatmessage.entity.ChatMessage;
 import com.example.schedulebook.domain.chatmessage.publisher.ChatMessagePublisher;
 import com.example.schedulebook.domain.chatmessage.service.ChatMessageManager;
 import com.example.schedulebook.domain.chatroom.entity.ChatRoom;
@@ -19,10 +20,12 @@ class ChatRoomLifecycleManagerTest {
     private ChatMessageManager chatMessageManager;
     private ChatMessagePublisher chatMessagePublisher;
     private ChatRoomLifecycleManager chatRoomLifecycleManager;
+
     private ChatRoom chatRoom;
     private User owner;
     private User inviter;
     private User invitedUser;
+    private ChatMessage chatMessage;
     private PublishChatMessage publishChatMessage;
 
     @BeforeEach
@@ -40,9 +43,10 @@ class ChatRoomLifecycleManagerTest {
         inviter = mock(User.class);
         invitedUser = mock(User.class);
 
+        chatMessage = mock(ChatMessage.class);
         publishChatMessage = mock(PublishChatMessage.class);
 
-        when(publishChatMessage.chatMessage()).thenReturn(null);
+        when(publishChatMessage.chatMessage()).thenReturn(chatMessage);
         when(publishChatMessage.unreadCount()).thenReturn(3);
     }
 
@@ -60,7 +64,7 @@ class ChatRoomLifecycleManagerTest {
                 .createGroupRoomSystemMessage(chatRoom, owner);
 
         verify(chatMessagePublisher)
-                .publishMessage(null, 3);
+                .publishMessage(chatMessage, 3);
     }
 
     @Test
@@ -90,7 +94,7 @@ class ChatRoomLifecycleManagerTest {
                 );
 
         verify(chatMessagePublisher)
-                .publishMessage(null, 3);
+                .publishMessage(chatMessage, 3);
     }
 
     @Test
@@ -124,7 +128,7 @@ class ChatRoomLifecycleManagerTest {
                 );
 
         verify(chatMessagePublisher)
-                .publishMessage(null, 3);
+                .publishMessage(chatMessage, 3);
     }
 
     @Test
@@ -143,7 +147,7 @@ class ChatRoomLifecycleManagerTest {
                 .createLeaveSystemMessage(chatRoom, nickname);
 
         verify(chatMessagePublisher)
-                .publishMessage(null, 3);
+                .publishMessage(chatMessage, 3);
     }
 
     @Test
