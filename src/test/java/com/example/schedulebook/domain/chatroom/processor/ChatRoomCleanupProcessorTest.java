@@ -137,4 +137,31 @@ class ChatRoomCleanupProcessorTest {
         verify(chatRoomService, never())
                 .removeAllChatRelations(anyLong());
     }
+
+    @Test
+    void process_채팅방_관계_정리_중_예외가_발생하면_LoggingExecutor가_false를_반환한다() {
+        // given
+        loggingExecutor = new LoggingExecutor();
+
+        chatRoomCleanupProcessor = new ChatRoomCleanupProcessor(
+                chatRoomService,
+                loggingExecutor
+        );
+
+        doThrow(new RuntimeException("cleanup failed"))
+                .when(chatRoomService)
+                .removeAllChatRelations(USER_ID);
+
+        // when
+        boolean result = chatRoomCleanupProcessor.process(
+                OUTBOX_ID,
+                USER_ID
+        );
+
+        // then
+        assertThat(result).isFalse();
+
+        verify(chatRoomService)
+                .removeAllChatRelations(USER_ID);
+    }
 }
