@@ -262,22 +262,21 @@ class ChatMessagePublisherTest {
                         secondUnreadCount
                 );
 
-        // afterCommitExecutor에 등록된 Runnable을 실제 실행한다.
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(0);
-            runnable.run();
-            return null;
-        }).when(afterCommitExecutor)
-                .execute(any(Runnable.class));
-
         // when
         chatMessagePublisher.publishMessages(
                 List.of(firstMessage, secondMessage)
         );
 
         // then
+        ArgumentCaptor<Runnable> runnableCaptor =
+                ArgumentCaptor.forClass(Runnable.class);
+
         verify(afterCommitExecutor)
-                .execute(any(Runnable.class));
+                .execute(runnableCaptor.capture());
+
+        verifyNoInteractions(webSocketPublisher);
+
+        runnableCaptor.getValue().run();
 
         ArgumentCaptor<String> destinationCaptor =
                 ArgumentCaptor.forClass(String.class);
