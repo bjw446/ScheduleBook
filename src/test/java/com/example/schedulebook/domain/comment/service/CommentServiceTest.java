@@ -247,14 +247,28 @@ class CommentServiceTest {
         assertThat(savedComment.getContent())
                 .isEqualTo("대댓글입니다.");
 
+        ArgumentCaptor<Object> payloadCaptor =
+                ArgumentCaptor.forClass(Object.class);
+
         verify(outboxService, org.mockito.Mockito.times(2))
                 .save(
                         anyString(),
                         eq(OutboxAggregateType.COMMENT),
                         anyString(),
                         any(OutboxEventType.class),
-                        any()
+                        payloadCaptor.capture()
                 );
+
+        CommentCreatedEvent createdEvent =
+                payloadCaptor.getAllValues()
+                        .stream()
+                        .filter(CommentCreatedEvent.class::isInstance)
+                        .map(CommentCreatedEvent.class::cast)
+                        .findFirst()
+                        .orElseThrow();
+
+        assertThat(createdEvent.parentCommentId())
+                .isEqualTo(PARENT_COMMENT_ID);
 
         verify(scheduleRepository)
                 .increaseCommentCount(SCHEDULE_ID);
@@ -375,8 +389,12 @@ class CommentServiceTest {
 
         Schedule schedule = mock(Schedule.class);
 
-        Comment parent = mock(Comment.class);
-        Comment reply = mock(Comment.class);
+        Comment parent1 = mock(Comment.class);
+        Comment parent2 = mock(Comment.class);
+
+        Comment reply1 = mock(Comment.class);
+        Comment reply2 = mock(Comment.class);
+        Comment reply3 = mock(Comment.class);
 
         when(user.getId())
                 .thenReturn(USER_ID);
@@ -395,21 +413,22 @@ class CommentServiceTest {
         when(schedule.getId())
                 .thenReturn(SCHEDULE_ID);
         when(schedule.getCommentCount())
-                .thenReturn(3);
+                .thenReturn(5);
 
-        when(parent.getId())
+        // 부모 댓글 1
+        when(parent1.getId())
                 .thenReturn(COMMENT_ID);
-        when(parent.getParent())
+        when(parent1.getParent())
                 .thenReturn(null);
-        when(parent.getWriter())
+        when(parent1.getWriter())
                 .thenReturn(user);
-        when(parent.getContent())
-                .thenReturn("부모 댓글");
-        when(parent.isEdited())
+        when(parent1.getContent())
+                .thenReturn("부모 댓글 1");
+        when(parent1.isEdited())
                 .thenReturn(false);
-        when(parent.isDeleted())
+        when(parent1.isDeleted())
                 .thenReturn(false);
-        when(parent.getCreatedAt())
+        when(parent1.getCreatedAt())
                 .thenReturn(
                         LocalDateTime.of(
                                 2026,
@@ -420,19 +439,44 @@ class CommentServiceTest {
                         )
                 );
 
-        when(reply.getId())
-                .thenReturn(101L);
-        when(reply.getParent())
-                .thenReturn(parent);
-        when(reply.getWriter())
+        // 부모 댓글 2
+        when(parent2.getId())
+                .thenReturn(PARENT_COMMENT_ID);
+        when(parent2.getParent())
+                .thenReturn(null);
+        when(parent2.getWriter())
                 .thenReturn(otherUser);
-        when(reply.getContent())
-                .thenReturn("대댓글");
-        when(reply.isEdited())
+        when(parent2.getContent())
+                .thenReturn("부모 댓글 2");
+        when(parent2.isEdited())
                 .thenReturn(false);
-        when(reply.isDeleted())
+        when(parent2.isDeleted())
                 .thenReturn(false);
-        when(reply.getCreatedAt())
+        when(parent2.getCreatedAt())
+                .thenReturn(
+                        LocalDateTime.of(
+                                2026,
+                                10,
+                                1,
+                                10,
+                                1
+                        )
+                );
+
+        // 부모 1의 답글 1
+        when(reply1.getId())
+                .thenReturn(101L);
+        when(reply1.getParent())
+                .thenReturn(parent1);
+        when(reply1.getWriter())
+                .thenReturn(otherUser);
+        when(reply1.getContent())
+                .thenReturn("부모 1의 답글 1");
+        when(reply1.isEdited())
+                .thenReturn(false);
+        when(reply1.isDeleted())
+                .thenReturn(false);
+        when(reply1.getCreatedAt())
                 .thenReturn(
                         LocalDateTime.of(
                                 2026,
@@ -440,6 +484,54 @@ class CommentServiceTest {
                                 1,
                                 10,
                                 5
+                        )
+                );
+
+        // 부모 1의 답글 2
+        when(reply2.getId())
+                .thenReturn(102L);
+        when(reply2.getParent())
+                .thenReturn(parent1);
+        when(reply2.getWriter())
+                .thenReturn(user);
+        when(reply2.getContent())
+                .thenReturn("부모 1의 답글 2");
+        when(reply2.isEdited())
+                .thenReturn(false);
+        when(reply2.isDeleted())
+                .thenReturn(false);
+        when(reply2.getCreatedAt())
+                .thenReturn(
+                        LocalDateTime.of(
+                                2026,
+                                10,
+                                1,
+                                10,
+                                6
+                        )
+                );
+
+        // 부모 2의 답글
+        when(reply3.getId())
+                .thenReturn(103L);
+        when(reply3.getParent())
+                .thenReturn(parent2);
+        when(reply3.getWriter())
+                .thenReturn(otherUser);
+        when(reply3.getContent())
+                .thenReturn("부모 2의 답글");
+        when(reply3.isEdited())
+                .thenReturn(false);
+        when(reply3.isDeleted())
+                .thenReturn(false);
+        when(reply3.getCreatedAt())
+                .thenReturn(
+                        LocalDateTime.of(
+                                2026,
+                                10,
+                                1,
+                                10,
+                                7
                         )
                 );
 
@@ -452,10 +544,13 @@ class CommentServiceTest {
         )).thenReturn(schedule);
 
         when(commentRepository.findParentComments(SCHEDULE_ID))
-                .thenReturn(List.of(parent));
+                .thenReturn(List.of(parent1, parent2));
 
-        when(commentRepository.findReplies(List.of(COMMENT_ID)))
-                .thenReturn(List.of(reply));
+        when(commentRepository.findReplies(
+                List.of(COMMENT_ID, PARENT_COMMENT_ID)
+        )).thenReturn(
+                List.of(reply1, reply2, reply3)
+        );
 
         // when
         ScheduleCommentListResponse result =
@@ -469,61 +564,86 @@ class CommentServiceTest {
                 .isEqualTo(SCHEDULE_ID);
 
         assertThat(result.commentCount())
-                .isEqualTo(3);
+                .isEqualTo(5);
 
         assertThat(result.comments())
-                .hasSize(1);
+                .hasSize(2);
 
-        ScheduleCommentResponse parentResponse =
+        ScheduleCommentResponse parent1Response =
                 result.comments().get(0);
 
-        assertThat(parentResponse.id())
+        assertThat(parent1Response.id())
                 .isEqualTo(COMMENT_ID);
 
-        assertThat(parentResponse.parentId())
+        assertThat(parent1Response.parentId())
                 .isNull();
 
-        assertThat(parentResponse.writerId())
+        assertThat(parent1Response.writerId())
                 .isEqualTo(USER_ID);
 
-        assertThat(parentResponse.writerNickname())
+        assertThat(parent1Response.writerNickname())
                 .isEqualTo("작성자");
 
-        assertThat(parentResponse.content())
-                .isEqualTo("부모 댓글");
+        assertThat(parent1Response.content())
+                .isEqualTo("부모 댓글 1");
 
-        assertThat(parentResponse.mine())
+        assertThat(parent1Response.mine())
                 .isTrue();
 
-        assertThat(parentResponse.replies())
-                .hasSize(1);
+        assertThat(parent1Response.replies())
+                .hasSize(2);
 
-        ScheduleCommentResponse replyResponse =
-                parentResponse.replies().get(0);
+        assertThat(parent1Response.replies())
+                .extracting(ScheduleCommentResponse::id)
+                .containsExactly(101L, 102L);
 
-        assertThat(replyResponse.id())
-                .isEqualTo(101L);
+        assertThat(parent1Response.replies())
+                .extracting(ScheduleCommentResponse::parentId)
+                .containsOnly(COMMENT_ID);
 
-        assertThat(replyResponse.parentId())
-                .isEqualTo(COMMENT_ID);
+        assertThat(parent1Response.replies())
+                .extracting(ScheduleCommentResponse::mine)
+                .containsExactly(false, true);
 
-        assertThat(replyResponse.writerId())
+        ScheduleCommentResponse parent2Response =
+                result.comments().get(1);
+
+        assertThat(parent2Response.id())
+                .isEqualTo(PARENT_COMMENT_ID);
+
+        assertThat(parent2Response.parentId())
+                .isNull();
+
+        assertThat(parent2Response.writerId())
                 .isEqualTo(OTHER_USER_ID);
 
-        assertThat(replyResponse.writerNickname())
-                .isEqualTo("다른 사용자");
+        assertThat(parent2Response.content())
+                .isEqualTo("부모 댓글 2");
 
-        assertThat(replyResponse.content())
-                .isEqualTo("대댓글");
-
-        assertThat(replyResponse.mine())
+        assertThat(parent2Response.mine())
                 .isFalse();
+
+        assertThat(parent2Response.replies())
+                .hasSize(1);
+
+        assertThat(parent2Response.replies())
+                .extracting(ScheduleCommentResponse::id)
+                .containsExactly(103L);
+
+        assertThat(parent2Response.replies())
+                .extracting(ScheduleCommentResponse::parentId)
+                .containsOnly(PARENT_COMMENT_ID);
 
         verify(commentRepository)
                 .findParentComments(SCHEDULE_ID);
 
         verify(commentRepository)
-                .findReplies(List.of(COMMENT_ID));
+                .findReplies(
+                        List.of(
+                                COMMENT_ID,
+                                PARENT_COMMENT_ID
+                        )
+                );
     }
 
     @Test
