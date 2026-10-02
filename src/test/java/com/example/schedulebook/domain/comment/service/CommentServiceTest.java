@@ -978,15 +978,6 @@ class CommentServiceTest {
     @Test
     void deleteComment_이미_삭제된_댓글이면_삭제하지_않는다() {
         // given
-        Comment comment =
-                Comment.create(
-                        mock(Schedule.class),
-                        mock(User.class),
-                        "삭제할 댓글"
-                );
-
-        comment.deleteComment();
-
         when(commentValidator.validateComment(COMMENT_ID))
                 .thenThrow(
                         new BaseException(
