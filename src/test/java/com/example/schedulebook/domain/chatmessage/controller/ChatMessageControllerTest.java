@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.chatmessage.controller;
 
 import com.example.schedulebook.common.config.GlobalExceptionHandler;
 import com.example.schedulebook.common.config.SecurityConfig;
+import com.example.schedulebook.common.enums.SuccessEnum;
 import com.example.schedulebook.common.filter.RateLimitFilter;
 import com.example.schedulebook.common.security.CustomAccessDeniedHandler;
 import com.example.schedulebook.common.security.CustomAuthenticationEntryPoint;
@@ -22,27 +23,34 @@ import com.example.schedulebook.domain.schedulesnapshot.dto.response.ScheduleSna
 import com.example.schedulebook.domain.user.enums.UserRole;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ChatMessageController.class)
 @Import({
@@ -79,15 +87,7 @@ class ChatMessageControllerTest {
     private RateLimitFilter rateLimitFilter;
 
     @BeforeEach
-    void setUp() throws ServletException, java.io.IOException {
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(
-                        new UserPrincipal(USER_ID, UserRole.USER),
-                        null,
-                        List.of()
-                )
-        );
-
+    void setUp() throws ServletException, IOException {
         doAnswer(invocation -> {
             FilterChain filterChain =
                     invocation.getArgument(2, FilterChain.class);
@@ -113,13 +113,8 @@ class ChatMessageControllerTest {
         }).when(jwtAuthenticationFilter).doFilter(any(), any(), any());
     }
 
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
-    }
-
     @Test
-    void shareSchedule_성공하면_201_CREATED를_반환한다() throws Exception {
+    void shareSchedule_성공하면_201_CREATED와_성공_응답을_반환한다() throws Exception {
         // given
         ChatMessageScheduleShareRequest request =
                 new ChatMessageScheduleShareRequest(
@@ -131,6 +126,7 @@ class ChatMessageControllerTest {
         mockMvc.perform(
                         post("/chat/messages/schedule")
                                 .with(csrf())
+                                .with(authenticated())
                                 .contentType("application/json")
                                 .content("""
                                         {
@@ -140,6 +136,11 @@ class ChatMessageControllerTest {
                                         """)
                 )
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status")
+                        .value(SuccessEnum.CREATE_SUCCESS.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(SuccessEnum.CREATE_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(chatMessageService)
@@ -147,7 +148,7 @@ class ChatMessageControllerTest {
     }
 
     @Test
-    void acceptSharedSchedule_성공하면_201_CREATED를_반환한다() throws Exception {
+    void acceptSharedSchedule_성공하면_201_CREATED와_성공_응답을_반환한다() throws Exception {
         // when & then
         mockMvc.perform(
                         post(
@@ -155,8 +156,14 @@ class ChatMessageControllerTest {
                                 MESSAGE_ID
                         )
                                 .with(csrf())
+                                .with(authenticated())
                 )
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status")
+                        .value(SuccessEnum.CREATE_SUCCESS.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(SuccessEnum.CREATE_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(chatMessageService)
@@ -200,8 +207,14 @@ class ChatMessageControllerTest {
                                 ROOM_ID
                         )
                                 .with(csrf())
+                                .with(authenticated())
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status")
+                        .value(SuccessEnum.READ_SUCCESS.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(SuccessEnum.READ_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data.messages[0].messageId")
                         .value(MESSAGE_ID))
                 .andExpect(jsonPath("$.data.messages[0].roomId")
@@ -264,6 +277,7 @@ class ChatMessageControllerTest {
                                 ROOM_ID
                         )
                                 .with(csrf())
+                                .with(authenticated())
                                 .param(
                                         "cursor",
                                         LAST_READ_MESSAGE_ID.toString()
@@ -271,6 +285,11 @@ class ChatMessageControllerTest {
                                 .param("size", "10")
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status")
+                        .value(SuccessEnum.READ_SUCCESS.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(SuccessEnum.READ_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data.messages")
                         .isEmpty())
                 .andExpect(jsonPath("$.data.nextCursor")
@@ -318,8 +337,14 @@ class ChatMessageControllerTest {
                                 MESSAGE_ID
                         )
                                 .with(csrf())
+                                .with(authenticated())
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status")
+                        .value(SuccessEnum.READ_SUCCESS.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(SuccessEnum.READ_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data.messageId")
                         .value(MESSAGE_ID))
                 .andExpect(jsonPath("$.data.scheduleId")
@@ -369,8 +394,14 @@ class ChatMessageControllerTest {
                                 MESSAGE_ID
                         )
                                 .with(csrf())
+                                .with(authenticated())
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status")
+                        .value(SuccessEnum.READ_SUCCESS.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(SuccessEnum.READ_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data").isEmpty());
 
@@ -409,10 +440,16 @@ class ChatMessageControllerTest {
                                 MESSAGE_ID
                         )
                                 .with(csrf())
+                                .with(authenticated())
                                 .param("from", "1")
                                 .param("to", "2")
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status")
+                        .value(SuccessEnum.READ_SUCCESS.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(SuccessEnum.READ_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data.fromVersion")
                         .value(1))
                 .andExpect(jsonPath("$.data.toVersion")
@@ -434,7 +471,7 @@ class ChatMessageControllerTest {
     }
 
     @Test
-    void readMessage_성공하면_200_OK를_반환한다() throws Exception {
+    void readMessage_성공하면_200_OK와_성공_응답을_반환한다() throws Exception {
         // given
         ChatReadRequest request =
                 new ChatReadRequest(LAST_READ_MESSAGE_ID);
@@ -446,6 +483,7 @@ class ChatMessageControllerTest {
                                 ROOM_ID
                         )
                                 .with(csrf())
+                                .with(authenticated())
                                 .contentType("application/json")
                                 .content("""
                                         {
@@ -454,6 +492,11 @@ class ChatMessageControllerTest {
                                         """)
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status")
+                        .value(SuccessEnum.UPDATE_SUCCESS.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(SuccessEnum.UPDATE_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(chatMessageService)
@@ -465,7 +508,7 @@ class ChatMessageControllerTest {
     }
 
     @Test
-    void cancelScheduleShare_성공하면_200_OK를_반환한다() throws Exception {
+    void cancelScheduleShare_성공하면_200_OK와_성공_응답을_반환한다() throws Exception {
         // when & then
         mockMvc.perform(
                         patch(
@@ -473,8 +516,14 @@ class ChatMessageControllerTest {
                                 MESSAGE_ID
                         )
                                 .with(csrf())
+                                .with(authenticated())
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status")
+                        .value(SuccessEnum.UPDATE_SUCCESS.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(SuccessEnum.UPDATE_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(chatMessageService)
@@ -482,7 +531,7 @@ class ChatMessageControllerTest {
     }
 
     @Test
-    void deleteMessage_성공하면_200_OK를_반환한다() throws Exception {
+    void deleteMessage_성공하면_200_OK와_성공_응답을_반환한다() throws Exception {
         // when & then
         mockMvc.perform(
                         delete(
@@ -491,8 +540,14 @@ class ChatMessageControllerTest {
                                 MESSAGE_ID
                         )
                                 .with(csrf())
+                                .with(authenticated())
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status")
+                        .value(SuccessEnum.DELETE_SUCCESS.getStatus()))
+                .andExpect(jsonPath("$.message")
+                        .value(SuccessEnum.DELETE_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(chatMessageService)
@@ -501,5 +556,15 @@ class ChatMessageControllerTest {
                         ROOM_ID,
                         MESSAGE_ID
                 );
+    }
+
+    private RequestPostProcessor authenticated() {
+        return authentication(
+                new UsernamePasswordAuthenticationToken(
+                        new UserPrincipal(USER_ID, UserRole.USER),
+                        null,
+                        List.of()
+                )
+        );
     }
 }
