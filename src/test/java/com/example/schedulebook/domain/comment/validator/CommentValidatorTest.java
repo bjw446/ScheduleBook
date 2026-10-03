@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.comment.validator;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.comment.entity.Comment;
 import com.example.schedulebook.domain.comment.repository.CommentRepository;
@@ -72,7 +73,10 @@ class CommentValidatorTest {
         assertThatThrownBy(() ->
                 commentValidator.validateComment(COMMENT_ID)
         )
-                .isInstanceOf(BaseException.class);
+                .isInstanceOfSatisfying(BaseException.class, exception ->
+                        assertThat(exception.getErrorEnum())
+                                .isEqualTo(ErrorEnum.COMMENT_NOT_FOUND)
+                );
 
         verify(commentRepository)
                 .findById(COMMENT_ID);
@@ -93,7 +97,10 @@ class CommentValidatorTest {
         assertThatThrownBy(() ->
                 commentValidator.validateComment(COMMENT_ID)
         )
-                .isInstanceOf(BaseException.class);
+                .isInstanceOfSatisfying(BaseException.class, exception ->
+                        assertThat(exception.getErrorEnum())
+                                .isEqualTo(ErrorEnum.COMMENT_ALREADY_DELETE)
+                );
 
         verify(commentRepository)
                 .findById(COMMENT_ID);
@@ -174,7 +181,10 @@ class CommentValidatorTest {
                         PARENT_COMMENT_ID
                 )
         )
-                .isInstanceOf(BaseException.class);
+                .isInstanceOfSatisfying(BaseException.class, exception ->
+                        assertThat(exception.getErrorEnum())
+                                .isEqualTo(ErrorEnum.COMMENT_FORBIDDEN)
+                );
 
         verify(commentRepository)
                 .findById(PARENT_COMMENT_ID);
@@ -218,7 +228,10 @@ class CommentValidatorTest {
                         PARENT_COMMENT_ID
                 )
         )
-                .isInstanceOf(BaseException.class);
+                .isInstanceOfSatisfying(BaseException.class, exception ->
+                        assertThat(exception.getErrorEnum())
+                                .isEqualTo(ErrorEnum.INVALID_COMMENT)
+                );
 
         verify(commentRepository)
                 .findById(PARENT_COMMENT_ID);
@@ -280,7 +293,10 @@ class CommentValidatorTest {
                         OTHER_USER_ID
                 )
         )
-                .isInstanceOf(BaseException.class);
+                .isInstanceOfSatisfying(BaseException.class, exception ->
+                        assertThat(exception.getErrorEnum())
+                                .isEqualTo(ErrorEnum.COMMENT_FORBIDDEN)
+                );
 
         verify(comment)
                 .getWriter();
