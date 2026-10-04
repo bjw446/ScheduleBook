@@ -438,4 +438,59 @@ class CommentCreatedProcessorTest {
                                 .isEqualTo(ErrorEnum.NOTIFICATION_RETRY_SAVE_FAILED)
                 );
     }
+
+    @Test
+    void process_일반_댓글이면_참여자인_댓글_작성자_본인에게는_알림을_생성하지_않는다() {
+        // given
+        CommentCreatedEvent event = new CommentCreatedEvent(
+                EVENT_ID,
+                SCHEDULE_ID,
+                WRITER_ID,
+                WRITER_NICKNAME,
+                null
+        );
+
+        Schedule schedule = mock(Schedule.class);
+        User owner = mock(User.class);
+
+        when(scheduleRepository.findWithOwner(SCHEDULE_ID))
+                .thenReturn(Optional.of(schedule));
+
+        when(schedule.getUser())
+                .thenReturn(owner);
+
+        when(owner.getId())
+                .thenReturn(OWNER_ID);
+
+        when(schedule.getId())
+                .thenReturn(SCHEDULE_ID);
+
+        when(scheduleParticipantRepository.findParticipantIds(SCHEDULE_ID))
+                .thenReturn(List.of(WRITER_ID, PARTICIPANT_ID));
+
+        // when
+        commentCreatedProcessor.process(OUTBOX_ID, event);
+
+        // then
+        verify(notificationService, never())
+                .createScheduleCommentNotification(
+                        WRITER_ID,
+                        WRITER_NICKNAME,
+                        SCHEDULE_ID
+                );
+
+        verify(notificationService)
+                .createScheduleCommentNotification(
+                        OWNER_ID,
+                        WRITER_NICKNAME,
+                        SCHEDULE_ID
+                );
+
+        verify(notificationService)
+                .createScheduleCommentNotification(
+                        PARTICIPANT_ID,
+                        WRITER_NICKNAME,
+                        SCHEDULE_ID
+                );
+    }
 }
