@@ -23,11 +23,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CommentCreatedProcessorTest {
@@ -269,22 +265,10 @@ class CommentCreatedProcessorTest {
         commentCreatedProcessor.process(OUTBOX_ID, event);
 
         // then
-        verify(notificationService, never())
-                .createCommentReplyNotification(
-                        WRITER_ID,
-                        WRITER_NICKNAME,
-                        SCHEDULE_ID
-                );
-
-        verify(notificationRetryService, never())
-                .save(
-                        EVENT_ID,
-                        OUTBOX_ID,
-                        WRITER_ID,
-                        NotificationType.COMMENT_REPLY,
-                        event,
-                        null
-                );
+        verifyNoInteractions(
+                notificationService,
+                notificationRetryService
+        );
     }
 
     @Test
