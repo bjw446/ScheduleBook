@@ -2,6 +2,7 @@ package com.example.schedulebook.domain.comment.controller;
 
 import com.example.schedulebook.common.config.GlobalExceptionHandler;
 import com.example.schedulebook.common.config.SecurityConfig;
+import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.enums.SuccessEnum;
 import com.example.schedulebook.common.filter.RateLimitFilter;
 import com.example.schedulebook.common.security.CustomAccessDeniedHandler;
@@ -16,7 +17,6 @@ import com.example.schedulebook.domain.comment.service.CommentService;
 import com.example.schedulebook.domain.user.enums.UserRole;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +48,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CommentController.class)
 @Import({
         SecurityConfig.class,
-        GlobalExceptionHandler.class
+        GlobalExceptionHandler.class,
+        CustomAuthenticationEntryPoint.class
 })
 class CommentControllerTest {
 
@@ -64,9 +65,6 @@ class CommentControllerTest {
 
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @MockitoBean
-    private CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @MockitoBean
     private CustomAccessDeniedHandler customAccessDeniedHandler;
@@ -102,16 +100,6 @@ class CommentControllerTest {
 
             return null;
         }).when(jwtAuthenticationFilter).doFilter(any(), any(), any());
-
-        doAnswer(invocation -> {
-            HttpServletResponse response =
-                    invocation.getArgument(1, HttpServletResponse.class);
-
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-
-            return null;
-        }).when(customAuthenticationEntryPoint)
-                .commence(any(), any(), any());
     }
 
     @Test
@@ -134,7 +122,7 @@ class CommentControllerTest {
                 )
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.status").value(201))
+                .andExpect(jsonPath("$.status").value(SuccessEnum.CREATE_SUCCESS.getStatus()))
                 .andExpect(jsonPath("$.message").value(SuccessEnum.CREATE_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.data").isEmpty());
@@ -168,7 +156,7 @@ class CommentControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.status").value(SuccessEnum.READ_SUCCESS.getStatus()))
                 .andExpect(jsonPath("$.message").value(SuccessEnum.READ_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.data.scheduleId").value(SCHEDULE_ID))
@@ -199,7 +187,7 @@ class CommentControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.status").value(SuccessEnum.UPDATE_SUCCESS.getStatus()))
                 .andExpect(jsonPath("$.message").value(SuccessEnum.UPDATE_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.data").isEmpty());
@@ -222,7 +210,7 @@ class CommentControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.status").value(SuccessEnum.DELETE_SUCCESS.getStatus()))
                 .andExpect(jsonPath("$.message").value(SuccessEnum.DELETE_SUCCESS.getMessage()))
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.data").isEmpty());
@@ -251,7 +239,7 @@ class CommentControllerTest {
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.status").value(ErrorEnum.INVALID_INPUT.getStatus()))
                 .andExpect(jsonPath("$.message").exists())
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.data").isEmpty());
@@ -280,7 +268,7 @@ class CommentControllerTest {
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.status").value(ErrorEnum.INVALID_INPUT.getStatus()))
                 .andExpect(jsonPath("$.message").exists())
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.data").isEmpty());
@@ -289,7 +277,7 @@ class CommentControllerTest {
     }
 
     @Test
-    void createScheduleComment_인증되지_않은_사용자면_401을_반환한다() throws Exception {
+    void createScheduleComment_인증되지_않은_사용자면_401과_공통_에러_응답을_반환한다() throws Exception {
         // given
         String request = """
                 {
@@ -305,7 +293,12 @@ class CommentControllerTest {
                                 .contentType("application/json")
                                 .content(request)
                 )
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(ErrorEnum.UNAUTHORIZED.getStatus()))
+                .andExpect(jsonPath("$.message").value(ErrorEnum.UNAUTHORIZED.getMessage()))
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.data").isEmpty());
 
         verifyNoInteractions(commentService);
     }
