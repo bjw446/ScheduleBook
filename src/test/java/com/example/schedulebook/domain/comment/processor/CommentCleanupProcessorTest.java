@@ -66,11 +66,25 @@ class CommentCleanupProcessorTest {
     @Test
     void process_댓글_정리_실행_결과가_false이면_false를_반환한다() {
         // given
-        when(loggingExecutor.execute(
-                eq(OUTBOX_ID),
-                eq("댓글 정리"),
-                any(Runnable.class)
-        )).thenReturn(false);
+        doThrow(new RuntimeException("댓글 삭제 실패"))
+                .when(commentService)
+                .removeAllComments(USER_ID);
+
+        doAnswer(invocation -> {
+            Runnable action = invocation.getArgument(2);
+
+            try {
+                action.run();
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }).when(loggingExecutor)
+                .execute(
+                        eq(OUTBOX_ID),
+                        eq("댓글 정리"),
+                        any(Runnable.class)
+                );
 
         // when
         boolean result = commentCleanupProcessor.process(
@@ -82,7 +96,14 @@ class CommentCleanupProcessorTest {
         assertThat(result)
                 .isFalse();
 
-        verify(commentService, never())
-                .removeAllComments(anyLong());
+        verify(commentService)
+                .removeAllComments(USER_ID);
+
+        verify(loggingExecutor)
+                .execute(
+                        eq(OUTBOX_ID),
+                        eq("댓글 정리"),
+                        any(Runnable.class)
+                );
     }
 }
