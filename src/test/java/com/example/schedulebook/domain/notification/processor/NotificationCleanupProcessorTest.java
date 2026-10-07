@@ -54,13 +54,26 @@ class NotificationCleanupProcessorTest {
     }
 
     @Test
-    void process_알림_전체_삭제가_실패하면_false를_반환한다() {
+    void process_알림_전체_삭제_중_예외가_발생하면_false를_반환한다() {
         // given
-        when(loggingExecutor.execute(
+        doAnswer(invocation -> {
+            Runnable task = invocation.getArgument(2);
+
+            try {
+                task.run();
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }).when(loggingExecutor).execute(
                 eq(OUTBOX_ID),
                 eq("알림 삭제"),
                 any(Runnable.class)
-        )).thenReturn(false);
+        );
+
+        doThrow(new RuntimeException("알림 삭제 실패"))
+                .when(notificationService)
+                .deleteAllNotifications(USER_ID);
 
         // when
         boolean result = notificationCleanupProcessor.process(OUTBOX_ID, USER_ID);
@@ -68,7 +81,7 @@ class NotificationCleanupProcessorTest {
         // then
         assertThat(result).isFalse();
 
-        verify(notificationService, never())
+        verify(notificationService)
                 .deleteAllNotifications(USER_ID);
     }
 }
