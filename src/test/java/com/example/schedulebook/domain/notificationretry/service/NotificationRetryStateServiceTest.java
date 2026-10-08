@@ -136,7 +136,7 @@ class NotificationRetryStateServiceTest {
         // given
         Exception exception = new RuntimeException("알림 전송 실패");
 
-        givenFailureNotificationRetryForProcessed();
+        givenNotificationRetry();
 
         doThrow(new BaseException(ErrorEnum.NOTIFICATION_RETRY_NOT_FOUND))
                 .when(processedNotificationRetryService)
@@ -244,7 +244,7 @@ class NotificationRetryStateServiceTest {
     @Test
     void completeSuccess_재시도_성공_상태로_변경하고_처리_이력을_성공_상태로_변경한다() {
         // given
-        givenSuccessNotificationRetry();
+        givenNotificationRetry();
 
         // when
         notificationRetryStateService.completeSuccess(
@@ -300,18 +300,7 @@ class NotificationRetryStateServiceTest {
         verifyNoInteractions(processedNotificationRetryService);
     }
 
-    private void givenSuccessNotificationRetry() {
-        when(notificationRetry.getId())
-                .thenReturn(NOTIFICATION_RETRY_ID);
-
-        when(notificationRetry.getOutboxId())
-                .thenReturn(OUTBOX_ID);
-
-        when(notificationRetry.getReceiverId())
-                .thenReturn(RECEIVER_ID);
-    }
-
-    private void givenFailureNotificationRetryForProcessed() {
+    private void givenNotificationRetry() {
         when(notificationRetry.getId())
                 .thenReturn(NOTIFICATION_RETRY_ID);
 
