@@ -18,8 +18,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -204,12 +203,13 @@ class NotificationRetrySchedulerTest {
         verify(retrySchedulerMetrics).error(METRIC);
         verify(retrySchedulerMetrics).dlq(METRIC);
 
+        // DLQ 경로에서는 markRetry가 호출되지 않아야 한다.
         verify(notificationRetryService, never())
                 .markRetry(
-                        NOTIFICATION_RETRY_ID,
-                        FAILURE_MESSAGE,
-                        CommonConst.MAX_RETRY - 1,
-                        CLAIM_TOKEN
+                        anyLong(),
+                        anyString(),
+                        anyInt(),
+                        anyString()
                 );
     }
 
