@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.notificationretry.service;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
 import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.domain.notification.enums.NotificationType;
 import com.example.schedulebook.domain.notificationretry.entity.NotificationRetry;
@@ -119,7 +120,7 @@ class ProcessedNotificationRetryServiceTest {
     }
 
     @Test
-    @DisplayName("실패 상태 변경 건수가 1이 아니면 예외가 발생한다")
+    @DisplayName("실패 상태 변경 건수가 1이 아니면 상태 변경 실패 예외가 발생한다")
     void markFailed_상태_변경_건수가_1이_아니면_예외가_발생한다() {
         // given
         when(processedNotificationRetryRepository.markFailed(
@@ -131,7 +132,10 @@ class ProcessedNotificationRetryServiceTest {
                 processedNotificationRetryService.markFailed(
                         OUTBOX_ID, RECEIVER_ID, OWNER
                 )
-        ).isInstanceOf(BaseException.class);
+        )
+                .isInstanceOf(BaseException.class)
+                .extracting(exception -> ((BaseException) exception).getErrorEnum())
+                .isEqualTo(ErrorEnum.PROCESSED_NOTIFICATION_RETRY_STATUS_CHANGE_FAILED);
 
         verify(processedNotificationRetryRepository)
                 .markFailed(OUTBOX_ID, RECEIVER_ID, OWNER);
@@ -157,7 +161,7 @@ class ProcessedNotificationRetryServiceTest {
     }
 
     @Test
-    @DisplayName("성공 상태 변경 건수가 1이 아니면 예외가 발생한다")
+    @DisplayName("성공 상태 변경 건수가 1이 아니면 상태 변경 실패 예외가 발생한다")
     void markSuccess_상태_변경_건수가_1이_아니면_예외가_발생한다() {
         // given
         when(processedNotificationRetryRepository.markSuccess(
@@ -169,7 +173,10 @@ class ProcessedNotificationRetryServiceTest {
                 processedNotificationRetryService.markSuccess(
                         OUTBOX_ID, RECEIVER_ID, OWNER
                 )
-        ).isInstanceOf(BaseException.class);
+        )
+                .isInstanceOf(BaseException.class)
+                .extracting(exception -> ((BaseException) exception).getErrorEnum())
+                .isEqualTo(ErrorEnum.PROCESSED_NOTIFICATION_RETRY_STATUS_CHANGE_FAILED);
 
         verify(processedNotificationRetryRepository)
                 .markSuccess(OUTBOX_ID, RECEIVER_ID, OWNER);
@@ -275,7 +282,7 @@ class ProcessedNotificationRetryServiceTest {
     }
 
     @Test
-    @DisplayName("처리 내역을 찾을 수 없으면 예외가 발생한다")
+    @DisplayName("처리 내역을 찾을 수 없으면 처리 내역 미존재 예외가 발생한다")
     void prepareProcessedNotificationRetry_처리_내역을_찾을_수_없으면_예외가_발생한다() {
         // given
         when(processedNotificationRetryRepository.findByOutboxIdAndReceiverId(
@@ -291,7 +298,10 @@ class ProcessedNotificationRetryServiceTest {
                 processedNotificationRetryService.prepareProcessedNotificationRetry(
                         notificationRetry
                 )
-        ).isInstanceOf(BaseException.class);
+        )
+                .isInstanceOf(BaseException.class)
+                .extracting(exception -> ((BaseException) exception).getErrorEnum())
+                .isEqualTo(ErrorEnum.PROCESSED_NOTIFICATION_RETRY_NOT_FOUND);
 
         verify(processedNotificationRetryRepository, times(2))
                 .findByOutboxIdAndReceiverId(OUTBOX_ID, RECEIVER_ID);
