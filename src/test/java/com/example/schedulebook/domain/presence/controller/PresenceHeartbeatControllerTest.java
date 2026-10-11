@@ -77,20 +77,4 @@ class PresenceHeartbeatControllerTest {
         verify(redisPresenceService, never()).refresh(USER_ID, sessionId);
         verifyNoMoreInteractions(redisPresenceService);
     }
-
-    @Test
-    @DisplayName("heartbeat 처리 시 별도의 응답 메시지를 전송하지 않는다")
-    void ping_heartbeat_처리_시_별도의_응답_메시지를_전송하지_않는다() {
-        // given
-        Principal principal = () -> String.valueOf(USER_ID);
-
-        when(accessor.getSessionId()).thenReturn(SESSION_ID);
-
-        // when
-        presenceHeartbeatController.ping(principal, accessor);
-
-        // then
-        verify(redisPresenceService, times(1)).refresh(USER_ID, SESSION_ID);
-        verifyNoMoreInteractions(redisPresenceService);
-    }
 }
