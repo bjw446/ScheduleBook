@@ -1,5 +1,7 @@
 package com.example.schedulebook.domain.presence.service;
 
+import com.example.schedulebook.common.enums.ErrorEnum;
+import com.example.schedulebook.common.exception.BaseException;
 import com.example.schedulebook.common.redis.service.RedisPresenceService;
 import com.example.schedulebook.domain.friend.validator.FriendValidator;
 import com.example.schedulebook.domain.presence.dto.response.UserPresenceResponse;
@@ -82,7 +84,7 @@ class PresenceServiceTest {
     @DisplayName("비친구의 접속 상태 조회 권한이 없으면 예외가 발생한다")
     void findPresence_비친구의_접속_상태_조회_권한이_없으면_예외가_발생한다() {
         // given
-        doThrow(new RuntimeException("접속 상태 조회 권한이 없습니다."))
+        doThrow(new BaseException(ErrorEnum.PRESENCE_ACCESS_DENIED))
                 .when(friendValidator)
                 .validatePresenceAccess(CURRENT_USER_ID, TARGET_USER_ID);
 
@@ -90,8 +92,9 @@ class PresenceServiceTest {
         assertThatThrownBy(
                 () -> presenceService.findPresence(CURRENT_USER_ID, TARGET_USER_ID)
         )
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("접속 상태 조회 권한이 없습니다.");
+                .isInstanceOf(BaseException.class)
+                .extracting(exception -> ((BaseException) exception).getErrorEnum())
+                .isEqualTo(ErrorEnum.PRESENCE_ACCESS_DENIED);
 
         verify(friendValidator)
                 .validatePresenceAccess(CURRENT_USER_ID, TARGET_USER_ID);
