@@ -160,7 +160,6 @@ class OutboxTransactionServiceTest {
     void handleFailure_재시도_가능한_실패를_FAILED로_변경한다() {
         // given
         LocalDateTime nextRetryAt = LocalDateTime.now().plusSeconds(60);
-
         RetryDecision retryDecision =
                 new RetryDecision(OutboxStatus.FAILED, nextRetryAt);
 
@@ -249,43 +248,54 @@ class OutboxTransactionServiceTest {
     }
 
     @Test
-    @DisplayName("handleFailure는 변경된 행이 없으면 상태 변경 결과를 추가 처리하지 않는다")
-    void handleFailure_변경된_행이_없으면_DLQ를_저장하지_않는다() {
+    @DisplayName("handleFailure는 DEAD 결정 후 상태 변경된 행이 없어도 DLQ에 저장한다")
+    void handleFailure_DEAD_결정_후_변경된_행이_없어도_DLQ에_저장한다() {
         // given
-        LocalDateTime nextRetryAt = LocalDateTime.now().plusSeconds(60);
+        int nextRetry = CommonConst.MAX_RETRY;
+        RuntimeException exception = new RuntimeException(ERROR_MESSAGE);
 
         RetryDecision retryDecision =
-                new RetryDecision(OutboxStatus.FAILED, nextRetryAt);
+                new RetryDecision(OutboxStatus.DEAD, null);
 
         when(outboxRepository.findById(OUTBOX_ID))
                 .thenReturn(Optional.of(outbox));
         when(outbox.getId()).thenReturn(OUTBOX_ID);
-        when(outbox.getRetryCount()).thenReturn(0);
+        when(outbox.getRetryCount()).thenReturn(nextRetry - 1);
+        when(outbox.getPayload()).thenReturn(PAYLOAD);
+        when(outbox.getEventId()).thenReturn(EVENT_ID);
 
-        when(outboxRetryPolicy.decide(1)).thenReturn(retryDecision);
+        when(outboxRetryPolicy.decide(nextRetry)).thenReturn(retryDecision);
 
         when(outboxRepository.updateFailureIfProcessing(
-                eq(OUTBOX_ID),
-                eq(OutboxStatus.FAILED),
-                eq(ERROR_MESSAGE),
-                eq(nextRetryAt)
+                OUTBOX_ID,
+                OutboxStatus.DEAD,
+                ERROR_MESSAGE,
+                null
         )).thenReturn(0);
 
         // when
-        outboxTransactionService.handleFailure(
-                OUTBOX_ID,
-                new RuntimeException(ERROR_MESSAGE)
-        );
+        outboxTransactionService.handleFailure(OUTBOX_ID, exception);
 
         // then
-        verify(outboxRepository).updateFailureIfProcessing(
-                OUTBOX_ID,
-                OutboxStatus.FAILED,
+        verify(deadLetterService).save(
+                DeadLetterType.OUTBOX,
+                DeadLetterSource.OUTBOX_TRANSACTION_SERVICE,
+                DeadLetterAggregateType.OUTBOX,
+                OUTBOX_ID.toString(),
+                null,
+                PAYLOAD,
                 ERROR_MESSAGE,
-                nextRetryAt
+                RuntimeException.class.getSimpleName(),
+                nextRetry,
+                EVENT_ID
         );
 
-        verifyNoInteractions(deadLetterService);
+        verify(outboxRepository).updateFailureIfProcessing(
+                OUTBOX_ID,
+                OutboxStatus.DEAD,
+                ERROR_MESSAGE,
+                null
+        );
     }
 
     @Test
