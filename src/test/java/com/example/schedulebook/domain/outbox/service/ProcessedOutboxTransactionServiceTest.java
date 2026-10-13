@@ -78,8 +78,8 @@ class ProcessedOutboxTransactionServiceTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("create는 PROCESSING 상태의 ProcessedOutbox를 생성하고 저장 결과를 반환한다")
-    void create_ProcessedOutbox를_생성하고_저장한다() {
+    @DisplayName("create는 올바른 필드와 PROCESSING 상태를 가진 ProcessedOutbox를 저장한다")
+    void create_올바른_필드와_PROCESSING_상태로_저장한다() {
         // given
         OutboxAggregateType aggregateType = OutboxAggregateType.values()[0];
         OutboxEventType eventType = OutboxEventType.values()[0];
@@ -102,15 +102,19 @@ class ProcessedOutboxTransactionServiceTest {
         );
 
         // then
-        assertThat(result).isSameAs(savedOutbox);
-        assertThat(result.getOutboxId()).isEqualTo(OUTBOX_ID);
-        assertThat(result.getAggregateType()).isEqualTo(aggregateType);
-        assertThat(result.getEventType()).isEqualTo(eventType);
-        assertThat(result.getStatus()).isEqualTo(ProcessedOutboxStatus.PROCESSING);
+        org.mockito.ArgumentCaptor<ProcessedOutbox> captor =
+                org.mockito.ArgumentCaptor.forClass(ProcessedOutbox.class);
 
-        verify(processedOutboxRepository).save(
-                org.mockito.ArgumentMatchers.any(ProcessedOutbox.class)
-        );
+        verify(processedOutboxRepository).save(captor.capture());
+
+        ProcessedOutbox capturedOutbox = captor.getValue();
+
+        assertThat(capturedOutbox.getOutboxId()).isEqualTo(OUTBOX_ID);
+        assertThat(capturedOutbox.getAggregateType()).isEqualTo(aggregateType);
+        assertThat(capturedOutbox.getEventType()).isEqualTo(eventType);
+        assertThat(capturedOutbox.getStatus()).isEqualTo(ProcessedOutboxStatus.PROCESSING);
+
+        assertThat(result).isSameAs(savedOutbox);
     }
 
     @Test
