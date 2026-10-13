@@ -10,6 +10,7 @@ import com.example.schedulebook.domain.outbox.repository.ProcessedOutboxReposito
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -102,8 +103,8 @@ class ProcessedOutboxTransactionServiceTest {
         );
 
         // then
-        org.mockito.ArgumentCaptor<ProcessedOutbox> captor =
-                org.mockito.ArgumentCaptor.forClass(ProcessedOutbox.class);
+        ArgumentCaptor<ProcessedOutbox> captor =
+                ArgumentCaptor.forClass(ProcessedOutbox.class);
 
         verify(processedOutboxRepository).save(captor.capture());
 
