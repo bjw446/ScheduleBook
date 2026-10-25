@@ -41,12 +41,12 @@ class DeadLetterServiceTest {
     }
 
     @Test
-    @DisplayName("Dead Letter 정보를 저장한다")
+    @DisplayName("Dead Letter 정보를 입력값과 일치하게 저장한다")
     void save_DeadLetter정보를_저장한다() {
         // given
-        DeadLetterType deadLetterType = mock(DeadLetterType.class);
-        DeadLetterSource deadLetterSource = mock(DeadLetterSource.class);
-        DeadLetterAggregateType aggregateType = mock(DeadLetterAggregateType.class);
+        DeadLetterType deadLetterType = DeadLetterType.values()[0];
+        DeadLetterSource deadLetterSource = DeadLetterSource.values()[0];
+        DeadLetterAggregateType aggregateType = DeadLetterAggregateType.values()[0];
 
         String aggregateId = "aggregate-123";
         Long userId = 1L;
@@ -78,7 +78,16 @@ class DeadLetterServiceTest {
 
         DeadLetterQueue saved = captor.getValue();
 
-        assertThat(saved).isNotNull();
+        assertThat(saved.getDeadLetterType()).isEqualTo(deadLetterType);
+        assertThat(saved.getDeadLetterSource()).isEqualTo(deadLetterSource);
+        assertThat(saved.getDeadLetterAggregateType()).isEqualTo(aggregateType);
+        assertThat(saved.getAggregateId()).isEqualTo(aggregateId);
+        assertThat(saved.getUserId()).isEqualTo(userId);
+        assertThat(saved.getPayload()).isEqualTo(payload);
+        assertThat(saved.getReason()).isEqualTo(reason);
+        assertThat(saved.getExceptionType()).isEqualTo(exceptionType);
+        assertThat(saved.getRetryCount()).isEqualTo(retryCount);
+        assertThat(saved.getEventId()).isEqualTo(eventId);
     }
 
     @Test
@@ -117,7 +126,7 @@ class DeadLetterServiceTest {
     }
 
     @Test
-    @DisplayName("존재하는 Dead Letter를 Processing 상태로 변경하고 claim token을 반환한다")
+    @DisplayName("존재하는 Dead Letter를 Processing 상태로 변경하고 claim token과 lease를 설정한다")
     void markProcessing_상태변경에_성공하면_claimToken을_반환한다() {
         // given
         Long deadLetterId = 1L;
@@ -129,13 +138,18 @@ class DeadLetterServiceTest {
                 any(LocalDateTime.class)
         )).thenReturn(1);
 
+        LocalDateTime beforeCall = LocalDateTime.now();
+
         // when
         String claimToken = deadLetterService.markProcessing(deadLetterId);
+
+        LocalDateTime afterCall = LocalDateTime.now();
 
         // then
         assertThat(claimToken).isNotBlank();
 
-        ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> tokenCaptor =
+                ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<LocalDateTime> leaseCaptor =
                 ArgumentCaptor.forClass(LocalDateTime.class);
 
@@ -145,11 +159,18 @@ class DeadLetterServiceTest {
                 leaseCaptor.capture()
         );
 
+        LocalDateTime leaseUntil = leaseCaptor.getValue();
+
         assertThat(tokenCaptor.getValue()).isEqualTo(claimToken);
-        assertThat(leaseCaptor.getValue())
-                .isAfter(LocalDateTime.now())
+
+        assertThat(leaseUntil)
+                .isAfterOrEqualTo(
+                        beforeCall.plusMinutes(
+                                CommonConst.DEAD_LETTER_PROCESSING_LEASE_MINUTES
+                        )
+                )
                 .isBeforeOrEqualTo(
-                        LocalDateTime.now().plusMinutes(
+                        afterCall.plusMinutes(
                                 CommonConst.DEAD_LETTER_PROCESSING_LEASE_MINUTES
                         ).plusSeconds(1)
                 );
@@ -336,7 +357,7 @@ class DeadLetterServiceTest {
     }
 
     @Test
-    @DisplayName("Lease 갱신에 성공하면 정상 종료한다")
+    @DisplayName("Lease 갱신에 성공하면 설정된 기간으로 갱신한다")
     void renewLease_갱신에_성공하면_정상종료한다() {
         // given
         Long deadLetterId = 1L;
@@ -348,10 +369,14 @@ class DeadLetterServiceTest {
                 any(LocalDateTime.class)
         )).thenReturn(1);
 
-        // when & then
-        assertThatCode(() -> deadLetterService.renewLease(deadLetterId, claimToken))
-                .doesNotThrowAnyException();
+        LocalDateTime beforeCall = LocalDateTime.now();
 
+        // when
+        deadLetterService.renewLease(deadLetterId, claimToken);
+
+        LocalDateTime afterCall = LocalDateTime.now();
+
+        // then
         ArgumentCaptor<LocalDateTime> leaseCaptor =
                 ArgumentCaptor.forClass(LocalDateTime.class);
 
@@ -361,10 +386,16 @@ class DeadLetterServiceTest {
                 leaseCaptor.capture()
         );
 
-        assertThat(leaseCaptor.getValue())
-                .isAfter(LocalDateTime.now())
+        LocalDateTime leaseUntil = leaseCaptor.getValue();
+
+        assertThat(leaseUntil)
+                .isAfterOrEqualTo(
+                        beforeCall.plusMinutes(
+                                CommonConst.DEAD_LETTER_PROCESSING_LEASE_MINUTES
+                        )
+                )
                 .isBeforeOrEqualTo(
-                        LocalDateTime.now().plusMinutes(
+                        afterCall.plusMinutes(
                                 CommonConst.DEAD_LETTER_PROCESSING_LEASE_MINUTES
                         ).plusSeconds(1)
                 );
