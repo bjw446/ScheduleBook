@@ -159,9 +159,9 @@ class DeadLetterServiceTest {
                 leaseCaptor.capture()
         );
 
-        LocalDateTime leaseUntil = leaseCaptor.getValue();
-
         assertThat(tokenCaptor.getValue()).isEqualTo(claimToken);
+
+        LocalDateTime leaseUntil = leaseCaptor.getValue();
 
         assertThat(leaseUntil)
                 .isAfterOrEqualTo(
@@ -284,24 +284,41 @@ class DeadLetterServiceTest {
     }
 
     @Test
-    @DisplayName("Processing 상태 변경에 실패하고 조회 결과가 없으면 예외가 발생한다")
-    void markProcessing_상태변경실패후_조회결과가_없으면_예외가_발생한다() {
+    @DisplayName("Processing 상태 변경에 실패하고 조회 상태가 PENDING이면 claim token을 반환한다")
+    void markProcessing_상태변경에_실패하고_Pending상태이면_claimToken을_반환한다() {
         // given
         Long deadLetterId = 1L;
 
-        when(deadLetterRepository.existsById(deadLetterId)).thenReturn(true);
+        DeadLetterQueue deadLetterQueue = mock(DeadLetterQueue.class);
+
+        when(deadLetterRepository.existsById(deadLetterId))
+                .thenReturn(true);
+
         when(deadLetterRepository.markProcessing(
                 eq(deadLetterId),
                 any(String.class),
                 any(LocalDateTime.class)
         )).thenReturn(0);
-        when(deadLetterRepository.findById(deadLetterId))
-                .thenReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> deadLetterService.markProcessing(deadLetterId))
-                .isInstanceOf(BaseException.class)
-                .hasMessageContaining(ErrorEnum.DEAD_LETTER_NOT_FOUND.getMessage());
+        when(deadLetterRepository.findById(deadLetterId))
+                .thenReturn(Optional.of(deadLetterQueue));
+
+        when(deadLetterQueue.getDeadLetterStatus())
+                .thenReturn(DeadLetterStatus.PENDING);
+
+        // when
+        String claimToken = deadLetterService.markProcessing(deadLetterId);
+
+        // then
+        assertThat(claimToken).isNotBlank();
+
+        verify(deadLetterRepository).markProcessing(
+                eq(deadLetterId),
+                any(String.class),
+                any(LocalDateTime.class)
+        );
+
+        verify(deadLetterRepository).findById(deadLetterId);
     }
 
     @Test
