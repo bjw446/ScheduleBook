@@ -204,13 +204,12 @@ class DeadLetterRetryServiceTest {
 
     @Test
     @DisplayName("DLQ 저장 재시도 중 인터럽트가 발생하면 인터럽트 상태를 복구하고 종료한다")
-    void saveDeadLetterWithRetry_인터럽트가_발생하면_재시도를_종료한다()
-            throws Exception {
+    void saveDeadLetterWithRetry_인터럽트가_발생하면_재시도를_종료한다() {
         // given
-        DeadLetterType deadLetterType = DeadLetterType.values()[0];
-        DeadLetterSource deadLetterSource = DeadLetterSource.values()[0];
-        DeadLetterAggregateType aggregateType =
-                DeadLetterAggregateType.values()[0];
+        DeadLetterType deadLetterType = DeadLetterType.FORCE_LOGOUT;
+        DeadLetterSource deadLetterSource =
+                DeadLetterSource.FORCE_LOGOUT_REDIS_MESSAGE_DELEGATE;
+        DeadLetterAggregateType aggregateType = DeadLetterAggregateType.SESSION;
 
         Thread currentThread = Thread.currentThread();
 
@@ -229,42 +228,40 @@ class DeadLetterRetryServiceTest {
                         anyString()
                 );
 
-        // 재시도 대기에서 InterruptedException이 발생하도록 설정한다.
-        Thread.interrupted();
+        // 현재 스레드에 인터럽트 플래그를 설정한다.
+        currentThread.interrupt();
 
-        // when
-        // 현재 구현에서는 Thread.sleep()을 직접 대체할 수 없으므로
-        // 인터럽트 동작을 안정적으로 검증하려면 대기 로직을
-        // 별도 의존성으로 분리해야 한다.
-        //
-        // 현재 구현에 대한 단위 테스트만으로는 sleep 중 인터럽트를
-        // 결정적으로 발생시키기 어렵기 때문에 이 테스트에서는
-        // 실제 재시도 동작을 실행하고 인터럽트 상태를 정리한다.
-        deadLetterRetryService.saveDeadLetterWithRetry(
-                deadLetterType,
-                deadLetterSource,
-                aggregateType,
-                "aggregate-1",
-                1L,
-                "{\"id\":1}",
-                new RuntimeException("원본 처리 실패"),
-                "event-1"
-        );
+        try {
+            // when
+            deadLetterRetryService.saveDeadLetterWithRetry(
+                    deadLetterType,
+                    deadLetterSource,
+                    aggregateType,
+                    "aggregate-1",
+                    1L,
+                    "{\"id\":1}",
+                    new RuntimeException("원본 처리 실패"),
+                    "event-1"
+            );
 
-        // then
-        verify(deadLetterService, times(3)).save(
-                any(DeadLetterType.class),
-                any(DeadLetterSource.class),
-                any(DeadLetterAggregateType.class),
-                anyString(),
-                anyLong(),
-                anyString(),
-                anyString(),
-                anyString(),
-                anyInt(),
-                anyString()
-        );
+            // then
+            verify(deadLetterService, times(1)).save(
+                    eq(deadLetterType),
+                    eq(deadLetterSource),
+                    eq(aggregateType),
+                    eq("aggregate-1"),
+                    eq(1L),
+                    eq("{\"id\":1}"),
+                    eq("원본 처리 실패"),
+                    eq("RuntimeException"),
+                    eq(1),
+                    eq("event-1")
+            );
 
-        assertThat(currentThread.isInterrupted()).isFalse();
+            assertThat(currentThread.isInterrupted()).isTrue();
+        } finally {
+            // 다른 테스트에 인터럽트 상태가 영향을 주지 않도록 정리한다.
+            Thread.interrupted();
+        }
     }
 }
