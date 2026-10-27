@@ -319,6 +319,61 @@ class DeadLetterDeserializationRecoveryServiceTest {
                 .isEqualTo(originalEvent);
     }
 
+    @Test
+    @DisplayName("프로덕션 JSON 형식의 댓글 이벤트를 역직렬화하고 Redis에 발행한다")
+    void recover_프로덕션_JSON_형식의_댓글_이벤트를_복구한다()
+            throws Exception {
+        // given
+        String payload = """
+            {
+              "commentEventType": "CREATED",
+              "commentEventResponse": {
+                "commentEventType": "CREATED",
+                "id": 10,
+                "eventId": "event-1",
+                "scheduleId": 100,
+                "parentId": null,
+                "writerId": 1,
+                "writerNickname": "테스트 사용자",
+                "content": "테스트 댓글입니다.",
+                "edited": false,
+                "deleted": false,
+                "createdAt": "2026-10-27T15:00:00",
+                "commentCount": 1
+              }
+            }
+            """;
+
+        DeadLetterQueue deadLetterQueue = createDeadLetterQueue();
+
+        when(deadLetterQueue.getDeadLetterType())
+                .thenReturn(DeadLetterType.COMMENT);
+        when(deadLetterQueue.getPayload())
+                .thenReturn(payload);
+
+        // when
+        recoveryService.recover(deadLetterQueue);
+
+        // then
+        ArgumentCaptor<CommentEvent> eventCaptor =
+                ArgumentCaptor.forClass(CommentEvent.class);
+
+        verify(redisEventPublisher).publish(
+                eq(RedisConst.COMMENT),
+                eventCaptor.capture()
+        );
+
+        CommentEvent actualEvent = eventCaptor.getValue();
+
+        assertThat(actualEvent.commentEventType())
+                .isEqualTo(CommentEventType.CREATED);
+
+        assertThat(actualEvent.commentEventResponse().createdAt())
+                .isEqualTo(LocalDateTime.of(2026, 10, 27, 15, 0, 0));
+
+        verifyNoMoreInteractions(redisEventPublisher);
+    }
+
     private DeadLetterQueue createDeadLetterQueue() {
         return org.mockito.Mockito.mock(DeadLetterQueue.class);
     }
