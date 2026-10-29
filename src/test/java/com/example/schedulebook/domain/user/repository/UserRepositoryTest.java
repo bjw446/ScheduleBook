@@ -1,5 +1,6 @@
 package com.example.schedulebook.domain.user.repository;
 
+import com.example.schedulebook.common.config.JpaAuditingConfig;
 import com.example.schedulebook.domain.user.entity.User;
 import com.example.schedulebook.domain.user.enums.UserRole;
 import com.example.schedulebook.domain.user.enums.UserStatus;
@@ -7,6 +8,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +17,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@ActiveProfiles("test")
+@Import(JpaAuditingConfig.class)
 class UserRepositoryTest {
 
     @Autowired
@@ -81,7 +86,7 @@ class UserRepositoryTest {
         userRepository.save(user);
 
         // when
-        boolean exists = userRepository.existsByNickname("testNickname");
+        boolean exists = userRepository.existsByNickname("testLoginNickname");
         boolean notExists = userRepository.existsByNickname("unknownNickname");
 
         // then
@@ -98,7 +103,7 @@ class UserRepositoryTest {
         userRepository.save(user);
 
         // when
-        boolean exists = userRepository.existsByPhoneNumber("010-1234-5678");
+        boolean exists = userRepository.existsByPhoneNumber(createPhoneNumber("testLogin"));
         boolean notExists = userRepository.existsByPhoneNumber("010-9999-9999");
 
         // then
