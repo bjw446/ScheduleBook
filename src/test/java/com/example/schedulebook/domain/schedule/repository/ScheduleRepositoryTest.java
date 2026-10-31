@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -285,6 +286,38 @@ class ScheduleRepositoryTest {
         assertThat(result).isEqualTo(2);
     }
 
+    @Test
+    @DisplayName("현재 댓글 수와 감소할 수가 같으면 댓글 수가 0이 된다")
+    void decreaseCommentCountWhenCountEqualsCommentCount() {
+        // given
+        User user = createUser("015");
+
+        Schedule schedule = createSchedule(
+                user,
+                "댓글 수 동일 경계값 테스트",
+                LocalDate.of(2026, 10, 15),
+                LocalTime.of(9, 0),
+                LocalTime.of(10, 0)
+        );
+
+        for (int i = 0; i < 2; i++) {
+            scheduleRepository.increaseCommentCount(schedule.getId());
+        }
+
+        entityManager.flush();
+
+        // when
+        scheduleRepository.decreaseCommentCount(schedule.getId(), 2);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // then
+        int result = scheduleRepository.findCommentCount(schedule.getId());
+
+        assertThat(result).isZero();
+    }
+
     // --------------------------------------------------
     // findWithOwner
     // --------------------------------------------------
@@ -410,7 +443,7 @@ class ScheduleRepositoryTest {
     // --------------------------------------------------
 
     @Test
-    @DisplayName("사용자의 활성 일정을 일괄 소프트 삭제한다")
+    @DisplayName("사용자의 활성 일정을 일괄 소프트 삭제하고 이미 삭제된 일정은 유지한다")
     void softDeleteAllByUserId() {
         // given
         User user = createUser("013");
@@ -432,6 +465,14 @@ class ScheduleRepositoryTest {
                 LocalTime.of(10, 0)
         );
 
+        Schedule alreadyDeletedSchedule = createSchedule(
+                user,
+                "이미 삭제된 일정",
+                LocalDate.of(2026, 10, 17),
+                LocalTime.of(9, 0),
+                LocalTime.of(10, 0)
+        );
+
         Schedule otherSchedule = createSchedule(
                 otherUser,
                 "다른 사용자 일정",
@@ -439,6 +480,25 @@ class ScheduleRepositoryTest {
                 LocalTime.of(9, 0),
                 LocalTime.of(10, 0)
         );
+
+        // 이미 삭제된 일정의 삭제 시각을 과거 시간으로 설정
+        LocalDateTime originalDeletedAt =
+                LocalDateTime.of(2026, 9, 1, 12, 0);
+
+        alreadyDeletedSchedule.delete();
+
+        // delete()에서 설정하는 시간이 아닌 기존 삭제 시각을 검증하기 위해
+        // 테스트 픽스처의 deletedAt을 과거 시간으로 변경
+        entityManager.flush();
+
+        entityManager.createQuery("""
+            UPDATE Schedule s
+            SET s.deletedAt = :deletedAt
+            WHERE s.id = :scheduleId
+            """)
+                .setParameter("deletedAt", originalDeletedAt)
+                .setParameter("scheduleId", alreadyDeletedSchedule.getId())
+                .executeUpdate();
 
         entityManager.flush();
 
@@ -459,17 +519,29 @@ class ScheduleRepositoryTest {
                 schedule2.getId()
         );
 
+        Schedule preservedDeletedSchedule = entityManager.find(
+                Schedule.class,
+                alreadyDeletedSchedule.getId()
+        );
+
         Schedule activeSchedule = entityManager.find(
                 Schedule.class,
                 otherSchedule.getId()
         );
 
+        // 기존 활성 일정은 삭제 처리
         assertThat(deletedSchedule1.isDeleted()).isTrue();
         assertThat(deletedSchedule1.getDeletedAt()).isNotNull();
 
         assertThat(deletedSchedule2.isDeleted()).isTrue();
         assertThat(deletedSchedule2.getDeletedAt()).isNotNull();
 
+        // 이미 삭제된 일정은 기존 삭제 상태와 삭제 시각 유지
+        assertThat(preservedDeletedSchedule.isDeleted()).isTrue();
+        assertThat(preservedDeletedSchedule.getDeletedAt())
+                .isEqualTo(originalDeletedAt);
+
+        // 다른 사용자의 일정은 변경되지 않음
         assertThat(activeSchedule.isDeleted()).isFalse();
         assertThat(activeSchedule.getDeletedAt()).isNull();
     }
