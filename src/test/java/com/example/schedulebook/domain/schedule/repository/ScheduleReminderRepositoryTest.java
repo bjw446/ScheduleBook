@@ -223,48 +223,49 @@ class ScheduleReminderRepositoryTest {
         LocalDateTime now =
                 LocalDateTime.of(2026, 11, 15, 9, 0);
 
-        ScheduleReminder laterReminder = createReminder(
-                schedule,
-                now.minusMinutes(5)
-        );
-
-        ScheduleReminder earlierReminder = createReminder(
-                schedule,
-                now.minusMinutes(10)
-        );
-
-        ScheduleReminder sameTimeFirstReminder = createReminder(
+        // ID가 가장 작은 알림
+        ScheduleReminder firstReminder = createReminder(
                 schedule,
                 now.minusMinutes(15)
         );
 
-        ScheduleReminder sameTimeSecondReminder = createReminder(
+        // ID가 두 번째로 작은 알림
+        ScheduleReminder secondReminder = createReminder(
                 schedule,
                 now.minusMinutes(15)
         );
 
+        // ID가 가장 큰 알림
+        ScheduleReminder thirdReminder = createReminder(
+                schedule,
+                now.minusMinutes(15)
+        );
+
+        // 알림 시간은 모두 동일하지만 ID 순서는 생성 순서와 다르게 구성
         entityManager.flush();
 
         // when
         List<ScheduleReminder> result =
                 scheduleReminderRepository.findReminders(
                         now,
-                        PageRequest.of(0, 3)
+                        PageRequest.of(0, 2)
                 );
 
         // then
         assertThat(result)
-                .hasSize(3)
+                .hasSize(2)
                 .extracting(ScheduleReminder::getId)
                 .containsExactly(
-                        sameTimeFirstReminder.getId(),
-                        sameTimeSecondReminder.getId(),
-                        earlierReminder.getId()
+                        firstReminder.getId(),
+                        secondReminder.getId()
                 );
+
+        assertThat(result.get(0).getId())
+                .isLessThan(result.get(1).getId());
 
         assertThat(result)
                 .extracting(ScheduleReminder::getId)
-                .doesNotContain(laterReminder.getId());
+                .doesNotContain(thirdReminder.getId());
     }
 
     @Test
