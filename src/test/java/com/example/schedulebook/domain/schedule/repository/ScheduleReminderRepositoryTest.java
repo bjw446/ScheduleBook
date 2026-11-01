@@ -213,7 +213,7 @@ class ScheduleReminderRepositoryTest {
     }
 
     @Test
-    @DisplayName("알림 시간과 ID 오름차순으로 정렬하고 Pageable을 적용한다")
+    @DisplayName("알림 시간 우선, 동일 시간에는 ID 오름차순으로 정렬하고 Pageable을 적용한다")
     void findRemindersWithSortingAndPaging() {
         // given
         User user = createUser("003");
@@ -223,49 +223,63 @@ class ScheduleReminderRepositoryTest {
         LocalDateTime now =
                 LocalDateTime.of(2026, 11, 15, 9, 0);
 
-        // ID가 가장 작은 알림
-        ScheduleReminder firstReminder = createReminder(
+        // 가장 빠른 알림 시간
+        ScheduleReminder earlyReminder = createReminder(
                 schedule,
-                now.minusMinutes(15)
+                now.minusMinutes(20)
         );
 
-        // ID가 두 번째로 작은 알림
-        ScheduleReminder secondReminder = createReminder(
+        // 동일한 알림 시간을 가진 알림
+        ScheduleReminder sameTimeFirstReminder = createReminder(
                 schedule,
-                now.minusMinutes(15)
+                now.minusMinutes(10)
         );
 
-        // ID가 가장 큰 알림
-        ScheduleReminder thirdReminder = createReminder(
+        ScheduleReminder sameTimeSecondReminder = createReminder(
                 schedule,
-                now.minusMinutes(15)
+                now.minusMinutes(10)
         );
 
-        // 알림 시간은 모두 동일하지만 ID 순서는 생성 순서와 다르게 구성
+        // 가장 늦은 알림 시간
+        ScheduleReminder lateReminder = createReminder(
+                schedule,
+                now.minusMinutes(5)
+        );
+
         entityManager.flush();
 
         // when
         List<ScheduleReminder> result =
                 scheduleReminderRepository.findReminders(
                         now,
-                        PageRequest.of(0, 2)
+                        PageRequest.of(0, 3)
                 );
 
         // then
         assertThat(result)
-                .hasSize(2)
+                .hasSize(3)
                 .extracting(ScheduleReminder::getId)
                 .containsExactly(
-                        firstReminder.getId(),
-                        secondReminder.getId()
+                        earlyReminder.getId(),
+                        sameTimeFirstReminder.getId(),
+                        sameTimeSecondReminder.getId()
                 );
 
-        assertThat(result.get(0).getId())
-                .isLessThan(result.get(1).getId());
+        // 알림 시간이 오름차순으로 정렬되는지 검증
+        assertThat(result.get(0).getReminderTime())
+                .isBefore(result.get(1).getReminderTime());
 
+        assertThat(result.get(1).getReminderTime())
+                .isEqualTo(result.get(2).getReminderTime());
+
+        // 동일한 알림 시간 내에서 ID가 오름차순으로 정렬되는지 검증
+        assertThat(result.get(1).getId())
+                .isLessThan(result.get(2).getId());
+
+        // Pageable이 적용되어 가장 늦은 알림은 조회되지 않는지 검증
         assertThat(result)
                 .extracting(ScheduleReminder::getId)
-                .doesNotContain(thirdReminder.getId());
+                .doesNotContain(lateReminder.getId());
     }
 
     @Test
