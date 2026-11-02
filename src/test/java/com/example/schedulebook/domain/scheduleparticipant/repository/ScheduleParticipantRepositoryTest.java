@@ -114,13 +114,17 @@ class ScheduleParticipantRepositoryTest {
     }
 
     @Test
-    @DisplayName("일정에 참여하지 않은 사용자를 조회하면 빈 Optional을 반환한다")
+    @DisplayName("다른 일정에 참여한 사용자는 조회 대상 일정의 참여자로 조회되지 않는다")
     void findBySchedule_IdAndUser_IdWhenNotExists() {
         // given
         User owner = createUser("003");
         User participant = createUser("004");
 
-        Schedule schedule = createSchedule(owner, "참여자 미존재 테스트");
+        Schedule schedule = createSchedule(owner, "조회 대상 일정");
+        Schedule otherSchedule = createSchedule(owner, "다른 일정");
+
+        // 조회 대상 일정이 아닌 다른 일정에만 참여
+        createParticipant(otherSchedule, participant);
 
         entityManager.flush();
 
@@ -200,16 +204,21 @@ class ScheduleParticipantRepositoryTest {
     // --------------------------------------------------
 
     @Test
-    @DisplayName("특정 사용자의 일정 참여 여부를 확인한다")
+    @DisplayName("특정 사용자의 일정 참여 여부를 일정 ID와 사용자 ID로 확인한다")
     void existsBySchedule_IdAndUser_Id() {
         // given
         User owner = createUser("010");
         User participant = createUser("011");
         User otherUser = createUser("012");
 
-        Schedule schedule = createSchedule(owner, "참여 여부 확인 테스트");
+        Schedule schedule = createSchedule(owner, "조회 대상 일정");
+        Schedule otherSchedule = createSchedule(owner, "다른 일정");
 
+        // 조회 대상 일정에 참여
         createParticipant(schedule, participant);
+
+        // 다른 일정에만 참여
+        createParticipant(otherSchedule, otherUser);
 
         entityManager.flush();
 
@@ -242,17 +251,21 @@ class ScheduleParticipantRepositoryTest {
         User owner = createUser("013");
         User participant1 = createUser("014");
         User participant2 = createUser("015");
+        User otherParticipant = createUser("027");
 
         Schedule schedule = createSchedule(owner, "참여자 Projection 테스트");
+        Schedule otherSchedule = createSchedule(owner, "다른 일정");
 
-        ScheduleParticipant ownerParticipant =
-                createParticipant(schedule, owner);
+        // 사용자 ID 순서와 참여 기록 ID 순서가 다르게 생성
+        createParticipant(schedule, owner);
+
+        ScheduleParticipant secondParticipant =
+                createParticipant(schedule, participant2);
 
         ScheduleParticipant firstParticipant =
                 createParticipant(schedule, participant1);
 
-        ScheduleParticipant secondParticipant =
-                createParticipant(schedule, participant2);
+        createParticipant(otherSchedule, otherParticipant);
 
         firstParticipant.updateAttendanceStatus(AttendanceStatus.ACCEPTED);
         secondParticipant.updateAttendanceStatus(AttendanceStatus.DECLINED);
@@ -269,13 +282,13 @@ class ScheduleParticipantRepositoryTest {
         // then
         assertThat(result).hasSize(3);
 
-        // 참여자 ID 순서대로 조회되는지 검증
+        // 참여 기록 ID 순서로 조회되는지 검증
         assertThat(result)
                 .extracting(ScheduleParticipantProjection::getUserId)
                 .containsExactly(
                         owner.getId(),
-                        participant1.getId(),
-                        participant2.getId()
+                        participant2.getId(),
+                        participant1.getId()
                 );
 
         // 소유자 정보 검증
@@ -289,21 +302,21 @@ class ScheduleParticipantRepositoryTest {
 
         // 첫 번째 일반 참여자 검증
         assertThat(result.get(1).getNickname())
-                .isEqualTo(participant1.getNickname());
+                .isEqualTo(participant2.getNickname());
 
         assertThat(result.get(1).isOwner()).isFalse();
 
         assertThat(result.get(1).getAttendanceStatus())
-                .isEqualTo(AttendanceStatus.ACCEPTED);
+                .isEqualTo(AttendanceStatus.DECLINED);
 
         // 두 번째 일반 참여자 검증
         assertThat(result.get(2).getNickname())
-                .isEqualTo(participant2.getNickname());
+                .isEqualTo(participant1.getNickname());
 
         assertThat(result.get(2).isOwner()).isFalse();
 
         assertThat(result.get(2).getAttendanceStatus())
-                .isEqualTo(AttendanceStatus.DECLINED);
+                .isEqualTo(AttendanceStatus.ACCEPTED);
     }
 
     @Test
