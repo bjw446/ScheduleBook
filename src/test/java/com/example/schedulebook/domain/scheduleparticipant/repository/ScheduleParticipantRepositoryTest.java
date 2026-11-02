@@ -339,6 +339,39 @@ class ScheduleParticipantRepositoryTest {
         assertThat(result).isEmpty();
     }
 
+    @Test
+    @DisplayName("특정 일정의 참여자만 조회하고 다른 일정의 참여자는 제외한다")
+    void findParticipantsOnlyTargetSchedule() {
+        // given
+        User owner = createUser("016");
+        User otherUser = createUser("028");
+
+        Schedule schedule = createSchedule(owner, "조회 대상 일정");
+        Schedule otherSchedule = createSchedule(owner, "다른 일정");
+
+        createParticipant(schedule, owner);
+        createParticipant(otherSchedule, otherUser);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        List<ScheduleParticipantProjection> result =
+                scheduleParticipantRepository.findParticipants(
+                        schedule.getId()
+                );
+
+        // then
+        assertThat(result)
+                .hasSize(1)
+                .extracting(ScheduleParticipantProjection::getUserId)
+                .containsExactly(owner.getId());
+
+        assertThat(result)
+                .extracting(ScheduleParticipantProjection::getUserId)
+                .doesNotContain(otherUser.getId());
+    }
+
     // --------------------------------------------------
     // findAllBySchedule_Id
     // --------------------------------------------------
