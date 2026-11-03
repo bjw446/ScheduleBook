@@ -229,14 +229,25 @@ class ScheduleShareRepositoryTest {
         entityManager.flush();
 
         // when
-        List<ScheduleShare> result =
+        List<ScheduleShare> activeResult =
                 scheduleShareRepository.findSharedSchedules(
                         sharedUser.getId(),
                         ScheduleShareStatus.ACTIVE
                 );
 
+        List<ScheduleShare> canceledResult =
+                scheduleShareRepository.findSharedSchedules(
+                        sharedUser.getId(),
+                        ScheduleShareStatus.CANCELED
+                );
+
         // then
-        assertThat(result).isEmpty();
+        assertThat(activeResult).isEmpty();
+
+        assertThat(canceledResult)
+                .hasSize(1)
+                .extracting(ScheduleShare::getId)
+                .containsExactly(canceledShare.getId());
     }
 
     // --------------------------------------------------
@@ -354,13 +365,24 @@ class ScheduleShareRepositoryTest {
         entityManager.flush();
 
         // when
-        var result = scheduleShareRepository.findActiveShareDetail(
+        var activeResult = scheduleShareRepository.findActiveShareDetail(
                 share.getId(),
                 ScheduleShareStatus.ACTIVE
         );
 
+        var canceledResult = scheduleShareRepository.findActiveShareDetail(
+                share.getId(),
+                ScheduleShareStatus.CANCELED
+        );
+
         // then
-        assertThat(result).isEmpty();
+        assertThat(activeResult).isEmpty();
+
+        assertThat(canceledResult)
+                .isPresent()
+                .get()
+                .extracting(ScheduleShare::getId)
+                .isEqualTo(share.getId());
     }
 
     // --------------------------------------------------
@@ -433,14 +455,25 @@ class ScheduleShareRepositoryTest {
         entityManager.flush();
 
         // when
-        List<ScheduleShare> result =
+        List<ScheduleShare> activeResult =
                 scheduleShareRepository.findOwnedShares(
                         owner.getId(),
                         ScheduleShareStatus.ACTIVE
                 );
 
+        List<ScheduleShare> canceledResult =
+                scheduleShareRepository.findOwnedShares(
+                        owner.getId(),
+                        ScheduleShareStatus.CANCELED
+                );
+
         // then
-        assertThat(result).isEmpty();
+        assertThat(activeResult).isEmpty();
+
+        assertThat(canceledResult)
+                .hasSize(1)
+                .extracting(ScheduleShare::getId)
+                .containsExactly(share.getId());
     }
 
     // --------------------------------------------------
@@ -506,13 +539,24 @@ class ScheduleShareRepositoryTest {
         entityManager.flush();
 
         // when
-        var result = scheduleShareRepository.findOwnedShareDetail(
+        var activeResult = scheduleShareRepository.findOwnedShareDetail(
                 share.getId(),
                 ScheduleShareStatus.ACTIVE
         );
 
+        var canceledResult = scheduleShareRepository.findOwnedShareDetail(
+                share.getId(),
+                ScheduleShareStatus.CANCELED
+        );
+
         // then
-        assertThat(result).isEmpty();
+        assertThat(activeResult).isEmpty();
+
+        assertThat(canceledResult)
+                .isPresent()
+                .get()
+                .extracting(ScheduleShare::getId)
+                .isEqualTo(share.getId());
     }
 
     // --------------------------------------------------
@@ -565,14 +609,26 @@ class ScheduleShareRepositoryTest {
         entityManager.flush();
 
         // when
-        var result = scheduleShareRepository.findActiveRelation(
+        var activeResult = scheduleShareRepository.findActiveRelation(
                 schedule.getId(),
                 sharedUser.getId(),
                 ScheduleShareStatus.ACTIVE
         );
 
+        var canceledResult = scheduleShareRepository.findActiveRelation(
+                schedule.getId(),
+                sharedUser.getId(),
+                ScheduleShareStatus.CANCELED
+        );
+
         // then
-        assertThat(result).isEmpty();
+        assertThat(activeResult).isEmpty();
+
+        assertThat(canceledResult)
+                .isPresent()
+                .get()
+                .extracting(ScheduleShare::getId)
+                .isEqualTo(share.getId());
     }
 
     // --------------------------------------------------
@@ -632,7 +688,7 @@ class ScheduleShareRepositoryTest {
         entityManager.flush();
 
         // when
-        boolean exists =
+        boolean activeExists =
                 scheduleShareRepository
                         .existsBySchedule_IdAndSharedUser_IdAndScheduleShareStatus(
                                 schedule.getId(),
@@ -640,8 +696,17 @@ class ScheduleShareRepositoryTest {
                                 ScheduleShareStatus.ACTIVE
                         );
 
+        boolean canceledExists =
+                scheduleShareRepository
+                        .existsBySchedule_IdAndSharedUser_IdAndScheduleShareStatus(
+                                schedule.getId(),
+                                sharedUser.getId(),
+                                ScheduleShareStatus.CANCELED
+                        );
+
         // then
-        assertThat(exists).isFalse();
+        assertThat(activeExists).isFalse();
+        assertThat(canceledExists).isTrue();
     }
 
     // --------------------------------------------------
@@ -773,18 +838,25 @@ class ScheduleShareRepositoryTest {
                 scheduleShareRepository.findById(otherShare.getId())
                         .orElseThrow();
 
+        // 첫 번째 소유 일정의 공유 관계
         assertThat(deletedShare1.getScheduleShareStatus())
                 .isEqualTo(ScheduleShareStatus.SCHEDULE_DELETED);
 
+        assertThat(deletedShare1.getDeletedAt()).isNotNull();
+        assertThat(deletedShare1.isDeleted()).isTrue();
+
+        // 두 번째 소유 일정의 공유 관계
         assertThat(deletedShare2.getScheduleShareStatus())
                 .isEqualTo(ScheduleShareStatus.SCHEDULE_DELETED);
 
-        assertThat(deletedShare1.getDeletedAt()).isNotNull();
         assertThat(deletedShare2.getDeletedAt()).isNotNull();
+        assertThat(deletedShare2.isDeleted()).isTrue();
 
+        // 다른 사용자가 소유한 일정의 공유 관계
         assertThat(notDeletedShare.getScheduleShareStatus())
                 .isEqualTo(ScheduleShareStatus.ACTIVE);
 
         assertThat(notDeletedShare.getDeletedAt()).isNull();
+        assertThat(notDeletedShare.isDeleted()).isFalse();
     }
 }
