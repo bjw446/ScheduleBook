@@ -426,11 +426,7 @@ class ScheduleShareRepositoryTest {
                         share2.getId()
                 );
 
-        assertThat(result)
-                .extracting(share -> share.getSchedule().getUser().getId())
-                .containsOnly(owner.getId());
-
-        // Fetch Join 검증
+        // Fetch Join 검증을 먼저 수행
         for (ScheduleShare share : result) {
             assertThat(Hibernate.isInitialized(share.getSchedule()))
                     .isTrue();
@@ -438,6 +434,11 @@ class ScheduleShareRepositoryTest {
             assertThat(Hibernate.isInitialized(share.getSharedUser()))
                     .isTrue();
         }
+
+        // 일정 소유자 검증
+        assertThat(result)
+                .extracting(share -> share.getSchedule().getUser().getId())
+                .containsOnly(owner.getId());
     }
 
     @Test
@@ -629,6 +630,58 @@ class ScheduleShareRepositoryTest {
                 .get()
                 .extracting(ScheduleShare::getId)
                 .isEqualTo(share.getId());
+    }
+
+    @Test
+    @DisplayName("다른 일정 ID로는 공유 관계를 조회할 수 없다")
+    void findActiveRelationWhenScheduleNotMatch() {
+        // given
+        User owner = createUser("050");
+        User sharedUser = createUser("051");
+
+        Schedule schedule = createSchedule(owner, "공유 일정");
+        Schedule otherSchedule = createSchedule(owner, "다른 일정");
+
+        // 실제 공유 관계는 schedule에만 생성
+        createShare(schedule, sharedUser);
+
+        entityManager.flush();
+
+        // when
+        var result = scheduleShareRepository.findActiveRelation(
+                otherSchedule.getId(),
+                sharedUser.getId(),
+                ScheduleShareStatus.ACTIVE
+        );
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("다른 사용자 ID로는 공유 관계를 조회할 수 없다")
+    void findActiveRelationWhenUserNotMatch() {
+        // given
+        User owner = createUser("052");
+        User sharedUser = createUser("053");
+        User otherUser = createUser("054");
+
+        Schedule schedule = createSchedule(owner, "공유 일정");
+
+        // 실제 공유 관계는 sharedUser에게만 생성
+        createShare(schedule, sharedUser);
+
+        entityManager.flush();
+
+        // when
+        var result = scheduleShareRepository.findActiveRelation(
+                schedule.getId(),
+                otherUser.getId(),
+                ScheduleShareStatus.ACTIVE
+        );
+
+        // then
+        assertThat(result).isEmpty();
     }
 
     // --------------------------------------------------
