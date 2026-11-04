@@ -152,29 +152,29 @@ class ScheduleSnapshotHistoryRepositoryTest {
         User owner = createUser("002");
         ChatRoom chatRoom = createChatRoom();
 
-        Schedule schedule = createSchedule(owner, "버전 정렬 일정");
+        // 버전 1 Schedule
+        Schedule scheduleV1 = createSchedule(owner, "버전 1 일정");
 
-        // 버전 1
-        ChatMessage message1 =
-                createScheduleMessage(chatRoom, owner, schedule);
+        // 버전 3 Schedule
+        Schedule scheduleV3 = createSchedule(owner, "버전 3 일정");
+        updateScheduleVersion(scheduleV3, 3L);
 
-        ScheduleSnapshotHistory history1 = createHistory(message1);
+        // 버전 2 Schedule
+        Schedule scheduleV2 = createSchedule(owner, "버전 2 일정");
+        updateScheduleVersion(scheduleV2, 2L);
 
-        // 버전 2
-        updateScheduleVersion(schedule, 2L);
+        // 하나의 ChatMessage 생성
+        ChatMessage chatMessage =
+                createScheduleMessage(chatRoom, owner, scheduleV1);
 
-        ChatMessage message2 =
-                createScheduleMessage(chatRoom, owner, schedule);
+        // 버전 1 → 3 → 2 순서로 이력 저장
+        ScheduleSnapshotHistory history1 = createHistory(chatMessage);
 
-        ScheduleSnapshotHistory history2 = createHistory(message2);
+        chatMessage.updateScheduleSnapshot(scheduleV3);
+        ScheduleSnapshotHistory history3 = createHistory(chatMessage);
 
-        // 버전 3
-        updateScheduleVersion(schedule, 3L);
-
-        ChatMessage message3 =
-                createScheduleMessage(chatRoom, owner, schedule);
-
-        ScheduleSnapshotHistory history3 = createHistory(message3);
+        chatMessage.updateScheduleSnapshot(scheduleV2);
+        ScheduleSnapshotHistory history2 = createHistory(chatMessage);
 
         entityManager.flush();
         entityManager.clear();
@@ -182,13 +182,14 @@ class ScheduleSnapshotHistoryRepositoryTest {
         // when
         List<ScheduleSnapshotHistory> result =
                 scheduleSnapshotHistoryRepository.findAllByChatMessageId(
-                        message1.getId()
+                        chatMessage.getId()
                 );
 
         // then
         assertThat(result)
+                .hasSize(3)
                 .extracting(history -> history.getScheduleSnapshot().getScheduleVersion())
-                .containsExactly(1L);
+                .containsExactly(3L, 2L, 1L);
     }
 
     @Test
