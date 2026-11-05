@@ -69,9 +69,17 @@ class FriendRepositoryTest {
         User receiver = createUser("003");
         User pendingUser = createUser("004");
 
+        User unrelatedUser1 = createUser("039");
+        User unrelatedUser2 = createUser("040");
+
         Friend receivedFriend = createAcceptedFriend(requester, user);
         Friend sentFriend = createAcceptedFriend(user, receiver);
 
+        // 사용자와 무관한 ACCEPTED 관계
+        Friend unrelatedFriend =
+                createAcceptedFriend(unrelatedUser1, unrelatedUser2);
+
+        // 사용자와 관련 있지만 PENDING 상태인 관계
         createFriend(user, pendingUser);
 
         entityManager.flush();
@@ -90,7 +98,8 @@ class FriendRepositoryTest {
                 .containsExactlyInAnyOrder(
                         receivedFriend.getId(),
                         sentFriend.getId()
-                );
+                )
+                .doesNotContain(unrelatedFriend.getId());
 
         assertThat(result)
                 .allSatisfy(friend -> {
@@ -281,8 +290,17 @@ class FriendRepositoryTest {
         // given
         User requester = createUser("015");
         User receiver = createUser("016");
+        User otherUser = createUser("041");
 
         Friend friend = createFriend(requester, receiver);
+
+        // requester만 겹치는 관계
+        Friend requesterOverlap =
+                createFriend(requester, otherUser);
+
+        // receiver만 겹치는 관계
+        Friend receiverOverlap =
+                createFriend(otherUser, receiver);
 
         entityManager.flush();
         entityManager.clear();
@@ -297,7 +315,9 @@ class FriendRepositoryTest {
         assertThat(result).isPresent();
 
         assertThat(result.get().getId())
-                .isEqualTo(friend.getId());
+                .isEqualTo(friend.getId())
+                .isNotEqualTo(requesterOverlap.getId())
+                .isNotEqualTo(receiverOverlap.getId());
     }
 
     @Test
@@ -306,8 +326,17 @@ class FriendRepositoryTest {
         // given
         User requester = createUser("017");
         User receiver = createUser("018");
+        User otherUser = createUser("042");
 
         Friend friend = createFriend(requester, receiver);
+
+        // requester만 겹치는 관계
+        Friend requesterOverlap =
+                createFriend(requester, otherUser);
+
+        // receiver만 겹치는 관계
+        Friend receiverOverlap =
+                createFriend(otherUser, receiver);
 
         entityManager.flush();
         entityManager.clear();
@@ -322,7 +351,9 @@ class FriendRepositoryTest {
         assertThat(result).isPresent();
 
         assertThat(result.get().getId())
-                .isEqualTo(friend.getId());
+                .isEqualTo(friend.getId())
+                .isNotEqualTo(requesterOverlap.getId())
+                .isNotEqualTo(receiverOverlap.getId());
     }
 
     @Test
@@ -352,8 +383,15 @@ class FriendRepositoryTest {
         // given
         User requester = createUser("021");
         User receiver = createUser("022");
+        User otherUser = createUser("043");
 
         createAcceptedFriend(requester, receiver);
+
+        // requester만 겹치는 ACCEPTED 관계
+        createAcceptedFriend(requester, otherUser);
+
+        // receiver만 겹치는 ACCEPTED 관계
+        createAcceptedFriend(otherUser, receiver);
 
         entityManager.flush();
 
@@ -374,8 +412,15 @@ class FriendRepositoryTest {
         // given
         User requester = createUser("023");
         User receiver = createUser("024");
+        User otherUser = createUser("044");
 
         createAcceptedFriend(requester, receiver);
+
+        // requester만 겹치는 ACCEPTED 관계
+        createAcceptedFriend(requester, otherUser);
+
+        // receiver만 겹치는 ACCEPTED 관계
+        createAcceptedFriend(otherUser, receiver);
 
         entityManager.flush();
 
