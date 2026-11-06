@@ -475,6 +475,62 @@ class FriendRepositoryTest {
         assertThat(result).isFalse();
     }
 
+    @Test
+    @DisplayName("두 사용자 사이의 관계가 없고 한쪽 사용자만 겹치는 ACCEPTED 관계가 있으면 false를 반환한다")
+    void existsAcceptedFriendWhenOnlyOneUserMatches() {
+        // given
+        User requester = createUser("045");
+        User receiver = createUser("046");
+        User otherUser = createUser("047");
+
+        // requester와 otherUser 사이의 ACCEPTED 관계
+        createAcceptedFriend(requester, otherUser);
+
+        // otherUser와 receiver 사이의 ACCEPTED 관계
+        createAcceptedFriend(otherUser, receiver);
+
+        // requester와 receiver 사이에는 관계가 없음
+        entityManager.flush();
+
+        // when
+        boolean result = friendRepository.existsAcceptedFriend(
+                requester.getId(),
+                receiver.getId(),
+                FriendStatus.ACCEPTED
+        );
+
+        // then
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("사용자 ID 순서를 반대로 전달해도 한쪽 사용자만 겹치는 관계는 false를 반환한다")
+    void existsAcceptedFriendWhenOnlyOneUserMatchesAndOrderReversed() {
+        // given
+        User requester = createUser("048");
+        User receiver = createUser("049");
+        User otherUser = createUser("050");
+
+        // requester와 otherUser 사이의 ACCEPTED 관계
+        createAcceptedFriend(requester, otherUser);
+
+        // otherUser와 receiver 사이의 ACCEPTED 관계
+        createAcceptedFriend(otherUser, receiver);
+
+        // requester와 receiver 사이에는 관계가 없음
+        entityManager.flush();
+
+        // when
+        boolean result = friendRepository.existsAcceptedFriend(
+                receiver.getId(),
+                requester.getId(),
+                FriendStatus.ACCEPTED
+        );
+
+        // then
+        assertThat(result).isFalse();
+    }
+
     // --------------------------------------------------
     // countAcceptedFriends
     // --------------------------------------------------
