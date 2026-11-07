@@ -66,6 +66,23 @@ class DirectChatRoomRepositoryTest {
     }
 
     @Test
+    @DisplayName("사용자 ID를 역순으로 전달해도 정렬된 ID로 1:1 채팅방을 조회한다")
+    void findByUser1IdAndUser2IdWhenCreatedInReverseOrder() {
+        // given
+        DirectChatRoom directChatRoom = createDirectChatRoom(2L, 1L);
+
+        // when
+        DirectChatRoom foundDirectChatRoom = directChatRoomRepository
+                .findByUser1IdAndUser2Id(1L, 2L)
+                .orElseThrow();
+
+        // then
+        assertThat(foundDirectChatRoom.getId()).isEqualTo(directChatRoom.getId());
+        assertThat(foundDirectChatRoom.getUser1Id()).isEqualTo(1L);
+        assertThat(foundDirectChatRoom.getUser2Id()).isEqualTo(2L);
+    }
+
+    @Test
     @DisplayName("첫 번째 사용자 ID에 해당하는 1:1 채팅방을 삭제한다")
     void deleteDirectChatRoomByUserIdWhenUser1() {
         // given
@@ -86,6 +103,7 @@ class DirectChatRoomRepositoryTest {
     void deleteDirectChatRoomByUserIdWhenUser2() {
         // given
         DirectChatRoom target = createDirectChatRoom(1L, 2L);
+        DirectChatRoom anotherTarget = createDirectChatRoom(3L, 2L);
         DirectChatRoom unrelated = createDirectChatRoom(3L, 4L);
 
         // when
@@ -94,6 +112,7 @@ class DirectChatRoomRepositoryTest {
 
         // then
         assertThat(directChatRoomRepository.findById(target.getId())).isEmpty();
+        assertThat(directChatRoomRepository.findById(anotherTarget.getId())).isEmpty();
         assertThat(directChatRoomRepository.findById(unrelated.getId())).isPresent();
     }
 
