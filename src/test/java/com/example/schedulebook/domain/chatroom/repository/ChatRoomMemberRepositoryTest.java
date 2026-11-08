@@ -12,6 +12,8 @@ import com.example.schedulebook.domain.user.entity.User;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -644,9 +646,10 @@ class ChatRoomMemberRepositoryTest {
         assertThat(result.get(0).getLastMessageAt()).isNull();
     }
 
-    @Test
+    @ParameterizedTest(name = "메시지 시각 동일 여부: {0}")
+    @ValueSource(booleans = {false, true})
     @DisplayName("마지막 메시지 시간과 채팅방 ID를 기준으로 다음 페이지를 조회한다")
-    void findMyChatRoomsWithCursor() {
+    void findMyChatRoomsWithCursor(boolean sameMessageTime) {
         // given
         User user = createUser("30");
         User opponent = createUser("31");
@@ -671,9 +674,27 @@ class ChatRoomMemberRepositoryTest {
         createMember(thirdRoom, user);
         createMember(thirdRoom, opponent);
 
-        createMessage(firstRoom, opponent, "첫 번째 메시지");
-        createMessage(secondRoom, opponent, "두 번째 메시지");
-        createMessage(thirdRoom, opponent, "세 번째 메시지");
+        ChatMessage firstMessage = createMessage(firstRoom, opponent, "첫 번째 메시지");
+        ChatMessage secondMessage = createMessage(secondRoom, opponent, "두 번째 메시지");
+        ChatMessage thirdMessage = createMessage(thirdRoom, opponent, "세 번째 메시지");
+
+        entityManager.flush();
+        // 감사 리스너가 설정한 createdAt 대신 DB에 고정 시각을 저장한다.
+        // 서로 다른 시각은 방 ID 순서와 다르게 배치해 시간 정렬을 독립적으로 검증한다.
+        List<ChatMessage> messages = List.of(firstMessage, secondMessage, thirdMessage);
+        List<LocalDateTime> messageTimes = sameMessageTime
+                ? List.of(FIXED_TIME, FIXED_TIME, FIXED_TIME)
+                : List.of(FIXED_TIME.plusMinutes(2), FIXED_TIME, FIXED_TIME.plusMinutes(1));
+        for (int i = 0; i < messages.size(); i++) {
+            entityManager.createQuery("UPDATE ChatMessage m SET m.createdAt = :createdAt WHERE m.id = :id")
+                    .setParameter("createdAt", messageTimes.get(i))
+                    .setParameter("id", messages.get(i).getId())
+                    .executeUpdate();
+        }
+
+        List<Long> expectedRoomIds = sameMessageTime
+                ? List.of(thirdRoom.getId(), secondRoom.getId(), firstRoom.getId())
+                : List.of(firstRoom.getId(), thirdRoom.getId(), secondRoom.getId());
 
         entityManager.flush();
         entityManager.clear();
@@ -687,6 +708,9 @@ class ChatRoomMemberRepositoryTest {
                         PageRequest.of(0, 1)
                 );
 
+        assertThat(firstPage).extracting(ChatRoomListProjection::getRoomId)
+                .containsExactly(expectedRoomIds.get(0));
+
         ChatRoomListProjection firstCursor = firstPage.get(0);
 
         List<ChatRoomListProjection> secondPage =
@@ -697,6 +721,9 @@ class ChatRoomMemberRepositoryTest {
                         PageRequest.of(0, 1)
                 );
 
+        assertThat(secondPage).extracting(ChatRoomListProjection::getRoomId)
+                .containsExactly(expectedRoomIds.get(1));
+
         ChatRoomListProjection secondCursor = secondPage.get(0);
 
         List<ChatRoomListProjection> thirdPage =
@@ -706,6 +733,9 @@ class ChatRoomMemberRepositoryTest {
                         secondCursor.getRoomId(),
                         PageRequest.of(0, 1)
                 );
+
+        assertThat(thirdPage).extracting(ChatRoomListProjection::getRoomId)
+                .containsExactly(expectedRoomIds.get(2));
 
         ChatRoomListProjection thirdCursor = thirdPage.get(0);
 
@@ -722,7 +752,12 @@ class ChatRoomMemberRepositoryTest {
         assertThat(secondPage).hasSize(1);
         assertThat(thirdPage).hasSize(1);
         assertThat(lastPage).isEmpty();
-        assertThat(List.of(firstCursor.getRoomId(), secondCursor.getRoomId(), thirdPage.get(0).getRoomId()))
-                .containsExactly(thirdRoom.getId(), secondRoom.getId(), firstRoom.getId());
+        assertThat(List.of(firstCursor.getLastMessageAt(), secondCursor.getLastMessageAt(), thirdCursor.getLastMessageAt()))
+                .containsExactlyElementsOf(sameMessageTime
+                        ? messageTimes
+                        : List.of(messageTimes.get(0), messageTimes.get(2), messageTimes.get(1)));
+        assertThat(List.of(firstCursor.getRoomId(), secondCursor.getRoomId(), thirdCursor.getRoomId()))
+                .doesNotHaveDuplicates()
+                .containsExactlyElementsOf(expectedRoomIds);
     }
 }
