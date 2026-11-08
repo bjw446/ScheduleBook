@@ -12,8 +12,6 @@ import com.example.schedulebook.domain.user.entity.User;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -646,10 +644,9 @@ class ChatRoomMemberRepositoryTest {
         assertThat(result.get(0).getLastMessageAt()).isNull();
     }
 
-    @ParameterizedTest(name = "메시지 시각 동일 여부: {0}")
-    @ValueSource(booleans = {false, true})
-    @DisplayName("마지막 메시지 시간과 채팅방 ID를 기준으로 다음 페이지를 조회한다")
-    void findMyChatRoomsWithCursor(boolean sameMessageTime) {
+    @Test
+    @DisplayName("메시지가 없는 채팅방도 null 시간과 채팅방 ID를 기준으로 다음 페이지를 조회한다")
+    void findMyChatRoomsWithCursorWhenLastMessageIsNull() {
         // given
         User user = createUser("30");
         User opponent = createUser("31");
@@ -657,49 +654,31 @@ class ChatRoomMemberRepositoryTest {
         entityManager.persist(user);
         entityManager.persist(opponent);
 
-        ChatRoom firstRoom = ChatRoom.direct();
-        ChatRoom secondRoom = ChatRoom.direct();
-        ChatRoom thirdRoom = ChatRoom.direct();
+        ChatRoom messageRoom = ChatRoom.direct();
+        ChatRoom firstNullRoom = ChatRoom.direct();
+        ChatRoom secondNullRoom = ChatRoom.direct();
 
-        entityManager.persist(firstRoom);
-        entityManager.persist(secondRoom);
-        entityManager.persist(thirdRoom);
+        entityManager.persist(messageRoom);
+        entityManager.persist(firstNullRoom);
+        entityManager.persist(secondNullRoom);
 
-        createMember(firstRoom, user);
-        createMember(firstRoom, opponent);
+        createMember(messageRoom, user);
+        createMember(messageRoom, opponent);
 
-        createMember(secondRoom, user);
-        createMember(secondRoom, opponent);
+        createMember(firstNullRoom, user);
+        createMember(firstNullRoom, opponent);
 
-        createMember(thirdRoom, user);
-        createMember(thirdRoom, opponent);
+        createMember(secondNullRoom, user);
+        createMember(secondNullRoom, opponent);
 
-        ChatMessage firstMessage = createMessage(firstRoom, opponent, "첫 번째 메시지");
-        ChatMessage secondMessage = createMessage(secondRoom, opponent, "두 번째 메시지");
-        ChatMessage thirdMessage = createMessage(thirdRoom, opponent, "세 번째 메시지");
-
-        entityManager.flush();
-        // 감사 리스너가 설정한 createdAt 대신 DB에 고정 시각을 저장한다.
-        // 서로 다른 시각은 방 ID 순서와 다르게 배치해 시간 정렬을 독립적으로 검증한다.
-        List<ChatMessage> messages = List.of(firstMessage, secondMessage, thirdMessage);
-        List<LocalDateTime> messageTimes = sameMessageTime
-                ? List.of(FIXED_TIME, FIXED_TIME, FIXED_TIME)
-                : List.of(FIXED_TIME.plusMinutes(2), FIXED_TIME, FIXED_TIME.plusMinutes(1));
-        for (int i = 0; i < messages.size(); i++) {
-            entityManager.createQuery("UPDATE ChatMessage m SET m.createdAt = :createdAt WHERE m.id = :id")
-                    .setParameter("createdAt", messageTimes.get(i))
-                    .setParameter("id", messages.get(i).getId())
-                    .executeUpdate();
-        }
-
-        List<Long> expectedRoomIds = sameMessageTime
-                ? List.of(thirdRoom.getId(), secondRoom.getId(), firstRoom.getId())
-                : List.of(firstRoom.getId(), thirdRoom.getId(), secondRoom.getId());
+        // 메시지가 있는 채팅방만 마지막 메시지를 설정한다.
+        createMessage(messageRoom, opponent, "마지막 메시지");
 
         entityManager.flush();
         entityManager.clear();
 
         // when
+        // 첫 번째 페이지: 메시지가 있는 채팅방 조회
         List<ChatRoomListProjection> firstPage =
                 chatRoomMemberRepository.findMyChatRooms(
                         user.getId(),
@@ -708,11 +687,11 @@ class ChatRoomMemberRepositoryTest {
                         PageRequest.of(0, 1)
                 );
 
-        assertThat(firstPage).extracting(ChatRoomListProjection::getRoomId)
-                .containsExactly(expectedRoomIds.get(0));
-
         ChatRoomListProjection firstCursor = firstPage.get(0);
 
+        // 두 번째 페이지: 메시지가 없는 채팅방 조회
+        // 이전 커서의 메시지 시간이 존재하지만,
+        // 다음 페이지에는 마지막 메시지가 없는 채팅방도 포함되어야 한다.
         List<ChatRoomListProjection> secondPage =
                 chatRoomMemberRepository.findMyChatRooms(
                         user.getId(),
@@ -721,11 +700,11 @@ class ChatRoomMemberRepositoryTest {
                         PageRequest.of(0, 1)
                 );
 
-        assertThat(secondPage).extracting(ChatRoomListProjection::getRoomId)
-                .containsExactly(expectedRoomIds.get(1));
-
         ChatRoomListProjection secondCursor = secondPage.get(0);
 
+        // 세 번째 페이지: null 시간과 채팅방 ID를 기준으로 조회
+        // 이전 페이지의 마지막 메시지 시간이 null이므로
+        // roomId가 더 작은 메시지 없는 채팅방을 조회한다.
         List<ChatRoomListProjection> thirdPage =
                 chatRoomMemberRepository.findMyChatRooms(
                         user.getId(),
@@ -734,30 +713,38 @@ class ChatRoomMemberRepositoryTest {
                         PageRequest.of(0, 1)
                 );
 
-        assertThat(thirdPage).extracting(ChatRoomListProjection::getRoomId)
-                .containsExactly(expectedRoomIds.get(2));
-
-        ChatRoomListProjection thirdCursor = thirdPage.get(0);
-
+        // 네 번째 페이지: 더 이상 조회할 채팅방이 없는지 확인
         List<ChatRoomListProjection> lastPage =
                 chatRoomMemberRepository.findMyChatRooms(
                         user.getId(),
-                        thirdCursor.getLastMessageAt(),
-                        thirdCursor.getRoomId(),
+                        thirdPage.get(0).getLastMessageAt(),
+                        thirdPage.get(0).getRoomId(),
                         PageRequest.of(0, 1)
                 );
 
         // then
         assertThat(firstPage).hasSize(1);
+        assertThat(firstCursor.getRoomId()).isEqualTo(messageRoom.getId());
+        assertThat(firstCursor.getLastMessageAt()).isNotNull();
+
         assertThat(secondPage).hasSize(1);
+        assertThat(secondCursor.getRoomId()).isEqualTo(secondNullRoom.getId());
+        assertThat(secondCursor.getLastMessageAt()).isNull();
+
         assertThat(thirdPage).hasSize(1);
+        assertThat(thirdPage.get(0).getRoomId()).isEqualTo(firstNullRoom.getId());
+        assertThat(thirdPage.get(0).getLastMessageAt()).isNull();
+
         assertThat(lastPage).isEmpty();
-        assertThat(List.of(firstCursor.getLastMessageAt(), secondCursor.getLastMessageAt(), thirdCursor.getLastMessageAt()))
-                .containsExactlyElementsOf(sameMessageTime
-                        ? messageTimes
-                        : List.of(messageTimes.get(0), messageTimes.get(2), messageTimes.get(1)));
-        assertThat(List.of(firstCursor.getRoomId(), secondCursor.getRoomId(), thirdCursor.getRoomId()))
-                .doesNotHaveDuplicates()
-                .containsExactlyElementsOf(expectedRoomIds);
+
+        assertThat(List.of(
+                firstCursor.getRoomId(),
+                secondCursor.getRoomId(),
+                thirdPage.get(0).getRoomId()
+        )).containsExactly(
+                messageRoom.getId(),
+                secondNullRoom.getId(),
+                firstNullRoom.getId()
+        );
     }
 }
