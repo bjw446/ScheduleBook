@@ -19,11 +19,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.within;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -35,6 +33,15 @@ class ChatRoomMemberRepositoryTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    private static final LocalDateTime FIXED_TIME =
+            LocalDateTime.of(2026, 11, 8, 12, 0, 0);
+
+    private static final LocalDateTime FIXED_JOINED_AT =
+            LocalDateTime.of(2026, 11, 8, 12, 10, 0);
+
+    private static final LocalDateTime FIXED_DELETED_AT =
+            LocalDateTime.of(2026, 11, 8, 12, 20, 0);
 
     private User createUser(String suffix) {
         return User.create(
@@ -56,7 +63,7 @@ class ChatRoomMemberRepositoryTest {
         ChatRoomMember member = ChatRoomMember.of(
                 chatRoom,
                 user,
-                LocalDateTime.now()
+                FIXED_TIME
         );
 
         entityManager.persist(member);
@@ -284,11 +291,11 @@ class ChatRoomMemberRepositoryTest {
         entityManager.persist(deletedUser);
         entityManager.persist(activeUser);
 
-        createMember(chatRoom, sender);
-
+        ChatRoomMember senderMember = createMember(chatRoom, sender);
         ChatRoomMember deletedMember = createMember(chatRoom, deletedUser);
         createMember(chatRoom, activeUser);
 
+        senderMember.delete();
         deletedMember.delete();
 
         entityManager.flush();
@@ -340,7 +347,7 @@ class ChatRoomMemberRepositoryTest {
         assertThat(result.get(0).getNickname()).isEqualTo(user.getNickname());
         assertThat(result.get(0).getLastReadMessageId()).isEqualTo(100L);
         assertThat(result.get(0).getJoinedAt())
-                .isCloseTo(activeMember.getJoinedAt(), within(1, ChronoUnit.MICROS));
+                .isEqualTo(FIXED_TIME);
     }
 
     @Test
@@ -417,6 +424,7 @@ class ChatRoomMemberRepositoryTest {
 
         ChatRoom firstRoom = createGroupChatRoom("첫 번째 채팅방");
         ChatRoom secondRoom = createGroupChatRoom("두 번째 채팅방");
+        ChatRoom deletedRoom = createGroupChatRoom("삭제된 멤버가 있는 채팅방");
 
         entityManager.persist(user);
         entityManager.persist(anotherUser);
@@ -425,6 +433,12 @@ class ChatRoomMemberRepositoryTest {
         ChatRoomMember secondMember = createMember(secondRoom, user);
 
         createMember(firstRoom, anotherUser);
+
+        ChatRoomMember deletedMember = createMember(deletedRoom, user);
+        deletedMember.delete();
+
+        entityManager.flush();
+        entityManager.clear();
 
         // when
         List<ChatRoomMember> result =
@@ -447,7 +461,7 @@ class ChatRoomMemberRepositoryTest {
         entityManager.persist(user);
 
         ChatRoomMember member = createMember(chatRoom, user);
-        LocalDateTime deletedAt = LocalDateTime.now();
+        LocalDateTime deletedAt = FIXED_DELETED_AT;
 
         entityManager.flush();
         entityManager.clear();
@@ -462,8 +476,7 @@ class ChatRoomMemberRepositoryTest {
                 .findByChatRoomIdAndUserId(chatRoom.getId(), user.getId())
                 .orElseThrow();
 
-        assertThat(foundMember.getDeletedAt())
-                .isCloseTo(deletedAt, within(1, ChronoUnit.MICROS));
+        assertThat(foundMember.getDeletedAt()).isEqualTo(deletedAt);
     }
 
     @Test
@@ -484,7 +497,7 @@ class ChatRoomMemberRepositoryTest {
         // when
         int result = chatRoomMemberRepository.leave(
                 member.getId(),
-                LocalDateTime.now()
+                FIXED_DELETED_AT
         );
 
         // then
@@ -505,7 +518,7 @@ class ChatRoomMemberRepositoryTest {
         member.updateLastRead(100L);
         member.delete();
 
-        LocalDateTime joinedAt = LocalDateTime.now().plusMinutes(1);
+        LocalDateTime joinedAt = FIXED_JOINED_AT;
 
         entityManager.flush();
         entityManager.clear();
@@ -523,8 +536,7 @@ class ChatRoomMemberRepositoryTest {
         assertThat(foundMember.getDeletedAt()).isNull();
         assertThat(foundMember.getUnreadCount()).isZero();
         assertThat(foundMember.getLastReadMessageId()).isNull();
-        assertThat(foundMember.getJoinedAt())
-                .isCloseTo(joinedAt, within(1, ChronoUnit.MICROS));
+        assertThat(foundMember.getJoinedAt()).isEqualTo(joinedAt);
     }
 
     @Test
@@ -546,7 +558,7 @@ class ChatRoomMemberRepositoryTest {
         // when
         int result = chatRoomMemberRepository.rejoin(
                 member.getId(),
-                LocalDateTime.now().plusMinutes(1)
+                FIXED_JOINED_AT
         );
 
         // then
@@ -675,20 +687,52 @@ class ChatRoomMemberRepositoryTest {
                         PageRequest.of(0, 1)
                 );
 
-        ChatRoomListProjection cursor = firstPage.get(0);
+        ChatRoomListProjection firstCursor = firstPage.get(0);
 
         List<ChatRoomListProjection> secondPage =
                 chatRoomMemberRepository.findMyChatRooms(
                         user.getId(),
-                        cursor.getLastMessageAt(),
-                        cursor.getRoomId(),
+                        firstCursor.getLastMessageAt(),
+                        firstCursor.getRoomId(),
+                        PageRequest.of(0, 1)
+                );
+
+        ChatRoomListProjection secondCursor = secondPage.get(0);
+
+        List<ChatRoomListProjection> thirdPage =
+                chatRoomMemberRepository.findMyChatRooms(
+                        user.getId(),
+                        secondCursor.getLastMessageAt(),
+                        secondCursor.getRoomId(),
+                        PageRequest.of(0, 1)
+                );
+
+        ChatRoomListProjection thirdCursor = thirdPage.get(0);
+
+        List<ChatRoomListProjection> lastPage =
+                chatRoomMemberRepository.findMyChatRooms(
+                        user.getId(),
+                        thirdCursor.getLastMessageAt(),
+                        thirdCursor.getRoomId(),
                         PageRequest.of(0, 1)
                 );
 
         // then
         assertThat(firstPage).hasSize(1);
         assertThat(secondPage).hasSize(1);
-        assertThat(secondPage.get(0).getRoomId())
-                .isNotEqualTo(cursor.getRoomId());
+        assertThat(thirdPage).hasSize(1);
+        assertThat(lastPage).isEmpty();
+
+        assertThat(List.of(
+                firstCursor.getRoomId(),
+                secondCursor.getRoomId(),
+                thirdCursor.getRoomId()
+        ))
+                .doesNotHaveDuplicates()
+                .containsExactly(
+                        thirdRoom.getId(),
+                        secondRoom.getId(),
+                        firstRoom.getId()
+                );
     }
 }
