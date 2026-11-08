@@ -722,17 +722,7 @@ class ChatRoomMemberRepositoryTest {
         assertThat(secondPage).hasSize(1);
         assertThat(thirdPage).hasSize(1);
         assertThat(lastPage).isEmpty();
-
-        assertThat(List.of(
-                firstCursor.getRoomId(),
-                secondCursor.getRoomId(),
-                thirdCursor.getRoomId()
-        ))
-                .doesNotHaveDuplicates()
-                .containsExactly(
-                        thirdRoom.getId(),
-                        secondRoom.getId(),
-                        firstRoom.getId()
-                );
+        assertThat(List.of(firstCursor.getRoomId(), secondCursor.getRoomId(), thirdPage.get(0).getRoomId()))
+                .containsExactly(thirdRoom.getId(), secondRoom.getId(), firstRoom.getId());
     }
 }
