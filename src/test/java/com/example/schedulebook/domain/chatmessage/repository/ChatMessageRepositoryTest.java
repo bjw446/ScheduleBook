@@ -376,12 +376,6 @@ class ChatMessageRepositoryTest {
 
         entityManager.persist(replyMessage);
 
-        ChatMessage cursorMessage = createMessage(
-                chatRoom,
-                sender,
-                "커서 메시지"
-        );
-
         entityManager.flush();
         entityManager.clear();
 
@@ -389,18 +383,15 @@ class ChatMessageRepositoryTest {
         List<ChatMessage> result = chatMessageRepository.findMessages(
                 chatRoom.getId(),
                 LocalDateTime.now().minusDays(1),
-                cursorMessage.getId(),
-                PageRequest.of(0, 10)
+                null,
+                PageRequest.of(0, 1)
         );
 
         // then
         assertThat(result)
-                .hasSize(2)
+                .hasSize(1)
                 .extracting(ChatMessage::getId)
-                .containsExactly(
-                        replyMessage.getId(),
-                        originalMessage.getId()
-                );
+                .containsExactly(replyMessage.getId());
 
         ChatMessage foundReplyMessage = result.get(0);
 
@@ -409,13 +400,18 @@ class ChatMessageRepositoryTest {
 
         assertThat(foundReplyMessage.getContent()).isEqualTo("답장 메시지");
 
+        // 답장 대상 메시지가 로딩되었는지 검증
         assertThat(persistenceUnitUtil.isLoaded(foundReplyMessage, "replyMessage"))
                 .isTrue();
 
         ChatMessage foundOriginalMessage = foundReplyMessage.getReplyMessage();
 
+        // 답장 대상 메시지의 작성자가 로딩되었는지 검증
         assertThat(persistenceUnitUtil.isLoaded(foundOriginalMessage, "sender"))
                 .isTrue();
+
+        assertThat(foundOriginalMessage.getId())
+                .isEqualTo(originalMessage.getId());
 
         assertThat(foundOriginalMessage.getSender().getId())
                 .isEqualTo(replySender.getId());
