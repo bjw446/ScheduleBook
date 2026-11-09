@@ -376,6 +376,12 @@ class ChatMessageRepositoryTest {
 
         entityManager.persist(replyMessage);
 
+        ChatMessage cursorMessage = createMessage(
+                chatRoom,
+                sender,
+                "커서 메시지"
+        );
+
         entityManager.flush();
         entityManager.clear();
 
@@ -383,12 +389,18 @@ class ChatMessageRepositoryTest {
         List<ChatMessage> result = chatMessageRepository.findMessages(
                 chatRoom.getId(),
                 LocalDateTime.now().minusDays(1),
-                null,
+                cursorMessage.getId(),
                 PageRequest.of(0, 10)
         );
 
         // then
-        assertThat(result).hasSize(2);
+        assertThat(result)
+                .hasSize(2)
+                .extracting(ChatMessage::getId)
+                .containsExactly(
+                        replyMessage.getId(),
+                        originalMessage.getId()
+                );
 
         ChatMessage foundReplyMessage = result.get(0);
 
@@ -404,9 +416,6 @@ class ChatMessageRepositoryTest {
 
         assertThat(persistenceUnitUtil.isLoaded(foundOriginalMessage, "sender"))
                 .isTrue();
-
-        assertThat(foundOriginalMessage.getId())
-                .isEqualTo(originalMessage.getId());
 
         assertThat(foundOriginalMessage.getSender().getId())
                 .isEqualTo(replySender.getId());
