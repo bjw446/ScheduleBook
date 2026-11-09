@@ -8,6 +8,8 @@ import com.example.schedulebook.domain.chatroom.entity.ChatRoom;
 import com.example.schedulebook.domain.schedule.entity.Schedule;
 import com.example.schedulebook.domain.user.entity.User;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnitUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,9 @@ class ChatMessageRepositoryTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
 
     private User createUser(String suffix) {
         return User.create(
@@ -387,10 +392,23 @@ class ChatMessageRepositoryTest {
 
         ChatMessage foundReplyMessage = result.get(0);
 
+        PersistenceUnitUtil persistenceUnitUtil =
+                entityManagerFactory.getPersistenceUnitUtil();
+
         assertThat(foundReplyMessage.getContent()).isEqualTo("답장 메시지");
-        assertThat(foundReplyMessage.getReplyMessage().getId())
+
+        assertThat(persistenceUnitUtil.isLoaded(foundReplyMessage, "replyMessage"))
+                .isTrue();
+
+        ChatMessage foundOriginalMessage = foundReplyMessage.getReplyMessage();
+
+        assertThat(persistenceUnitUtil.isLoaded(foundOriginalMessage, "sender"))
+                .isTrue();
+
+        assertThat(foundOriginalMessage.getId())
                 .isEqualTo(originalMessage.getId());
-        assertThat(foundReplyMessage.getReplyMessage().getSender().getId())
+
+        assertThat(foundOriginalMessage.getSender().getId())
                 .isEqualTo(replySender.getId());
     }
 
@@ -653,13 +671,14 @@ class ChatMessageRepositoryTest {
                 schedule
         );
 
-        ChatMessage deletedMessage = createMessage(
+        ChatMessage deletedMessage = ChatMessage.schedule(
                 chatRoom,
                 user,
-                "삭제할 메시지"
+                schedule
         );
 
         entityManager.persist(activeMessage);
+        entityManager.persist(deletedMessage);
 
         deletedMessage.deleteMessage(user.getId());
 
@@ -715,9 +734,16 @@ class ChatMessageRepositoryTest {
                 .orElseThrow();
 
         // then
+        PersistenceUnitUtil persistenceUnitUtil =
+                entityManagerFactory.getPersistenceUnitUtil();
+
         assertThat(foundMessage.getId()).isEqualTo(message.getId());
-        assertThat(foundMessage.getChatRoom().getId()).isEqualTo(chatRoom.getId());
-        assertThat(foundMessage.getChatRoom().getId()).isNotNull();
+
+        assertThat(persistenceUnitUtil.isLoaded(foundMessage, "chatRoom"))
+                .isTrue();
+
+        assertThat(foundMessage.getChatRoom().getId())
+                .isEqualTo(chatRoom.getId());
     }
 
     @Test
