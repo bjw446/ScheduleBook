@@ -39,8 +39,8 @@ class CommentRepositoryTest {
     // ========================================
 
     @Test
-    @DisplayName("특정 일정의 부모 댓글을 조회한다")
-    void findParentComments() {
+    @DisplayName("특정 일정의 부모 댓글을 생성 시간 오름차순으로 조회한다")
+    void findParentComments() throws InterruptedException {
         // given
         User writer = createUser("1");
         User anotherWriter = createUser("2");
@@ -51,12 +51,23 @@ class CommentRepositoryTest {
         persist(writer, anotherWriter, schedule, anotherSchedule);
 
         Comment firstComment = Comment.create(schedule, writer, "첫 번째 부모 댓글");
+        persist(firstComment);
+        entityManager.flush();
+
+        Thread.sleep(20);
+
         Comment secondComment = Comment.create(schedule, anotherWriter, "두 번째 부모 댓글");
+        persist(secondComment);
+        entityManager.flush();
+
+        Thread.sleep(20);
+
         Comment anotherScheduleComment = Comment.create(
                 anotherSchedule, anotherWriter, "다른 일정의 부모 댓글"
         );
+        persist(anotherScheduleComment);
 
-        persist(firstComment, secondComment, anotherScheduleComment);
+        flushAndClear();
 
         // when
         List<Comment> result = commentRepository.findParentComments(schedule.getId());
@@ -65,11 +76,14 @@ class CommentRepositoryTest {
         assertThat(result)
                 .hasSize(2)
                 .extracting(Comment::getId)
-                .containsExactlyInAnyOrder(firstComment.getId(), secondComment.getId());
+                .containsExactly(firstComment.getId(), secondComment.getId());
 
         assertThat(result)
                 .extracting(Comment::getParent)
                 .containsOnlyNulls();
+
+        assertThat(result.get(0).getCreatedAt())
+                .isBefore(result.get(1).getCreatedAt());
     }
 
     @Test
@@ -133,8 +147,8 @@ class CommentRepositoryTest {
     // ========================================
 
     @Test
-    @DisplayName("지정한 부모 댓글들의 대댓글을 조회한다")
-    void findReplies() {
+    @DisplayName("지정한 부모 댓글들의 대댓글을 생성 시간 오름차순으로 조회한다")
+    void findReplies() throws InterruptedException {
         // given
         User writer = createUser("1");
         User replyWriter = createUser("2");
@@ -149,11 +163,28 @@ class CommentRepositoryTest {
 
         persist(firstParent, secondParent, anotherParent);
 
-        Comment firstReply = Comment.reply(schedule, replyWriter, firstParent, "첫 번째 대댓글");
-        Comment secondReply = Comment.reply(schedule, replyWriter, secondParent, "두 번째 대댓글");
-        Comment anotherReply = Comment.reply(schedule, replyWriter, anotherParent, "다른 대댓글");
+        Comment firstReply = Comment.reply(
+                schedule, replyWriter, firstParent, "첫 번째 대댓글"
+        );
+        persist(firstReply);
+        entityManager.flush();
 
-        persist(firstReply, secondReply, anotherReply);
+        Thread.sleep(20);
+
+        Comment secondReply = Comment.reply(
+                schedule, replyWriter, secondParent, "두 번째 대댓글"
+        );
+        persist(secondReply);
+        entityManager.flush();
+
+        Thread.sleep(20);
+
+        Comment anotherReply = Comment.reply(
+                schedule, replyWriter, anotherParent, "다른 대댓글"
+        );
+        persist(anotherReply);
+
+        flushAndClear();
 
         // when
         List<Comment> result = commentRepository.findReplies(
@@ -164,7 +195,10 @@ class CommentRepositoryTest {
         assertThat(result)
                 .hasSize(2)
                 .extracting(Comment::getId)
-                .containsExactlyInAnyOrder(firstReply.getId(), secondReply.getId());
+                .containsExactly(firstReply.getId(), secondReply.getId());
+
+        assertThat(result.get(0).getCreatedAt())
+                .isBefore(result.get(1).getCreatedAt());
     }
 
     @Test
