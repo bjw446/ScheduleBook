@@ -387,9 +387,16 @@ class NotificationRepositoryTest {
         Notification notDeletedNotification =
                 notificationRepository.findById(anotherUserNotification.getId()).orElseThrow();
 
+        // 대상 사용자의 알림은 deleted 플래그가 true로 변경되어야 한다.
+        assertThat(deletedNotification1.isDeleted()).isTrue();
+        assertThat(deletedNotification2.isDeleted()).isTrue();
+
+        // 대상 사용자의 알림은 deletedAt도 설정되어야 한다.
         assertThat(deletedNotification1.getDeletedAt()).isNotNull();
         assertThat(deletedNotification2.getDeletedAt()).isNotNull();
 
+        // 다른 사용자의 알림은 삭제되지 않아야 한다.
+        assertThat(notDeletedNotification.isDeleted()).isFalse();
         assertThat(notDeletedNotification.getDeletedAt()).isNull();
     }
 
