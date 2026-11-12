@@ -287,11 +287,13 @@ class AdminOutboxServiceTest {
     void Outbox_통계를_조회하면_전체_통계값을_반환한다() {
         // given
         Object[] stats = {
-                10L, // pending
-                20L, // processing
-                30L, // failed
-                40L, // dead
-                50L  // success
+                new Object[]{
+                        10L, // pending
+                        20L, // processing
+                        30L, // failed
+                        40L, // dead
+                        50L  // success
+                }
         };
 
         when(outboxRepository.countStats())
@@ -316,11 +318,13 @@ class AdminOutboxServiceTest {
     void Outbox_통계값이_null이면_0으로_변환한다() {
         // given
         Object[] stats = {
-                null,
-                20L,
-                null,
-                40L,
-                null
+                new Object[]{
+                        null,
+                        20L,
+                        null,
+                        40L,
+                        null
+                }
         };
 
         when(outboxRepository.countStats())
