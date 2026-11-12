@@ -63,7 +63,7 @@ public class AdminOutboxService {
     public OutboxStatsResponse getStats(Long currentUserId) {
         userValidator.validateActiveAdmin(currentUserId);
 
-        Object[] result = outboxRepository.countStats();
+        Object[] result = (Object[]) outboxRepository.countStats()[0];
 
         return new OutboxStatsResponse(
                 toLong(result[0]),
