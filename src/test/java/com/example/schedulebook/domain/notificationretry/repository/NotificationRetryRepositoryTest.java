@@ -554,6 +554,7 @@ class NotificationRetryRepositoryTest {
     void findRetryTargets() {
         // given
         LocalDateTime timeout = LocalDateTime.now().minusMinutes(10);
+        LocalDateTime pastRetryAt = LocalDateTime.now().minusMinutes(5);
 
         NotificationRetry pending = createNotificationRetry("event-1", 100L, 1L);
         NotificationRetry processing = createNotificationRetry("event-2", 101L, 2L);
@@ -572,46 +573,18 @@ class NotificationRetryRepositoryTest {
         );
         flushAndClear();
 
+        // 재시도 가능한 PENDING
         updateNotificationRetry(
                 pending.getId(),
                 NotificationRetryStatus.PENDING,
                 1,
-                LocalDateTime.now().minusMinutes(5),
+                pastRetryAt,
                 null,
                 null,
                 LocalDateTime.now()
         );
 
-        updateNotificationRetry(
-                processing.getId(),
-                NotificationRetryStatus.PROCESSING,
-                2,
-                null,
-                null,
-                "claim-token-1",
-                timeout.minusMinutes(5)
-        );
-
-        updateNotificationRetry(
-                futurePending.getId(),
-                NotificationRetryStatus.PENDING,
-                1,
-                LocalDateTime.now().plusMinutes(10),
-                null,
-                null,
-                LocalDateTime.now()
-        );
-
-        updateNotificationRetry(
-                activeProcessing.getId(),
-                NotificationRetryStatus.PROCESSING,
-                1,
-                null,
-                null,
-                "claim-token-2",
-                timeout.plusMinutes(5)
-        );
-
+        // Timeout이 지난 PROCESSING
         updateNotificationRetry(
                 processing.getId(),
                 NotificationRetryStatus.PROCESSING,
@@ -622,6 +595,40 @@ class NotificationRetryRepositoryTest {
                 timeout.minusMinutes(5)
         );
 
+        // 재시도 시간이 지나지 않은 PENDING
+        updateNotificationRetry(
+                futurePending.getId(),
+                NotificationRetryStatus.PENDING,
+                1,
+                LocalDateTime.now().plusMinutes(10),
+                null,
+                null,
+                LocalDateTime.now()
+        );
+
+        // Timeout이 지나지 않은 PROCESSING
+        updateNotificationRetry(
+                activeProcessing.getId(),
+                NotificationRetryStatus.PROCESSING,
+                1,
+                null,
+                null,
+                "claim-token-2",
+                timeout.plusMinutes(5)
+        );
+
+        // SUCCESS 상태: nextRetryAt은 과거이지만 상태 때문에 조회되지 않아야 함
+        updateNotificationRetry(
+                success.getId(),
+                NotificationRetryStatus.SUCCESS,
+                0,
+                pastRetryAt,
+                null,
+                null,
+                LocalDateTime.now()
+        );
+
+        // FAILED 상태
         updateNotificationRetry(
                 failed.getId(),
                 NotificationRetryStatus.FAILED,
