@@ -141,10 +141,16 @@ class ProcessedNotificationRetryRepositoryTest {
     @DisplayName("PROCESSING 상태에서 올바른 owner로 SUCCESS 상태 변경 및 owner 초기화")
     void markSuccess() {
         // given
-        ProcessedNotificationRetry retry =
+        ProcessedNotificationRetry target =
                 createProcessedNotificationRetry(100L, 1L, "owner-1");
 
-        persist(retry);
+        ProcessedNotificationRetry differentOutbox =
+                createProcessedNotificationRetry(200L, 1L, "owner-1");
+
+        ProcessedNotificationRetry differentReceiver =
+                createProcessedNotificationRetry(100L, 2L, "owner-1");
+
+        persist(target, differentOutbox, differentReceiver);
         flushAndClear();
 
         // when
@@ -157,13 +163,32 @@ class ProcessedNotificationRetryRepositoryTest {
         // then
         assertThat(result).isEqualTo(1);
 
-        ProcessedNotificationRetry updated =
-                processedNotificationRetryRepository.findById(retry.getId())
+        ProcessedNotificationRetry updatedTarget =
+                processedNotificationRetryRepository.findById(target.getId())
                         .orElseThrow();
 
-        assertThat(updated.getStatus())
+        ProcessedNotificationRetry unchangedOutbox =
+                processedNotificationRetryRepository.findById(differentOutbox.getId())
+                        .orElseThrow();
+
+        ProcessedNotificationRetry unchangedReceiver =
+                processedNotificationRetryRepository.findById(differentReceiver.getId())
+                        .orElseThrow();
+
+        // 변경 대상
+        assertThat(updatedTarget.getStatus())
                 .isEqualTo(ProcessedNotificationRetryStatus.SUCCESS);
-        assertThat(updated.getProcessingOwner()).isNull();
+        assertThat(updatedTarget.getProcessingOwner()).isNull();
+
+        // Outbox ID가 다른 데이터
+        assertThat(unchangedOutbox.getStatus())
+                .isEqualTo(ProcessedNotificationRetryStatus.PROCESSING);
+        assertThat(unchangedOutbox.getProcessingOwner()).isEqualTo("owner-1");
+
+        // Receiver ID가 다른 데이터
+        assertThat(unchangedReceiver.getStatus())
+                .isEqualTo(ProcessedNotificationRetryStatus.PROCESSING);
+        assertThat(unchangedReceiver.getProcessingOwner()).isEqualTo("owner-1");
     }
 
     @Test
@@ -239,14 +264,34 @@ class ProcessedNotificationRetryRepositoryTest {
     @DisplayName("FAILED 상태의 처리 이력을 PROCESSING 상태로 변경하고 owner를 설정한다")
     void markRetry() {
         // given
-        ProcessedNotificationRetry retry =
+        ProcessedNotificationRetry target =
                 createProcessedNotificationRetry(100L, 1L, "owner-1");
 
-        persist(retry);
+        ProcessedNotificationRetry differentOutbox =
+                createProcessedNotificationRetry(200L, 1L, "owner-1");
+
+        ProcessedNotificationRetry differentReceiver =
+                createProcessedNotificationRetry(100L, 2L, "owner-1");
+
+        persist(target, differentOutbox, differentReceiver);
         flushAndClear();
 
         updateProcessedNotificationRetry(
-                retry.getId(),
+                target.getId(),
+                ProcessedNotificationRetryStatus.FAILED,
+                null,
+                LocalDateTime.now()
+        );
+
+        updateProcessedNotificationRetry(
+                differentOutbox.getId(),
+                ProcessedNotificationRetryStatus.FAILED,
+                null,
+                LocalDateTime.now()
+        );
+
+        updateProcessedNotificationRetry(
+                differentReceiver.getId(),
                 ProcessedNotificationRetryStatus.FAILED,
                 null,
                 LocalDateTime.now()
@@ -262,13 +307,32 @@ class ProcessedNotificationRetryRepositoryTest {
         // then
         assertThat(result).isEqualTo(1);
 
-        ProcessedNotificationRetry updated =
-                processedNotificationRetryRepository.findById(retry.getId())
+        ProcessedNotificationRetry updatedTarget =
+                processedNotificationRetryRepository.findById(target.getId())
                         .orElseThrow();
 
-        assertThat(updated.getStatus())
+        ProcessedNotificationRetry unchangedOutbox =
+                processedNotificationRetryRepository.findById(differentOutbox.getId())
+                        .orElseThrow();
+
+        ProcessedNotificationRetry unchangedReceiver =
+                processedNotificationRetryRepository.findById(differentReceiver.getId())
+                        .orElseThrow();
+
+        // 변경 대상
+        assertThat(updatedTarget.getStatus())
                 .isEqualTo(ProcessedNotificationRetryStatus.PROCESSING);
-        assertThat(updated.getProcessingOwner()).isEqualTo("owner-2");
+        assertThat(updatedTarget.getProcessingOwner()).isEqualTo("owner-2");
+
+        // Outbox ID가 다른 데이터
+        assertThat(unchangedOutbox.getStatus())
+                .isEqualTo(ProcessedNotificationRetryStatus.FAILED);
+        assertThat(unchangedOutbox.getProcessingOwner()).isNull();
+
+        // Receiver ID가 다른 데이터
+        assertThat(unchangedReceiver.getStatus())
+                .isEqualTo(ProcessedNotificationRetryStatus.FAILED);
+        assertThat(unchangedReceiver.getProcessingOwner()).isNull();
     }
 
     @Test
@@ -308,10 +372,16 @@ class ProcessedNotificationRetryRepositoryTest {
     @DisplayName("PROCESSING 상태에서 올바른 owner로 FAILED 상태 변경 및 owner 초기화")
     void markFailed() {
         // given
-        ProcessedNotificationRetry retry =
+        ProcessedNotificationRetry target =
                 createProcessedNotificationRetry(100L, 1L, "owner-1");
 
-        persist(retry);
+        ProcessedNotificationRetry differentOutbox =
+                createProcessedNotificationRetry(200L, 1L, "owner-1");
+
+        ProcessedNotificationRetry differentReceiver =
+                createProcessedNotificationRetry(100L, 2L, "owner-1");
+
+        persist(target, differentOutbox, differentReceiver);
         flushAndClear();
 
         // when
@@ -324,13 +394,32 @@ class ProcessedNotificationRetryRepositoryTest {
         // then
         assertThat(result).isEqualTo(1);
 
-        ProcessedNotificationRetry updated =
-                processedNotificationRetryRepository.findById(retry.getId())
+        ProcessedNotificationRetry updatedTarget =
+                processedNotificationRetryRepository.findById(target.getId())
                         .orElseThrow();
 
-        assertThat(updated.getStatus())
+        ProcessedNotificationRetry unchangedOutbox =
+                processedNotificationRetryRepository.findById(differentOutbox.getId())
+                        .orElseThrow();
+
+        ProcessedNotificationRetry unchangedReceiver =
+                processedNotificationRetryRepository.findById(differentReceiver.getId())
+                        .orElseThrow();
+
+        // 변경 대상
+        assertThat(updatedTarget.getStatus())
                 .isEqualTo(ProcessedNotificationRetryStatus.FAILED);
-        assertThat(updated.getProcessingOwner()).isNull();
+        assertThat(updatedTarget.getProcessingOwner()).isNull();
+
+        // Outbox ID가 다른 데이터
+        assertThat(unchangedOutbox.getStatus())
+                .isEqualTo(ProcessedNotificationRetryStatus.PROCESSING);
+        assertThat(unchangedOutbox.getProcessingOwner()).isEqualTo("owner-1");
+
+        // Receiver ID가 다른 데이터
+        assertThat(unchangedReceiver.getStatus())
+                .isEqualTo(ProcessedNotificationRetryStatus.PROCESSING);
+        assertThat(unchangedReceiver.getProcessingOwner()).isEqualTo("owner-1");
     }
 
     @Test
