@@ -497,23 +497,65 @@ class ForceLogoutRetryRepositoryTest {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime timeout = now.minusMinutes(5);
 
-        updateRetry(pending.getId(), ForceLogoutRetryStatus.PENDING, 0,
-                now.minusMinutes(2), null, null, null);
+        updateRetry(
+                pending.getId(),
+                ForceLogoutRetryStatus.PENDING,
+                0,
+                now.minusMinutes(2),
+                null,
+                null,
+                null
+        );
 
-        updateRetry(processing.getId(), ForceLogoutRetryStatus.PROCESSING, 1,
-                now.minusMinutes(1), null, "token-2", now.minusMinutes(10));
+        updateRetry(
+                processing.getId(),
+                ForceLogoutRetryStatus.PROCESSING,
+                1,
+                now.minusMinutes(1),
+                null,
+                "token-2",
+                now.minusMinutes(10)
+        );
 
-        updateRetry(futurePending.getId(), ForceLogoutRetryStatus.PENDING, 0,
-                now.plusMinutes(10), null, null, null);
+        updateRetry(
+                futurePending.getId(),
+                ForceLogoutRetryStatus.PENDING,
+                0,
+                now.plusMinutes(10),
+                null,
+                null,
+                null
+        );
 
-        updateRetry(activeProcessing.getId(), ForceLogoutRetryStatus.PROCESSING, 0,
-                now.plusMinutes(1), null, "token-4", now.minusMinutes(1));
+        updateRetry(
+                activeProcessing.getId(),
+                ForceLogoutRetryStatus.PROCESSING,
+                0,
+                now.minusMinutes(3),
+                null,
+                "token-4",
+                now.minusMinutes(1)
+        );
 
-        updateRetry(success.getId(), ForceLogoutRetryStatus.SUCCESS, 0,
-                now.minusMinutes(3), null, null, null);
+        updateRetry(
+                success.getId(),
+                ForceLogoutRetryStatus.SUCCESS,
+                0,
+                now.minusMinutes(3),
+                null,
+                null,
+                null
+        );
 
-        updateRetry(failed.getId(), ForceLogoutRetryStatus.FAILED, 0,
-                now.minusMinutes(4), null, null, null);
+        updateRetry(
+                failed.getId(),
+                ForceLogoutRetryStatus.FAILED,
+                0,
+                now.minusMinutes(4),
+                null,
+                null,
+                null
+        );
 
         // when
         Page<ForceLogoutRetry> result = forceLogoutRetryRepository.findRetryTargets(
@@ -533,22 +575,27 @@ class ForceLogoutRetryRepositoryTest {
     @DisplayName("재시도 대상 조회 시 nextRetryAt, retryCount, ID 기준 정렬")
     void findRetryTargetsWithSorting() {
         // given
-        ForceLogoutRetry first = saveRetry("event-1", "session-1", 1L, null);
-        ForceLogoutRetry second = saveRetry("event-2", "session-2", 2L, null);
+        ForceLogoutRetry fourth = saveRetry("event-4", "session-4", 4L, null);
         ForceLogoutRetry third = saveRetry("event-3", "session-3", 3L, null);
+        ForceLogoutRetry second = saveRetry("event-2", "session-2", 2L, null);
+        ForceLogoutRetry first = saveRetry("event-1", "session-1", 1L, null);
 
         LocalDateTime firstTime = LocalDateTime.of(2026, 1, 1, 10, 0);
         LocalDateTime secondTime = LocalDateTime.of(2026, 1, 1, 10, 0);
-        LocalDateTime thirdTime = LocalDateTime.of(2026, 1, 1, 11, 0);
+        LocalDateTime thirdTime = LocalDateTime.of(2026, 1, 1, 10, 0);
+        LocalDateTime fourthTime = LocalDateTime.of(2026, 1, 1, 11, 0);
 
         updateRetry(first.getId(), ForceLogoutRetryStatus.PENDING, 1,
                 firstTime, null, null, null);
 
-        updateRetry(second.getId(), ForceLogoutRetryStatus.PENDING, 2,
+        updateRetry(second.getId(), ForceLogoutRetryStatus.PENDING, 1,
                 secondTime, null, null, null);
 
-        updateRetry(third.getId(), ForceLogoutRetryStatus.PENDING, 0,
+        updateRetry(third.getId(), ForceLogoutRetryStatus.PENDING, 2,
                 thirdTime, null, null, null);
+
+        updateRetry(fourth.getId(), ForceLogoutRetryStatus.PENDING, 0,
+                fourthTime, null, null, null);
 
         // when
         Page<ForceLogoutRetry> result = forceLogoutRetryRepository.findRetryTargets(
@@ -559,7 +606,12 @@ class ForceLogoutRetryRepositoryTest {
         // then
         assertThat(result.getContent())
                 .extracting(ForceLogoutRetry::getId)
-                .containsExactly(first.getId(), second.getId(), third.getId());
+                .containsExactly(
+                        second.getId(),
+                        first.getId(),
+                        third.getId(),
+                        fourth.getId()
+                );
     }
 
     @Test
@@ -614,12 +666,19 @@ class ForceLogoutRetryRepositoryTest {
         );
 
         // then
-        assertThat(firstPage.getContent()).hasSize(2);
+        assertThat(firstPage.getContent())
+                .extracting(ForceLogoutRetry::getId)
+                .containsExactly(retry1.getId(), retry2.getId());
+
+        assertThat(secondPage.getContent())
+                .extracting(ForceLogoutRetry::getId)
+                .containsExactly(retry3.getId());
+
         assertThat(firstPage.getTotalElements()).isEqualTo(3);
         assertThat(firstPage.getTotalPages()).isEqualTo(2);
 
-        assertThat(secondPage.getContent()).hasSize(1);
         assertThat(secondPage.getTotalElements()).isEqualTo(3);
+        assertThat(secondPage.getTotalPages()).isEqualTo(2);
     }
 
     @Test
