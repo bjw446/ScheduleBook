@@ -69,11 +69,12 @@ class DeadLetterRepositoryTest {
         String previousToken = "previous-token";
         String newToken = "new-token";
 
-        LocalDateTime previousLeaseUntil = LocalDateTime.now().plusMinutes(5);
+        LocalDateTime databaseTime = getDatabaseTime();
+        LocalDateTime previousLeaseUntil = databaseTime.plusMinutes(5);
 
         updateProcessing(deadLetter.getId(), previousToken, previousLeaseUntil);
 
-        LocalDateTime newLeaseUntil = LocalDateTime.now().plusMinutes(10);
+        LocalDateTime newLeaseUntil = databaseTime.plusMinutes(10);
 
         // when
         int updatedCount = deadLetterRepository.markProcessing(
@@ -133,17 +134,30 @@ class DeadLetterRepositoryTest {
     @DisplayName("존재하지 않는 DeadLetter는 PROCESSING 상태로 선점하지 않는다")
     void markProcessingWithNonExistentId() {
         // given
+        DeadLetterQueue pending = saveDeadLetter("event-non-existent-1");
+
         Long nonExistentId = 999L;
+        String claimToken = "claim-token";
+
+        LocalDateTime leaseUntil = getDatabaseTime().plusMinutes(5);
 
         // when
         int updatedCount = deadLetterRepository.markProcessing(
                 nonExistentId,
-                "claim-token",
-                LocalDateTime.now().plusMinutes(5)
+                claimToken,
+                leaseUntil
         );
 
         // then
         assertThat(updatedCount).isZero();
+
+        entityManager.clear();
+
+        DeadLetterQueue found = findById(pending.getId());
+
+        assertThat(found.getDeadLetterStatus()).isEqualTo(DeadLetterStatus.PENDING);
+        assertThat(found.getClaimToken()).isNull();
+        assertThat(found.getLeaseUntil()).isNull();
     }
 
     // ==============================
@@ -237,16 +251,33 @@ class DeadLetterRepositoryTest {
     @DisplayName("존재하지 않는 DeadLetter는 RECOVERED 상태로 변경하지 않는다")
     void markRecoveredWithNonExistentId() {
         // given
+        DeadLetterQueue processing = saveDeadLetter("event-non-existent-2");
+
+        String claimToken = "claim-token";
+
+        updateProcessing(
+                processing.getId(),
+                claimToken,
+                getDatabaseTime().plusMinutes(5)
+        );
+
         Long nonExistentId = 999L;
 
         // when
         int updatedCount = deadLetterRepository.markRecovered(
                 nonExistentId,
-                "claim-token"
+                claimToken
         );
 
         // then
         assertThat(updatedCount).isZero();
+
+        entityManager.clear();
+
+        DeadLetterQueue found = findById(processing.getId());
+
+        assertThat(found.getDeadLetterStatus()).isEqualTo(DeadLetterStatus.PROCESSING);
+        assertThat(found.getClaimToken()).isEqualTo(claimToken);
     }
 
     // ==============================
@@ -340,16 +371,33 @@ class DeadLetterRepositoryTest {
     @DisplayName("존재하지 않는 DeadLetter는 PENDING 상태로 변경하지 않는다")
     void markPendingWithNonExistentId() {
         // given
+        DeadLetterQueue processing = saveDeadLetter("event-non-existent-3");
+
+        String claimToken = "claim-token";
+
+        updateProcessing(
+                processing.getId(),
+                claimToken,
+                getDatabaseTime().plusMinutes(5)
+        );
+
         Long nonExistentId = 999L;
 
         // when
         int updatedCount = deadLetterRepository.markPending(
                 nonExistentId,
-                "claim-token"
+                claimToken
         );
 
         // then
         assertThat(updatedCount).isZero();
+
+        entityManager.clear();
+
+        DeadLetterQueue found = findById(processing.getId());
+
+        assertThat(found.getDeadLetterStatus()).isEqualTo(DeadLetterStatus.PROCESSING);
+        assertThat(found.getClaimToken()).isEqualTo(claimToken);
     }
 
     // ==============================
@@ -363,16 +411,18 @@ class DeadLetterRepositoryTest {
         DeadLetterQueue expired = saveDeadLetter("event-10");
         DeadLetterQueue active = saveDeadLetter("event-11");
 
+        LocalDateTime databaseTime = getDatabaseTime();
+
         updateProcessing(
                 expired.getId(),
                 "expired-token",
-                LocalDateTime.now().minusMinutes(1)
+                databaseTime.minusMinutes(1)
         );
 
         updateProcessing(
                 active.getId(),
                 "active-token",
-                LocalDateTime.now().plusMinutes(5)
+                databaseTime.plusMinutes(5)
         );
 
         // when
@@ -400,10 +450,12 @@ class DeadLetterRepositoryTest {
         // given
         DeadLetterQueue active = saveDeadLetter("event-12");
 
+        LocalDateTime databaseTime = getDatabaseTime();
+
         updateProcessing(
                 active.getId(),
                 "active-token",
-                LocalDateTime.now().plusMinutes(5)
+                databaseTime.plusMinutes(5)
         );
 
         // when
@@ -514,17 +566,38 @@ class DeadLetterRepositoryTest {
     @DisplayName("존재하지 않는 DeadLetter lease는 갱신하지 않는다")
     void renewLeaseWithNonExistentId() {
         // given
+        DeadLetterQueue processing = saveDeadLetter("event-non-existent-4");
+
+        String claimToken = "claim-token";
+
+        LocalDateTime previousLeaseUntil = getDatabaseTime().plusMinutes(5);
+
+        updateProcessing(
+                processing.getId(),
+                claimToken,
+                previousLeaseUntil
+        );
+
         Long nonExistentId = 999L;
 
         // when
         int updatedCount = deadLetterRepository.renewLease(
                 nonExistentId,
-                "claim-token",
-                LocalDateTime.now().plusMinutes(10)
+                claimToken,
+                getDatabaseTime().plusMinutes(10)
         );
 
         // then
         assertThat(updatedCount).isZero();
+
+        entityManager.clear();
+
+        DeadLetterQueue found = findById(processing.getId());
+
+        assertThat(found.getDeadLetterStatus()).isEqualTo(DeadLetterStatus.PROCESSING);
+        assertThat(found.getClaimToken()).isEqualTo(claimToken);
+        assertThat(found.getLeaseUntil())
+                .isCloseTo(previousLeaseUntil, within(1, ChronoUnit.MICROS));
     }
 
     // ==============================
@@ -559,15 +632,46 @@ class DeadLetterRepositoryTest {
     }
 
     @Test
-    @DisplayName("ID, claimToken, 상태 중 하나라도 일치하지 않으면 조회되지 않는다")
-    void findByIdAndClaimTokenAndDeadLetterStatusWithInvalidCondition() {
+    @DisplayName("존재하지 않는 ID로는 DeadLetter를 조회하지 않는다")
+    void findByIdAndClaimTokenAndDeadLetterStatusWithInvalidId() {
         // given
         DeadLetterQueue deadLetter = saveDeadLetter("event-17");
 
+        String claimToken = "correct-token";
+
         updateProcessing(
                 deadLetter.getId(),
-                "correct-token",
-                LocalDateTime.now().plusMinutes(5)
+                claimToken,
+                getDatabaseTime().plusMinutes(5)
+        );
+
+        entityManager.clear();
+
+        Long nonExistentId = 999L;
+
+        // when
+        var result = deadLetterRepository.findByIdAndClaimTokenAndDeadLetterStatus(
+                nonExistentId,
+                claimToken,
+                DeadLetterStatus.PROCESSING
+        );
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("상태가 일치하지 않는 DeadLetter는 조회하지 않는다")
+    void findByIdAndClaimTokenAndDeadLetterStatusWithInvalidStatus() {
+        // given
+        DeadLetterQueue deadLetter = saveDeadLetter("event-18");
+
+        String claimToken = "correct-token";
+
+        updateProcessing(
+                deadLetter.getId(),
+                claimToken,
+                getDatabaseTime().plusMinutes(5)
         );
 
         entityManager.clear();
@@ -575,8 +679,8 @@ class DeadLetterRepositoryTest {
         // when
         var result = deadLetterRepository.findByIdAndClaimTokenAndDeadLetterStatus(
                 deadLetter.getId(),
-                "wrong-token",
-                DeadLetterStatus.PROCESSING
+                claimToken,
+                DeadLetterStatus.PENDING
         );
 
         // then
@@ -628,5 +732,12 @@ class DeadLetterRepositoryTest {
     private DeadLetterQueue findById(Long deadLetterId) {
         return deadLetterRepository.findById(deadLetterId)
                 .orElseThrow();
+    }
+
+    private LocalDateTime getDatabaseTime() {
+        return ((java.sql.Timestamp) entityManager
+                .createNativeQuery("SELECT LOCALTIMESTAMP")
+                .getSingleResult())
+                .toLocalDateTime();
     }
 }
