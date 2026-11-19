@@ -28,6 +28,12 @@ class DeadLetterRepositoryTest {
     @Autowired
     private EntityManager entityManager;
 
+    private static final LocalDateTime FUTURE_LEASE_UNTIL =
+            LocalDateTime.of(2099, 1, 15, 12, 0);
+
+    private static final LocalDateTime EXPIRED_LEASE_UNTIL =
+            LocalDateTime.of(2000, 1, 15, 12, 0);
+
     // ==============================
     // markProcessing
     // ==============================
@@ -69,12 +75,11 @@ class DeadLetterRepositoryTest {
         String previousToken = "previous-token";
         String newToken = "new-token";
 
-        LocalDateTime databaseTime = getDatabaseTime();
-        LocalDateTime previousLeaseUntil = databaseTime.plusMinutes(5);
+        LocalDateTime previousLeaseUntil = FUTURE_LEASE_UNTIL;
 
         updateProcessing(deadLetter.getId(), previousToken, previousLeaseUntil);
 
-        LocalDateTime newLeaseUntil = databaseTime.plusMinutes(10);
+        LocalDateTime newLeaseUntil = FUTURE_LEASE_UNTIL.plusDays(1);
 
         // when
         int updatedCount = deadLetterRepository.markProcessing(
@@ -105,8 +110,8 @@ class DeadLetterRepositoryTest {
         String previousToken = "previous-token";
         String newToken = "new-token";
 
-        LocalDateTime expiredLeaseUntil = LocalDateTime.now().minusMinutes(1);
-        LocalDateTime newLeaseUntil = LocalDateTime.now().plusMinutes(5);
+        LocalDateTime expiredLeaseUntil = EXPIRED_LEASE_UNTIL;
+        LocalDateTime newLeaseUntil = FUTURE_LEASE_UNTIL;
 
         updateProcessing(deadLetter.getId(), previousToken, expiredLeaseUntil);
 
@@ -411,18 +416,16 @@ class DeadLetterRepositoryTest {
         DeadLetterQueue expired = saveDeadLetter("event-10");
         DeadLetterQueue active = saveDeadLetter("event-11");
 
-        LocalDateTime databaseTime = getDatabaseTime();
-
         updateProcessing(
                 expired.getId(),
                 "expired-token",
-                databaseTime.minusMinutes(1)
+                EXPIRED_LEASE_UNTIL
         );
 
         updateProcessing(
                 active.getId(),
                 "active-token",
-                databaseTime.plusMinutes(5)
+                FUTURE_LEASE_UNTIL
         );
 
         // when
@@ -450,12 +453,10 @@ class DeadLetterRepositoryTest {
         // given
         DeadLetterQueue active = saveDeadLetter("event-12");
 
-        LocalDateTime databaseTime = getDatabaseTime();
-
         updateProcessing(
                 active.getId(),
                 "active-token",
-                databaseTime.plusMinutes(5)
+                FUTURE_LEASE_UNTIL
         );
 
         // when
@@ -570,7 +571,7 @@ class DeadLetterRepositoryTest {
 
         String claimToken = "claim-token";
 
-        LocalDateTime previousLeaseUntil = getDatabaseTime().plusMinutes(5);
+        LocalDateTime previousLeaseUntil = FUTURE_LEASE_UNTIL;
 
         updateProcessing(
                 processing.getId(),
@@ -584,7 +585,7 @@ class DeadLetterRepositoryTest {
         int updatedCount = deadLetterRepository.renewLease(
                 nonExistentId,
                 claimToken,
-                getDatabaseTime().plusMinutes(10)
+                FUTURE_LEASE_UNTIL.plusDays(1)
         );
 
         // then
@@ -681,6 +682,33 @@ class DeadLetterRepositoryTest {
                 deadLetter.getId(),
                 claimToken,
                 DeadLetterStatus.PENDING
+        );
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("잘못된 claimToken으로는 DeadLetter를 조회하지 않는다")
+    void findByIdAndClaimTokenAndDeadLetterStatusWithInvalidClaimToken() {
+        // given
+        DeadLetterQueue deadLetter = saveDeadLetter("event-19");
+
+        String claimToken = "correct-token";
+
+        updateProcessing(
+                deadLetter.getId(),
+                claimToken,
+                FUTURE_LEASE_UNTIL
+        );
+
+        entityManager.clear();
+
+        // when
+        var result = deadLetterRepository.findByIdAndClaimTokenAndDeadLetterStatus(
+                deadLetter.getId(),
+                "wrong-token",
+                DeadLetterStatus.PROCESSING
         );
 
         // then
